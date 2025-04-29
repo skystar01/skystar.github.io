@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的个人主页</title>
+    <link rel="stylesheet" href="/styles/index.css">
+</head>
+
+<script>
+    // 平滑滚动到锚点
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            target.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+</script>
+
+<body>
+    <!-- 导航栏 -->
+    <nav>
+        <div class="container">
+            <h1>张三的个人主页</h1>
+            <ul>
+                <li><a href="#about">关于我</a></li>
+                <li><a href="#skills">技能</a></li>
+                <li><a href="#projects">项目</a></li>
+                <li><a href="#contact">联系</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 个人简介 -->
+    <section id="about" class="section">
+        <div class="container">
+            <img src="your-photo.jpg" alt="我的照片" class="profile-img">
+            <h2>关于我</h2>
+            <p>我是张三，计算机专业毕业生，热爱AI和Web开发。</p>
+        </div>
+    </section>
+
+    <!-- 技能展示 -->
+    <section id="skills" class="section">
+        <div class="container">
+            <h2>技能</h2>
+            <div class="skills-list">
+                <div class="skill-item">Python</div>
+                <div class="skill-item">PyTorch</div>
+                <div class="skill-item">HTML/CSS</div>
+                <div class="skill-item">JavaScript</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 项目展示 -->
+    <section id="projects" class="section">
+        <div class="container">
+            <h2>项目</h2>
+            <div class="project">
+                <h3>对话模型训练</h3>
+                <p>使用PyTorch训练的中文对话模型，支持多轮交互。</p>
+                <a href="https://github.com/yourusername/project1" target="_blank">查看代码</a>
+            </div>
+            <div class="project">
+                <h3>个人博客系统</h3>
+                <p>基于Flask搭建的简易博客，支持文章发布和评论。</p>
+                <a href="https://github.com/yourusername/project2" target="_blank">查看代码</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系方式 -->
+    <section id="contact" class="section">
+        <div class="container">
+            <h2>联系我</h2>
+            <ul class="contact-list">
+                <li>📧 邮箱：your-email@example.com</li>
+                <li>🐱 GitHub：<a href="https://github.com/yourusername">github.com/yourusername</a></li>
+                <li>💼 LinkedIn：<a href="#">你的LinkedIn链接</a></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer>
+        <div class="container">
+            <p>© 2025 张三. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
