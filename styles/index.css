@@ -1,115 +1,199 @@
-/* 重置默认样式 */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --light-color: #ecf0f1;
+    --dark-color: #34495e;
 }
 
 body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
 }
 
-/* 导航栏 */
+/* 导航栏样式 */
 nav {
-    background: #333;
-    color: white;
-    padding: 1rem 0;
-    position: fixed;
-    width: 100%;
+    background-color: var(--secondary-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: sticky;
     top: 0;
-    border-radius: 0 0 10px 10px;
+    z-index: 1000;
 }
 
-nav .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
-}
-
-nav ul {
-    display: flex;
-    list-style: none;
-}
-
-nav ul li a {
+nav h1 {
     color: white;
-    text-decoration: none;
-    padding: 0 15px;
+    margin: 0;
+    font-weight: 600;
 }
 
-/* 内容区块 */
+.navbar-nav .nav-link {
+    color: white !important;
+    font-weight: 500;
+    margin: 0 10px;
+    transition: all 0.3s;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--primary-color) !important;
+}
+
+/* 模块通用样式 */
 .section {
-    padding: 6rem 0 2rem; /* 避免导航栏遮挡 */
+    padding: 80px 0;
+    position: relative;
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
+.section:nth-child(even) {
+    background-color: white;
 }
 
+.section-title {
+    position: relative;
+    margin-bottom: 50px;
+    text-align: center;
+}
+
+.section-title h2 {
+    font-weight: 700;
+    color: var(--secondary-color);
+    display: inline-block;
+    padding-bottom: 15px;
+}
+
+.section-title h2::after {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 3px;
+    background-color: var(--primary-color);
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* 关于我模块 */
 .profile-img {
-    width: 150px;
-    height: 150px;
+    width: 200px;
+    height: 200px;
     border-radius: 50%;
-    margin: 20px 0;
+    object-fit: cover;
+    border: 5px solid var(--primary-color);
+    margin: 0 auto 30px;
+    display: block;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* 技能展示 */
+/* 技能模块 */
 .skills-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    justify-content: center;
+    gap: 15px;
 }
 
 .skill-item {
-    background: #f4f4f4;
-    padding: 8px 15px;
-    border-radius: 20px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: 500;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
 }
 
-/* 项目展示 */
-.project {
-    background: #fff;
-    padding: 20px;
-    margin: 20px 0;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.skill-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* 联系方式 */
+/* 项目模块 */
+.project-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.project-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.project-card h3 {
+    color: var(--secondary-color);
+    margin-bottom: 15px;
+}
+
+.project-link {
+    display: inline-block;
+    margin-top: 15px;
+    color: var(--primary-color);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.project-link i {
+    margin-left: 5px;
+    transition: all 0.3s;
+}
+
+.project-link:hover {
+    color: var(--secondary-color);
+}
+
+.project-link:hover i {
+    transform: translateX(5px);
+}
+
+/* 联系模块 */
 .contact-list {
     list-style: none;
+    padding: 0;
+    max-width: 500px;
+    margin: 0 auto;
 }
 
 .contact-list li {
-    margin: 10px 0;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+}
+
+.contact-list i {
+    width: 30px;
+    color: var(--primary-color);
+    margin-right: 10px;
+}
+
+.contact-list a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.contact-list a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
 }
 
 /* 页脚 */
 footer {
-    background: #333;
+    background-color: var(--secondary-color);
     color: white;
+    padding: 20px 0;
     text-align: center;
-    padding: 1rem 0;
-    margin-top: 2rem;
 }
 
-/* 响应式设计：手机端适配 */
+/* 响应式调整 */
 @media (max-width: 768px) {
-    nav .container {
-        flex-direction: column;
-        text-align: center;
+    .section {
+        padding: 60px 0;
     }
-
-    nav ul {
-        margin-top: 10px;
-    }
-
-    .skills-list {
-        justify-content: center;
+    
+    .profile-img {
+        width: 150px;
+        height: 150px;
     }
 }
