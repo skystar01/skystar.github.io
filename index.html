@@ -965,6 +965,30 @@
             box-shadow: 0 2px 5px black;
         }
         
+        .tetris-btn-ai {
+            background: linear-gradient(95deg, #1a3a2a, #0f2218);
+            border-color: rgba(74, 222, 128, 0.5);
+            color: #4ade80;
+        }
+        
+        .tetris-btn-ai:hover {
+            background: linear-gradient(95deg, #2a4a3a, #182a20);
+            color: white;
+            border-color: #6ee7b7;
+        }
+        
+        .tetris-btn-ai.ai-active {
+            background: linear-gradient(95deg, #4ade80, #22d3ee);
+            color: #0a0f1f;
+            border-color: #4ade80;
+            box-shadow: 0 5px 0 #16a34a, 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+        
+        .tetris-btn-ai.ai-active:hover {
+            background: linear-gradient(95deg, #6ee7b7, #67e8f9);
+            color: #0a0f1f;
+        }
+        
         .tetris-tip {
             font-size: 12px;
             text-align: center;
@@ -1642,6 +1666,7 @@
                                 </div>
                                 <div class="tetris-controls">
                                     <button class="tetris-btn" id="tetrisStart">🎮 开始游戏</button>
+                                    <button class="tetris-btn tetris-btn-ai" id="tetrisAI">🤖 AI 模式</button>
                                 </div>
                                 <div class="tetris-tip">
                                     ◀ A/←  &nbsp;&nbsp; ▶ D/→<br>

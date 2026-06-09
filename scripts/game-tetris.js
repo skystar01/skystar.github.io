@@ -400,6 +400,8 @@ class TetrisGame {
         this.paused = false;
         this.dropInterval = 1000;
         this.flashRows = [];
+        this.aiPlaying = false;
+        if (this.aiTimer) clearInterval(this.aiTimer);
         if (this.flashTimeout) clearTimeout(this.flashTimeout);
         this.updateUI();
         this.spawnPiece();
@@ -436,6 +438,250 @@ class TetrisGame {
         
         this.drawBoard();
         requestAnimationFrame(() => this.gameLoop());
+    }
+    
+    // ========== AI 算法 (Pierre Dellacherie 启发式) ==========
+    
+    cloneBoard(board) {
+        return board.map(row => [...row]);
+    }
+    
+    getDropPosition(board, shape, startX) {
+        let y = 0;
+        while (this.canPlacePieceAt(board, shape, startX, y + 1)) {
+            y++;
+        }
+        return y;
+    }
+    
+    canPlacePieceAt(board, shape, x, y) {
+        for (let row = 0; row < shape.length; row++) {
+            for (let col = 0; col < shape[row].length; col++) {
+                if (shape[row][col]) {
+                    const newX = x + col;
+                    const newY = y + row;
+                    if (newX < 0 || newX >= this.COLS || newY >= this.ROWS) {
+                        return false;
+                    }
+                    if (newY >= 0 && board[newY][newX]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    
+    getRotations(shape) {
+        const rotations = [shape];
+        let current = shape;
+        for (let i = 0; i < 3; i++) {
+            const rows = current.length;
+            const cols = current[0].length;
+            const rotated = [];
+            for (let col = 0; col < cols; col++) {
+                const newRow = [];
+                for (let row = rows - 1; row >= 0; row--) {
+                    newRow.push(current[row][col]);
+                }
+                rotated.push(newRow);
+            }
+            rotations.push(rotated);
+            current = rotated;
+        }
+        return rotations;
+    }
+    
+    placePieceOnBoard(board, shape, x, y) {
+        const newBoard = this.cloneBoard(board);
+        for (let row = 0; row < shape.length; row++) {
+            for (let col = 0; col < shape[row].length; col++) {
+                if (shape[row][col]) {
+                    const newY = y + row;
+                    const newX = x + col;
+                    if (newY >= 0 && newY < this.ROWS && newX >= 0 && newX < this.COLS) {
+                        newBoard[newY][newX] = true;
+                    }
+                }
+            }
+        }
+        return newBoard;
+    }
+    
+    // 计算列高度
+    getColumnHeights(board) {
+        const heights = Array(this.COLS).fill(0);
+        for (let col = 0; col < this.COLS; col++) {
+            for (let row = 0; row < this.ROWS; row++) {
+                if (board[row][col]) {
+                    heights[col] = this.ROWS - row;
+                    break;
+                }
+            }
+        }
+        return heights;
+    }
+    
+    // 计算消除行数
+    countCompleteLines(board) {
+        let count = 0;
+        for (let row = 0; row < this.ROWS; row++) {
+            if (board[row].every(cell => cell)) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    // 计算空洞数（被覆盖的空位）
+    countHoles(board, heights) {
+        let holes = 0;
+        for (let col = 0; col < this.COLS; col++) {
+            let blockFound = false;
+            for (let row = this.ROWS - heights[col]; row < this.ROWS; row++) {
+                if (row < 0) continue;
+                if (board[row][col]) {
+                    blockFound = true;
+                } else if (blockFound) {
+                    holes++;
+                }
+            }
+        }
+        return holes;
+    }
+    
+    // 计算表面不平整度
+    getBumpiness(heights) {
+        let bumpiness = 0;
+        for (let i = 0; i < heights.length - 1; i++) {
+            bumpiness += Math.abs(heights[i] - heights[i + 1]);
+        }
+        return bumpiness;
+    }
+    
+    // 评估函数 (Pierre Dellacherie)
+    evaluateBoard(board) {
+        const heights = this.getColumnHeights(board);
+        const aggregateHeight = heights.reduce((a, b) => a + b, 0);
+        const completeLines = this.countCompleteLines(board);
+        const holes = this.countHoles(board, heights);
+        const bumpiness = this.getBumpiness(heights);
+        
+        // 权重 (经过优化的经典参数)
+        return -0.510066 * aggregateHeight
+             + 0.760666 * completeLines
+             - 0.35663 * holes
+             - 0.184483 * bumpiness;
+    }
+    
+    // 寻找当前方块的最佳放置位置
+    findBestMove() {
+        if (!this.currentPiece) return null;
+        
+        const rotations = this.getRotations(this.currentPiece.shape);
+        let bestScore = -Infinity;
+        let bestMove = null;
+        
+        for (const shape of rotations) {
+            for (let x = -2; x < this.COLS + 2; x++) {
+                if (!this.canPlacePieceAt(this.board, shape, x, 0)) continue;
+                
+                const y = this.getDropPosition(this.board, shape, x);
+                if (y < 0) continue;
+                
+                const newBoard = this.placePieceOnBoard(this.board, shape, x, y);
+                const score = this.evaluateBoard(newBoard);
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = { shape, x, y };
+                }
+            }
+        }
+        
+        return bestMove;
+    }
+    
+    // 执行 AI 移动到目标位置
+    executeAIMove() {
+        if (!this.gameRunning || this.gameOver || this.paused || !this.aiPlaying) return;
+        
+        const bestMove = this.findBestMove();
+        if (!bestMove) return;
+        
+        // 计算需要旋转的次数
+        const originalShape = this.currentPiece.shape;
+        let rotationCount = 0;
+        for (let r = 0; r < this.getRotations(originalShape).length; r++) {
+            if (this.shapesEqual(this.getRotations(originalShape)[r], bestMove.shape)) {
+                rotationCount = r;
+                break;
+            }
+        }
+        
+        // 旋转到目标姿态
+        for (let i = 0; i < rotationCount; i++) {
+            this.rotatePiece();
+        }
+        
+        // 移动到目标 X 位置
+        const dx = bestMove.x - this.currentPosition.x;
+        if (dx > 0) {
+            for (let i = 0; i < dx; i++) this.moveRight();
+        } else if (dx < 0) {
+            for (let i = 0; i < -dx; i++) this.moveLeft();
+        }
+        
+        // 硬降落
+        this.hardDrop();
+    }
+    
+    shapesEqual(s1, s2) {
+        if (s1.length !== s2.length) return false;
+        for (let i = 0; i < s1.length; i++) {
+            if (s1[i].length !== s2[i].length) return false;
+            for (let j = 0; j < s1[i].length; j++) {
+                if (s1[i][j] !== s2[i][j]) return false;
+            }
+        }
+        return true;
+    }
+    
+    startAI(intervalMs = 100) {
+        if (this.aiPlaying) return;
+        if (!this.gameRunning) this.start();
+        this.aiPlaying = true;
+        this.updateAIButton();
+        
+        this.aiTimer = setInterval(() => {
+            if (this.gameRunning && !this.gameOver && !this.paused) {
+                this.executeAIMove();
+            } else if (this.gameOver) {
+                this.stopAI();
+            }
+        }, intervalMs);
+    }
+    
+    stopAI() {
+        if (this.aiTimer) {
+            clearInterval(this.aiTimer);
+            this.aiTimer = null;
+        }
+        this.aiPlaying = false;
+        this.updateAIButton();
+    }
+    
+    updateAIButton() {
+        const btn = document.getElementById('tetrisAI');
+        if (btn) {
+            if (this.aiPlaying) {
+                btn.textContent = '⏹️ 停止 AI';
+                btn.classList.add('ai-active');
+            } else {
+                btn.textContent = '🤖 AI 模式';
+                btn.classList.remove('ai-active');
+            }
+        }
     }
     
     bindEvents() {
@@ -488,5 +734,16 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     window.tetris = tetris;
     
-    document.getElementById('tetrisStart').addEventListener('click', () => tetris.start());
+    document.getElementById('tetrisStart').addEventListener('click', () => {
+        if (tetris.aiPlaying) tetris.stopAI();
+        tetris.start();
+    });
+    
+    document.getElementById('tetrisAI').addEventListener('click', () => {
+        if (tetris.aiPlaying) {
+            tetris.stopAI();
+        } else {
+            tetris.startAI(100);
+        }
+    });
 });
