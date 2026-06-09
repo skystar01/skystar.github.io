@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/game-tic-tac-toe.css">
     <style>
         :root {
             --sidebar-w: 68px;
@@ -1574,6 +1575,10 @@
                             <i class="fas fa-square-full"></i>
                             <span>俄罗斯方块</span>
                         </button>
+                        <button class="game-tab" data-game="tic-tac-toe">
+                            <i class="fas fa-square-plus"></i>
+                            <span>井字棋</span>
+                        </button>
                     </div>
                     
                     <!-- Snake Game Container -->
@@ -1677,6 +1682,42 @@
                         </div>
                     </div>
                     
+                    <!-- Tic Tac Toe Game Container -->
+                    <div class="game-container game-tic-tac-toe">
+                        <div class="tic-tac-toe-header">
+                            <span class="tic-tac-toe-title">⭕ 井字棋</span>
+                            <div class="tic-tac-toe-scores">
+                                <div class="tic-tac-toe-score-box">
+                                    <span class="tic-tac-toe-score-label">X</span>
+                                    <span class="tic-tac-toe-score-value" id="ticTacToeScoreX">0</span>
+                                </div>
+                                <div class="tic-tac-toe-score-box">
+                                    <span class="tic-tac-toe-score-label">O</span>
+                                    <span class="tic-tac-toe-score-value" id="ticTacToeScoreO">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tic-tac-toe-board" id="ticTacToeBoard">
+                            <div class="tic-tac-toe-cell" data-index="0"></div>
+                            <div class="tic-tac-toe-cell" data-index="1"></div>
+                            <div class="tic-tac-toe-cell" data-index="2"></div>
+                            <div class="tic-tac-toe-cell" data-index="3"></div>
+                            <div class="tic-tac-toe-cell" data-index="4"></div>
+                            <div class="tic-tac-toe-cell" data-index="5"></div>
+                            <div class="tic-tac-toe-cell" data-index="6"></div>
+                            <div class="tic-tac-toe-cell" data-index="7"></div>
+                            <div class="tic-tac-toe-cell" data-index="8"></div>
+                        </div>
+                        
+                        <div class="tic-tac-toe-status" id="ticTacToeStatus">❌ X 的回合</div>
+                        
+                        <div class="tic-tac-toe-controls">
+                            <button class="tic-tac-toe-btn tic-tac-toe-btn-primary" id="ticTacToeStart">🔄 新游戏</button>
+                            <button class="tic-tac-toe-btn tic-tac-toe-btn-ai" id="ticTacToeAI">🤖 AI模式</button>
+                        </div>
+                    </div>
+                    
                     <p class="game-instructions snake-instructions">
                         <strong>操作说明：</strong> WASD 或 方向键 控制方向 | 空格键 暂停/继续 | M键 切换AI模式
                     </p>
@@ -1688,6 +1729,9 @@
                     </p>
                     <p class="game-instructions tetris-instructions">
                         <strong>操作说明：</strong> 方向键/WASD 移动和旋转 | 空格键 硬降落 | P/ESC 暂停
+                    </p>
+                    <p class="game-instructions tic-tac-toe-instructions">
+                        <strong>操作说明：</strong> 点击格子下棋 | 三个连成一线获胜 | 点击「AI模式」与AI对战
                     </p>
                 </div>
             </div>
@@ -2160,5 +2204,6 @@
     <script src="scripts/flappy-bird.js"></script>
     <script src="scripts/game-2048.js"></script>
     <script src="scripts/game-tetris.js"></script>
+    <script src="scripts/game-tic-tac-toe.js"></script>
 </body>
 </html>
