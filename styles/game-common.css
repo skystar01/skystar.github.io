@@ -1,4 +1,4 @@
-/* Game Tabs */
+/* Game Tabs - 所有游戏共用 */
 .game-tabs {
     display: flex;
     gap: 12px;
@@ -38,18 +38,7 @@
     font-size: 1.1rem;
 }
 
-/* Game Container */
-.game-container {
-    position: relative;
-    background: rgba(15, 23, 42, 0.85);
-    border-radius: 24px;
-    padding: 20px;
-    border: 2px solid rgba(139, 92, 246, 0.3);
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px);
-}
-
-/* Game Container Switching */
+/* Game Container Switching - 所有游戏共用的切换动画 */
 .game-container {
     display: none;
     opacity: 0;
@@ -63,115 +52,7 @@
     transform: translateY(0);
 }
 
-/* Game Header */
-.game-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    max-width: 620px;
-    margin-bottom: 15px;
-}
-
-.game-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.game-score {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.score-box {
-    background: rgba(139, 92, 246, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 12px;
-    padding: 10px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.score-label {
-    font-size: 0.75rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.score-value {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #fbbf24;
-}
-
-.game-controls {
-    display: flex;
-    gap: 12px;
-    margin-top: 15px;
-}
-
-.game-btn {
-    padding: 12px 28px;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: none;
-    letter-spacing: 0.02em;
-}
-
-.game-btn-primary {
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
-    color: white;
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-}
-
-.game-btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
-}
-
-.game-btn-secondary {
-    background: rgba(139, 92, 246, 0.15);
-    color: #a78bfa;
-    border: 1px solid rgba(139, 92, 246, 0.3);
-}
-
-.game-btn-secondary:hover {
-    background: rgba(139, 92, 246, 0.25);
-    border-color: rgba(139, 92, 246, 0.5);
-}
-
-.game-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.status-player {
-    background: rgba(249, 115, 22, 0.15);
-    color: #fb923c;
-    border: 1px solid rgba(249, 115, 22, 0.3);
-}
-
-.status-ai {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
+/* Game Instructions - 所有游戏共用 */
 .game-instructions {
     display: none;
     text-align: center;
@@ -183,40 +64,4 @@
 
 .game-instructions.active {
     display: block;
-}
-
-.game-over-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 23, 42, 0.95);
-    border-radius: 24px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 25px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-.game-over-overlay.visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.game-over-title {
-    font-size: 3rem;
-    font-weight: 700;
-    color: #ef4444;
-    text-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
-}
-
-.game-over-score {
-    font-size: 1.5rem;
-    color: #fbbf24;
-    font-weight: 600;
 }

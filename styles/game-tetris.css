@@ -1,14 +1,15 @@
-/* Tetris Styles - Neon Theme */
+/* Tetris Container - 俄罗斯方块专用容器 */
 .game-container.game-tetris {
+    position: relative;
+    background: rgba(15, 23, 42, 0.85);
+    border-radius: 24px;
     padding: 20px 30px;
-    background: rgba(10, 14, 23, 0.7);
-    backdrop-filter: blur(4px);
-    border-radius: 48px;
-    border: 1px solid rgba(72, 187, 255, 0.3);
-    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
 }
 
-.tetris-wrapper {
+.game-container.game-tetris .tetris-wrapper {
     display: flex;
     gap: 28px;
     flex-wrap: wrap;
@@ -16,11 +17,11 @@
     align-items: flex-start;
 }
 
-.tetris-canvas-area {
+.game-container.game-tetris .tetris-canvas-area {
     position: relative;
 }
 
-.tetris-canvas {
+.game-container.game-tetris .tetris-canvas {
     display: block;
     border-radius: 24px;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
@@ -28,7 +29,7 @@
     cursor: pointer;
 }
 
-.tetris-info-panel {
+.game-container.game-tetris .tetris-info-panel {
     background: rgba(12, 16, 28, 0.75);
     backdrop-filter: blur(8px);
     border-radius: 32px;
@@ -38,7 +39,7 @@
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
-.tetris-stat-card {
+.game-container.game-tetris .tetris-stat-card {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 28px;
     padding: 12px 20px;
@@ -47,7 +48,7 @@
     border-bottom: 2px solid #2affb6;
 }
 
-.tetris-stat-label {
+.game-container.game-tetris .tetris-stat-label {
     font-size: 14px;
     letter-spacing: 2px;
     font-weight: 400;
@@ -57,7 +58,7 @@
     display: block;
 }
 
-.tetris-stat-value {
+.game-container.game-tetris .tetris-stat-value {
     font-size: 48px;
     font-weight: 800;
     font-family: monospace;
@@ -67,14 +68,14 @@
     display: block;
 }
 
-.tetris-controls {
+.game-container.game-tetris .tetris-controls {
     display: flex;
     flex-direction: column;
     gap: 12px;
     margin-top: 15px;
 }
 
-.tetris-btn {
+.game-container.game-tetris .tetris-btn {
     background: linear-gradient(95deg, #1e2a3a, #0f1722);
     border: none;
     padding: 10px 0;
@@ -90,7 +91,7 @@
     border: 1px solid rgba(72, 187, 255, 0.5);
 }
 
-.tetris-btn:hover {
+.game-container.game-tetris .tetris-btn:hover {
     transform: translateY(-2px);
     background: linear-gradient(95deg, #2a3e52, #182230);
     color: white;
@@ -98,36 +99,36 @@
     border-color: #4effe6;
 }
 
-.tetris-btn:active {
+.game-container.game-tetris .tetris-btn:active {
     transform: translateY(3px);
     box-shadow: 0 2px 5px black;
 }
 
-.tetris-btn-ai {
+.game-container.game-tetris .tetris-btn-ai {
     background: linear-gradient(95deg, #1a3a2a, #0f2218);
     border-color: rgba(74, 222, 128, 0.5);
     color: #4ade80;
 }
 
-.tetris-btn-ai:hover {
+.game-container.game-tetris .tetris-btn-ai:hover {
     background: linear-gradient(95deg, #2a4a3a, #182a20);
     color: white;
     border-color: #6ee7b7;
 }
 
-.tetris-btn-ai.ai-active {
+.game-container.game-tetris .tetris-btn-ai.ai-active {
     background: linear-gradient(95deg, #4ade80, #22d3ee);
     color: #0a0f1f;
     border-color: #4ade80;
     box-shadow: 0 5px 0 #16a34a, 0 0 20px rgba(74, 222, 128, 0.5);
 }
 
-.tetris-btn-ai.ai-active:hover {
+.game-container.game-tetris .tetris-btn-ai.ai-active:hover {
     background: linear-gradient(95deg, #6ee7b7, #67e8f9);
     color: #0a0f1f;
 }
 
-.tetris-tip {
+.game-container.game-tetris .tetris-tip {
     font-size: 12px;
     text-align: center;
     margin-top: 18px;
