@@ -197,9 +197,11 @@ class TetrisGame {
         if (rowsToClear.length === 0) return;
         
         this.flashRows = [...rowsToClear];
-        const clearedLines = rowsToClear.length;
+        const clearedLines = Math.min(rowsToClear.length, 4);
         const lineScores = [0, 100, 300, 500, 800];
-        this.score += lineScores[clearedLines] * this.level;
+        const points = lineScores[clearedLines] || 0;
+        this.score += Math.min(points * this.level, 1000000000);
+        if (isNaN(this.score)) this.score = 0;
         this.lines += clearedLines;
         
         const newLevel = Math.floor(this.lines / 10) + 1;
@@ -647,7 +649,7 @@ class TetrisGame {
         return true;
     }
     
-    startAI(intervalMs = 100) {
+    startAI(intervalMs = 400) {
         if (this.aiPlaying) return;
         if (!this.gameRunning) this.start();
         this.aiPlaying = true;
