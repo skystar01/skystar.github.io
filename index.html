@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles/game-tic-tac-toe.css">
+    <link rel="stylesheet" href="styles/game-plane.css">
     <style>
         :root {
             --sidebar-w: 68px;
@@ -376,6 +377,13 @@
             margin: 0 auto;
         }
 
+        /* ─── GAME PANEL OVERRIDE ─── */
+        #panel-game .inner-panel {
+            min-height: unset;
+            height: auto;
+            padding: 50px 40px 30px;
+        }
+
         .panel-heading {
             margin-bottom: 50px;
         }
@@ -587,33 +595,24 @@
         }
 
         /* ─── GAME MODULE ─── */
-        .game-section {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 60px 20px;
-            gap: 24px;
-        }
-
         /* Game styles moved to styles/games.css */
         .game-tabs {
             display: flex;
-            gap: 12px;
-            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
         }
 
         .game-tab {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 24px;
+            gap: 6px;
+            padding: 9px 18px;
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 12px;
+            border-radius: 10px;
             color: #94a3b8;
-            font-size: 0.95rem;
+            font-size: 0.88rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -664,22 +663,33 @@
 
         /* Game Container Switching */
         .game-container {
-            display: none;
+            display: none !important;
             opacity: 0;
             transform: translateY(10px);
             transition: opacity 0.3s ease, transform 0.3s ease;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0 auto;
         }
 
         .game-container.active {
-            display: block;
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
             opacity: 1;
             transform: translateY(0);
+        }
+
+        /* Canvas responsive scaling */
+        .game-container canvas {
+            max-width: 100%;
+            height: auto;
         }
 
         .game-container.game-flappy {
             padding: 10px;
         }
-        
+
         .game-container.game-2048 {
             padding: 15px;
         }
@@ -732,13 +742,16 @@
         .game2048-grid-container {
             background-color: #cdc1b4;
             border-radius: 16px;
-            padding: 10px;
+            padding: 12px;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
         }
         
         .game2048-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            gap: 12px;
         }
         
         .cell-2048 {
@@ -749,7 +762,7 @@
             align-items: center;
             justify-content: center;
             font-weight: 800;
-            font-size: 1.6rem;
+            font-size: 1.8rem;
             color: #776e65;
             transition: all 0.12s ease-in-out;
         }
@@ -859,6 +872,12 @@
             font-weight: bold;
             font-size: 0.9rem;
             cursor: pointer;
+        }
+
+        .game-container.game-tetris.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         /* Tetris Styles - Neon Theme */
@@ -1004,11 +1023,14 @@
 
 
         .game-instructions {
-            display: none;
-        }
-
-        .game-instructions.active {
-            display: block;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            max-width: 600px;
+            line-height: 1.6;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(139, 92, 246, 0.2);
         }
 
         .game-header {
@@ -1550,9 +1572,8 @@
         <!-- GAME PANEL -->
         <section class="panel" id="panel-game">
             <div class="inner-panel">
-                <div class="game-section">
-                    <div class="panel-heading">
-                        <div class="eyebrow">Fun Time</div>
+                <div class="panel-heading">
+                    <div class="eyebrow">Fun Time</div>
                         <h2>游戏中心</h2>
                         <div class="underline"></div>
                     </div>
@@ -1578,6 +1599,10 @@
                         <button class="game-tab" data-game="tic-tac-toe">
                             <i class="fas fa-square-plus"></i>
                             <span>井字棋</span>
+                        </button>
+                        <button class="game-tab" data-game="plane">
+                            <i class="fas fa-plane"></i>
+                            <span>打飞机</span>
                         </button>
                     </div>
                     
@@ -1609,11 +1634,19 @@
                             <div class="game-over-score" id="finalScore">Final Score: 0</div>
                             <button class="game-btn game-btn-primary" id="gameRestart">再来一局</button>
                         </div>
+                        
+                        <p class="game-instructions">
+                            <strong>操作说明：</strong> WASD 或 方向键 控制方向 | 空格键 暂停/继续 | M键 切换AI模式
+                        </p>
                     </div>
                     
                     <!-- Flappy Bird Game Container -->
                     <div class="game-container game-flappy">
                         <canvas id="flappyCanvas"></canvas>
+                        
+                        <p class="game-instructions">
+                            <strong>操作说明：</strong> 点击屏幕或按空格键/↑/W 飞行 | P/ESC 暂停
+                        </p>
                     </div>
                     
                     <!-- 2048 Game Container -->
@@ -1640,6 +1673,10 @@
                             <button class="game2048-btn" id="newGame2048">✨ 新游戏</button>
                             <button class="game2048-btn game2048-btn-ai" id="toggleAI2048">🤖 AI 模式</button>
                         </div>
+                        
+                        <p class="game-instructions">
+                            <strong>操作说明：</strong> 方向键 控制滑动方向 | 触摸屏幕滑动控制 | 点击「AI 模式」自动玩
+                        </p>
                     </div>
                     
                     <div id="gameOverlay2048" class="game2048-overlay">
@@ -1680,6 +1717,10 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <p class="game-instructions">
+                            <strong>操作说明：</strong> 方向键/WASD 移动和旋转 | 空格键 硬降落 | P/ESC 暂停
+                        </p>
                     </div>
                     
                     <!-- Tic Tac Toe Game Container -->
@@ -1716,24 +1757,25 @@
                             <button class="tic-tac-toe-btn tic-tac-toe-btn-primary" id="ticTacToeStart">🔄 新游戏</button>
                             <button class="tic-tac-toe-btn tic-tac-toe-btn-ai" id="ticTacToeAI">🤖 AI模式</button>
                         </div>
+                        
+                        <p class="game-instructions">
+                            <strong>操作说明：</strong> 点击格子下棋 | 三个连成一线获胜 | 点击「AI模式」与AI对战
+                        </p>
                     </div>
                     
-                    <p class="game-instructions snake-instructions">
-                        <strong>操作说明：</strong> WASD 或 方向键 控制方向 | 空格键 暂停/继续 | M键 切换AI模式
-                    </p>
-                    <p class="game-instructions flappy-instructions">
-                        <strong>操作说明：</strong> 点击屏幕或按空格键/↑/W 飞行 | P/ESC 暂停
-                    </p>
-                    <p class="game-instructions game2048-instructions">
-                        <strong>操作说明：</strong> 方向键 控制滑动方向 | 触摸屏幕滑动控制 | 点击「AI 模式」自动玩
-                    </p>
-                    <p class="game-instructions tetris-instructions">
-                        <strong>操作说明：</strong> 方向键/WASD 移动和旋转 | 空格键 硬降落 | P/ESC 暂停
-                    </p>
-                    <p class="game-instructions tic-tac-toe-instructions">
-                        <strong>操作说明：</strong> 点击格子下棋 | 三个连成一线获胜 | 点击「AI模式」与AI对战
-                    </p>
-                </div>
+                    <!-- Plane Shooter Game Container -->
+                    <div class="game-container game-plane">
+                        <canvas id="planeCanvas" width="600" height="400" class="game-plane-canvas"></canvas>
+                        <div class="game-plane-info-panel">
+                            <div class="game-plane-score-box"><span>⚡ SCORE</span> <span id="planeScoreValue">0</span></div>
+                            <div class="game-plane-lives-box"><span>❤️ LIVES</span> <span id="planeLivesValue">3</span></div>
+                            <button class="game-plane-restart-btn" id="planeRestartButton">🚀 开始游戏</button>
+                        </div>
+                        
+                        <p class="game-instructions">
+                            <strong>操作说明：</strong> 点击「开始游戏」开始 | WASD或方向键移动 | 子弹自动发射 | 分数越高火力越强
+                        </p>
+                    </div>
             </div>
         </section>
 
@@ -2178,32 +2220,28 @@
         tab.addEventListener('click', () => {
             const gameName = tab.dataset.game;
             
-            // Update tabs
             document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             
-            // Switch game containers
             document.querySelectorAll('.game-container').forEach(container => {
                 container.classList.remove('active');
             });
             document.querySelector(`.game-container.game-${gameName}`).classList.add('active');
             
-            // Switch instructions
-            document.querySelectorAll('.game-instructions').forEach(inst => {
-                inst.classList.remove('active');
-            });
-            document.querySelector(`.game-instructions.${gameName}-instructions`).classList.add('active');
+            if(gameName === 'plane' && window.startPlaneGame) {
+                window.startPlaneGame();
+            }
         });
     });
     
     // Initialize active states
     document.querySelector('.game-container.game-snake').classList.add('active');
-    document.querySelector('.game-instructions.snake-instructions').classList.add('active');
     </script>
     <script src="scripts/snake-game.js"></script>
     <script src="scripts/flappy-bird.js"></script>
     <script src="scripts/game-2048.js"></script>
     <script src="scripts/game-tetris.js"></script>
     <script src="scripts/game-tic-tac-toe.js"></script>
+    <script src="scripts/game-plane.js"></script>
 </body>
 </html>

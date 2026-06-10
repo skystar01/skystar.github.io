@@ -173,3 +173,14 @@
     color: #0f172a;
     box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
 }
+
+.game-container.game-tic-tac-toe .game-instructions {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    max-width: 320px;
+    line-height: 1.5;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(139, 92, 246, 0.15);
+}

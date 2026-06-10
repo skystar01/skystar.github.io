@@ -14,7 +14,8 @@ class TicTacToeGame {
             [0, 4, 8], [2, 4, 6]
         ];
         
-        this.init();
+        this.movesX = [];
+        this.movesO = [];
     }
     
     init() {
@@ -22,7 +23,15 @@ class TicTacToeGame {
         this.currentPlayer = 'X';
         this.gameActive = true;
         this.aiThinking = false;
+        this.movesX = [];
+        this.movesO = [];
         this.updateUI();
+        
+        const cells = document.querySelectorAll('.game-tic-tac-toe .tic-tac-toe-cell');
+        cells.forEach((cell, index) => {
+            cell.style.pointerEvents = 'auto';
+            cell.style.cursor = 'pointer';
+        });
     }
     
     initDOM() {
@@ -36,20 +45,35 @@ class TicTacToeGame {
         this.startBtn.addEventListener('click', () => this.init());
         this.aiBtn.addEventListener('click', () => this.toggleAI());
         
-        this.boardElement.addEventListener('click', (e) => {
-            const cell = e.target.closest('.tic-tac-toe-cell');
-            if (cell) {
-                this.makeMove(parseInt(cell.dataset.index));
-            }
+        const cells = document.querySelectorAll('.game-tic-tac-toe .tic-tac-toe-cell');
+        cells.forEach((cell, index) => {
+            cell.addEventListener('click', () => this.makeMove(index));
         });
         
         this.updateScore();
+        this.init();
     }
     
     makeMove(index) {
         if (!this.gameActive || this.board[index] !== '' || this.aiThinking) return;
         
         this.board[index] = this.currentPlayer;
+        
+        if (this.currentPlayer === 'X') {
+            this.movesX.push(index);
+            if (this.movesX.length > 3) {
+                const oldestMove = this.movesX.shift();
+                this.board[oldestMove] = '';
+            }
+        } else {
+            this.movesO.push(index);
+            if (this.movesO.length > 3) {
+                const oldestMove = this.movesO.shift();
+                this.board[oldestMove] = '';
+            }
+        }
+        
+        this.updateUI();
         
         if (this.checkWin(this.currentPlayer)) {
             this.gameActive = false;
@@ -66,7 +90,6 @@ class TicTacToeGame {
         }
         
         this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
-        this.updateUI();
         
         if (this.aiEnabled && this.currentPlayer === this.aiPlayer && this.gameActive) {
             this.aiThinking = true;
@@ -79,6 +102,14 @@ class TicTacToeGame {
         
         const bestMove = this.findBestMove();
         this.board[bestMove] = this.aiPlayer;
+        
+        this.movesO.push(bestMove);
+        if (this.movesO.length > 3) {
+            const oldestMove = this.movesO.shift();
+            this.board[oldestMove] = '';
+        }
+        
+        this.updateUI();
         
         if (this.checkWin(this.aiPlayer)) {
             this.gameActive = false;
@@ -93,7 +124,6 @@ class TicTacToeGame {
         }
         
         this.aiThinking = false;
-        this.updateUI();
     }
     
     findBestMove() {
@@ -223,6 +253,7 @@ class TicTacToeGame {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('TicTacToe: DOM loaded, initializing game...');
     const game = new TicTacToeGame();
     game.initDOM();
 });
