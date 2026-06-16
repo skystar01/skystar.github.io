@@ -1,0 +1,148 @@
+/* =============================================
+   俄罗斯方块 游戏样式 (Neon Theme)
+   ============================================= */
+
+.game-container.game-tetris.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.game-container.game-tetris {
+    padding: 20px 30px;
+    background: rgba(10, 14, 23, 0.7);
+    backdrop-filter: blur(4px);
+    border-radius: 48px;
+    border: 1px solid rgba(72, 187, 255, 0.3);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.tetris-wrapper {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.tetris-canvas-area {
+    position: relative;
+}
+
+.tetris-canvas {
+    display: block;
+    border-radius: 24px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+    background-color: #0a0c18;
+    cursor: pointer;
+}
+
+.tetris-info-panel {
+    background: rgba(12, 16, 28, 0.75);
+    backdrop-filter: blur(8px);
+    border-radius: 32px;
+    padding: 20px 24px;
+    min-width: 200px;
+    border: 1px solid rgba(0, 255, 255, 0.25);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+.tetris-stat-card {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 28px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid #2affb6;
+}
+
+.tetris-stat-label {
+    font-size: 14px;
+    letter-spacing: 2px;
+    font-weight: 400;
+    color: #b9e6ff;
+    text-transform: uppercase;
+    text-shadow: 0 0 5px #00a6ff;
+    display: block;
+}
+
+.tetris-stat-value {
+    font-size: 48px;
+    font-weight: 800;
+    font-family: monospace;
+    color: #f0f9ff;
+    text-shadow: 0 0 10px #2affb6;
+    line-height: 1.2;
+    display: block;
+}
+
+.tetris-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.tetris-btn {
+    background: linear-gradient(95deg, #1e2a3a, #0f1722);
+    border: none;
+    padding: 10px 0;
+    border-radius: 60px;
+    font-weight: bold;
+    font-size: 18px;
+    color: #ccf4ff;
+    cursor: pointer;
+    transition: 0.2s;
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.25);
+    letter-spacing: 1px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(72, 187, 255, 0.5);
+}
+
+.tetris-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(95deg, #2a3e52, #182230);
+    color: white;
+    box-shadow: 0 7px 12px rgba(0, 160, 255, 0.2);
+    border-color: #4effe6;
+}
+
+.tetris-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 5px black;
+}
+
+.tetris-btn-ai {
+    background: linear-gradient(95deg, #1a3a2a, #0f2218);
+    border-color: rgba(74, 222, 128, 0.5);
+    color: #4ade80;
+}
+
+.tetris-btn-ai:hover {
+    background: linear-gradient(95deg, #2a4a3a, #182a20);
+    color: white;
+    border-color: #6ee7b7;
+}
+
+.tetris-btn-ai.ai-active {
+    background: linear-gradient(95deg, #4ade80, #22d3ee);
+    color: #0a0f1f;
+    border-color: #4ade80;
+    box-shadow: 0 5px 0 #16a34a, 0 0 20px rgba(74, 222, 128, 0.5);
+}
+
+.tetris-btn-ai.ai-active:hover {
+    background: linear-gradient(95deg, #6ee7b7, #67e8f9);
+    color: #0a0f1f;
+}
+
+.tetris-tip {
+    font-size: 12px;
+    text-align: center;
+    margin-top: 18px;
+    color: #7b93b0;
+    background: rgba(15, 20, 34, 0.7);
+    border-radius: 40px;
+    padding: 8px;
+    line-height: 1.6;
+}

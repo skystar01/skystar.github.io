@@ -1,0 +1,187 @@
+/* =============================================
+   2048 游戏样式
+   ============================================= */
+
+.game-container.game-2048 {
+    padding: 15px;
+}
+
+.game2048-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.game2048-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #eee4da, #edc53f);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    letter-spacing: 2px;
+}
+
+.game2048-scores {
+    display: flex;
+    gap: 10px;
+}
+
+.game2048-score-card {
+    background: #bbada0;
+    border-radius: 12px;
+    padding: 6px 14px;
+    text-align: center;
+}
+
+.game2048-score-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #eee4da;
+    letter-spacing: 1px;
+}
+
+.game2048-score-value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+
+.game2048-grid-container {
+    background-color: #cdc1b4;
+    border-radius: 16px;
+    padding: 12px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.game2048-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.cell-2048 {
+    aspect-ratio: 1 / 1;
+    background-color: rgba(238, 228, 218, 0.6);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.8rem;
+    color: #776e65;
+    transition: all 0.12s ease-in-out;
+}
+
+.tile-2048-2 { background: #eee4da; color: #776e65; }
+.tile-2048-4 { background: #ede0c8; color: #776e65; }
+.tile-2048-8 { background: #f2b179; color: #f9f6f2; }
+.tile-2048-16 { background: #f59563; color: #f9f6f2; }
+.tile-2048-32 { background: #f67c5f; color: #f9f6f2; }
+.tile-2048-64 { background: #f65e3b; color: #f9f6f2; }
+.tile-2048-128 { background: #edcf72; color: #f9f6f2; font-size: 1.2rem; }
+.tile-2048-256 { background: #edcc61; color: #f9f6f2; font-size: 1.2rem; }
+.tile-2048-512 { background: #edc850; color: #f9f6f2; font-size: 1.2rem; }
+.tile-2048-1024 { background: #edc53f; color: #f9f6f2; font-size: 1rem; }
+.tile-2048-2048 { background: #edc22e; color: #f9f6f2; font-size: 1rem; }
+.tile-2048-super { background: #3c3a32; color: #f9f6f2; font-size: 0.9rem; }
+
+.game2048-button-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.game2048-btn {
+    background: #8f7a66;
+    border: none;
+    color: #f9f6f2;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 10px 28px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.game2048-btn:hover {
+    background: #9f8a76;
+    transform: scale(1.02);
+}
+
+.game2048-btn-ai {
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+.game2048-btn-ai:hover {
+    background: linear-gradient(135deg, #9f6fff, #ff6bb0);
+}
+
+.game2048-btn-ai.ai-active {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.game2048-btn-ai.ai-active:hover {
+    background: linear-gradient(135deg, #34d399, #6ee7b7);
+}
+
+.game2048-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: 0.2s;
+    z-index: 100;
+}
+
+.game2048-overlay.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.game2048-overlay-card {
+    background: #f9f6f2;
+    padding: 25px 35px;
+    border-radius: 30px;
+    text-align: center;
+}
+
+.game2048-overlay-card h2 {
+    font-size: 1.8rem;
+    margin: 0 0 12px;
+    color: #776e65;
+}
+
+.game2048-overlay-card p {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: #8f7a66;
+}
+
+.game2048-restart-btn {
+    background: #8f7a66;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 30px;
+    color: white;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+}

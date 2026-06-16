@@ -11,7 +11,7 @@
 .game-plane-canvas-wrapper {
     position: relative;
     width: 100%;
-    max-width: 650px;
+    max-width: 850px;
 }
 
 .game-plane-canvas {
@@ -19,21 +19,93 @@
     margin: 0 auto;
     border-radius: 16px;
     box-shadow: 0 0 0 2px rgba(42, 255, 158, 0.4), 0 8px 20px rgba(0, 0, 0, 0.5);
-    cursor: none;
+    cursor: pointer;
 }
 
-.game-plane-info-panel {
+/* HUD 样式 */
+.plane-hud {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-around;
     align-items: center;
-    margin-top: 12px;
-    padding: 8px 16px;
-    background: rgba(11, 12, 26, 0.8);
-    border-radius: 40px;
-    backdrop-filter: blur(8px);
+    margin-top: 15px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(11, 12, 26, 0.95), rgba(20, 25, 40, 0.95));
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
     border: 1px solid rgba(42, 255, 158, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     width: 100%;
-    max-width: 600px;
+    max-width: 800px;
+    gap: 20px;
+}
+
+.hud-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.hud-label {
+    font-size: 11px;
+    font-weight: bold;
+    color: #666;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.hud-value {
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.score-value {
+    color: #ffff00;
+    text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+    font-family: 'Courier New', monospace;
+}
+
+.lives-value {
+    font-size: 24px;
+    letter-spacing: 4px;
+}
+
+.weapon-value {
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: #60a5fa;
+    text-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
+}
+
+.plane-restart-btn {
+    background: linear-gradient(135deg, #2c2e4e, #3d3f6e);
+    border: 1px solid rgba(42, 255, 158, 0.3);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 12px;
+    color: #2affcc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.plane-restart-btn:hover {
+    background: linear-gradient(135deg, #3d3f6e, #4f5b9e);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(42, 255, 158, 0.3);
+}
+
+.plane-restart-btn:active {
+    transform: translateY(0);
+}
+
+/* 旧的样式保留备用 */
+.game-plane-info-panel {
+    display: none;
 }
 
 .game-plane-score-box,
@@ -110,24 +182,29 @@
         padding: 8px;
     }
     
-    .game-plane-score-box,
-    .game-plane-lives-box {
+    .plane-hud {
+        padding: 10px 15px;
+        gap: 10px;
+    }
+    
+    .hud-label {
+        font-size: 9px;
+    }
+    
+    .hud-value {
         font-size: 16px;
     }
     
-    .game-plane-score-box span,
-    .game-plane-lives-box span {
-        font-size: 12px;
-        margin-right: 6px;
+    .lives-value {
+        font-size: 20px;
     }
     
-    .game-plane-restart-btn {
-        font-size: 12px;
-        padding: 5px 12px;
+    .weapon-value {
+        font-size: 14px;
     }
     
-    .game-plane-controls-tip {
-        font-size: 10px;
-        padding: 4px 12px;
+    .plane-restart-btn {
+        font-size: 12px;
+        padding: 8px 16px;
     }
 }

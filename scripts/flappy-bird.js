@@ -30,6 +30,7 @@ class FlappyBird {
         this.gameRunning = false;
         this.gamePaused = false;
         this.gameOver = false;
+        this.loopRunning = false;
         
         this.aiMode = false;
         this.aiModelLoaded = false;
@@ -54,7 +55,7 @@ class FlappyBird {
         this.initClouds();
         this.bindEvents();
         this.checkBackend();
-        this.gameLoop();
+        this.draw();
     }
     
     async checkBackend() {
@@ -125,6 +126,7 @@ class FlappyBird {
     
     start() {
         this.gameRunning = true;
+        if (!this.loopRunning) this.gameLoop();
         this.gameOver = false;
         this.pipes = [];
         this.score = 0;
@@ -525,9 +527,14 @@ class FlappyBird {
     }
     
     async gameLoop() {
+        this.loopRunning = true;
         await this.update();
         this.draw();
-        requestAnimationFrame(() => this.gameLoop());
+        if (this.gameRunning || this.gameOver) {
+            requestAnimationFrame(() => this.gameLoop());
+        } else {
+            this.loopRunning = false;
+        }
     }
 }
 
