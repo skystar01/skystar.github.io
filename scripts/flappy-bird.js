@@ -541,4 +541,64 @@ class FlappyBird {
 document.addEventListener('DOMContentLoaded', () => {
     const flappyGame = new FlappyBird('flappyCanvas');
     window.flappyGame = flappyGame;
+
+    // ─── UI WIRING (added by Mavis) ───
+    const aiButton = document.getElementById('flappyAIButton');
+    const restartButton = document.getElementById('flappyRestartButton');
+    const aiStatus = document.getElementById('flappyAIStatus');
+    const highScoreEl = document.getElementById('flappyHighScore');
+
+    function updateFlappyUI() {
+        if (highScoreEl) highScoreEl.textContent = flappyGame.highScore || 0;
+        if (aiStatus) {
+            if (!flappyGame.aiModelLoaded) {
+                aiStatus.innerHTML = '<i class="fas fa-plug"></i> 未连接';
+                aiStatus.className = 'game-status status-player';
+            } else if (flappyGame.aiMode) {
+                aiStatus.innerHTML = '<i class="fas fa-robot"></i> AI 模式';
+                aiStatus.className = 'game-status status-ai';
+            } else {
+                aiStatus.innerHTML = '<i class="fas fa-hand-paper"></i> 手动';
+                aiStatus.className = 'game-status status-player';
+            }
+        }
+        if (aiButton) {
+            if (!flappyGame.aiModelLoaded) {
+                aiButton.innerHTML = '<i class="fas fa-plug"></i> 启动 Flask 后可召唤 AI';
+                aiButton.disabled = false;
+            } else if (flappyGame.aiMode) {
+                aiButton.innerHTML = '<i class="fas fa-user"></i> 切回手动';
+                aiButton.disabled = false;
+            } else {
+                aiButton.innerHTML = '<i class="fas fa-robot"></i> 召唤 AI 试玩';
+                aiButton.disabled = false;
+            }
+        }
+    }
+
+    if (aiButton) {
+        aiButton.addEventListener('click', () => {
+            if (!flappyGame.aiModelLoaded) {
+                if (typeof showToast === 'function') {
+                    showToast('未连接 Flask 推理服务，请先启动 backend (port 5000)');
+                } else {
+                    alert('未连接 Flask 推理服务，请先启动 backend (port 5000)');
+                }
+                return;
+            }
+            flappyGame.toggleAI();
+            updateFlappyUI();
+        });
+    }
+
+    if (restartButton) {
+        restartButton.addEventListener('click', () => {
+            flappyGame.reset();
+            updateFlappyUI();
+        });
+    }
+
+    // 初始 + 定时刷新状态（checkBackend 是异步的，需要轮询一下）
+    updateFlappyUI();
+    setInterval(updateFlappyUI, 1500);
 });

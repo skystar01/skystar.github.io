@@ -8,6 +8,19 @@ class PlaneShooterGame {
         this.score = 0;
         this.lives = 3;
 
+        // === 最佳分（localStorage 持久化）===
+        this.bestScore = 0;
+        try {
+            const saved = localStorage.getItem('planeShooterBestScore');
+            if (saved) this.bestScore = parseInt(saved, 10) || 0;
+        } catch (e) {
+            // 隐私模式下 localStorage 可能不可用，静默忽略
+        }
+        this._recordCelebrated = false;
+
+        // === 暂停 ===
+        this.paused = false;
+
         // === 时间系统（全部统一为秒） ===
         this.lastTime = 0;
         this.gameTime = 0;              // 游戏累计时间（秒）
@@ -73,8 +86,9 @@ class PlaneShooterGame {
         this.floatingTexts = [];
         
         // === 精英/Boss生成标志 ===
-        this.eliteSpawned = false;
-        this.bossSpawned = false;
+        this.lastEliteThreshold = 0;
+        this.lastBossThreshold = 0;
+        this.bossCount = 0;
 
         // === 渲染 ===
         this.frame = 0;                // 仅用于视觉特效滚动
@@ -265,10 +279,36 @@ class PlaneShooterGame {
         this.comboTimer = 0;
         this.maxCombo = 0;
         this.floatingTexts = [];           // 重置浮动文字
-        this.eliteSpawned = false;         // 重置精英生成标志
-        this.bossSpawned = false;          // 重置Boss生成标志
+        this.lastEliteThreshold = 0;       // 重置精英生成阈值
+        this.lastBossThreshold = 0;        // 重置Boss生成阈值
+        this.bossCount = 0;               // 重置Boss计数
+        this.paused = false;              // 重置暂停
+        this._recordCelebrated = false;   // 重置纪录庆祝标记
         this.restartBtn.innerText = '🔄 重新起飞';
         this.updateUI();
+    }
+
+    // ─────────── 最佳分 ───────────
+
+    saveBestScore() {
+        if (this.score > this.bestScore) {
+            this.bestScore = this.score;
+            try {
+                localStorage.setItem('planeShooterBestScore', String(this.bestScore));
+            } catch (e) {
+                // 写入失败不阻断游戏
+            }
+            // 首次突破时只庆祝一次，避免每杀一个都刷屏
+            if (!this._recordCelebrated) {
+                this._recordCelebrated = true;
+                this.createFloatingText(
+                    this.W / 2,
+                    this.H / 2 - 80,
+                    `🏆 NEW RECORD: ${String(this.bestScore).padStart(6, '0')}`,
+                    '#fbbf24'
+                );
+            }
+        }
     }
 
     // ─────────── 敌机生成 ───────────
@@ -301,7 +341,8 @@ class PlaneShooterGame {
             hp,
             maxHp: hp,
             type,
-            lastShootTime: this.gameTime - Math.random() * 3
+            lastShootTime: this.gameTime - Math.random() * 3,
+            lastShieldHitTime: 0
         });
     }
     
@@ -318,27 +359,46 @@ class PlaneShooterGame {
             lastShootTime: this.gameTime,
             moveDirection: 1,
             attackPhase: 0,
-            phaseTimer: 0
+            phaseTimer: 0,
+            lastShieldHitTime: 0
         });
     }
     
     spawnBoss() {
-        let x = this.W / 2 - 60;
-        let y = 40;
+        this.bossCount++;
+        let scale = 1 + (this.bossCount - 1) * 0.5;
+        let baseHp = 80;
+        let hp = Math.floor(baseHp * scale);
+        let bossStyle = Math.min(3, this.bossCount - 1);  // 0/1/2/3+
+        let names = ["PINK STAR", "VOID CRYSTAL", "GOLDEN LORD", "DARK OBLIVION"];
+
+        let x = this.W / 2 - 75;
+        let y = -120;  // 从屏幕外飞入
         this.enemies.push({
             x, y,
-            w: 120,
-            h: 100,
-            hp: 40,
-            maxHp: 40,
+            w: 150,
+            h: 120,
+            hp: hp,
+            maxHp: hp,
             type: 3,
+            bossStyle: bossStyle,
+            bossName: names[bossStyle],
             lastShootTime: this.gameTime,
+            lastShieldHitTime: 0,
             moveDirection: 1,
-            attackPhase: 0,
+            attackPhase: -1,        // -1 = 进场动画
             phaseTimer: 0,
-            patternTimer: 0
+            patternTimer: 0,
+            hitFlash: 0,            // 受击闪烁计时
+            warningFlash: 0,        // 阶段切换预警
+            dashTarget: null,       // 冲刺目标
+            dashTimer: 0,
+            entryY: 100,            // 进场目标Y
+            entryDone: false,
+            phaseChanged: false
         });
     }
+
 
     // ─────────── 武器系统 ───────────
 
@@ -439,6 +499,14 @@ class PlaneShooterGame {
                 if (this.lives < 3) {
                     this.lives++;
                     this.updateUI();
+                } else {
+                    // [UX 优化] 满血时给个反馈，不让道具吃了个寂寞
+                    this.createFloatingText(
+                        this.player.x + this.PLAYER_WIDTH / 2,
+                        this.player.y - 12,
+                        'MAX HP',
+                        '#51cf66'
+                    );
                 }
                 break;
             case 'homing':
@@ -501,7 +569,7 @@ class PlaneShooterGame {
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     color: '#ff6b6b'
-                });
+                , enemyType: 2 });
             }
         } else if (e.attackPhase === 1) {
             // 阶段1：追踪弹
@@ -518,7 +586,7 @@ class PlaneShooterGame {
                 vy: dy * 200,
                 color: '#ffd93d',
                 homing: true
-            });
+            , enemyType: 2 });
         } else {
             // 阶段2：环形弹幕
             for (let i = 0; i < 8; i++) {
@@ -532,99 +600,152 @@ class PlaneShooterGame {
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
                     color: '#6c5ce7'
-                });
+                , enemyType: 2 });
             }
         }
     }
     
     bossShoot(e) {
-        let bulletX = e.x + e.w / 2;
-        let bulletY = e.y + e.h;
-        
-        let playerCX = this.player.x + this.PLAYER_WIDTH / 2;
-        let playerCY = this.player.y + this.PLAYER_HEIGHT / 2;
-        
-        if (e.attackPhase === 0) {
-            // 阶段0：密集弹幕
-            for (let i = -3; i <= 3; i++) {
-                let angle = Math.atan2(playerCY - bulletY, playerCX - bulletX) + i * 0.1;
-                let speed = 160 + Math.random() * 40;
-                this.enemyBullets.push({
-                    x: bulletX - 5,
-                    y: bulletY,
-                    w: 10,
-                    h: 10,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    color: '#fd79a8'
-                });
+        let style = e.bossStyle || 0;
+        let bx = e.x + e.w / 2;
+        let by = e.y + e.h / 2 + 20;
+        let px = this.player.x + this.PLAYER_WIDTH / 2;
+        let py = this.player.y + this.PLAYER_HEIGHT / 2;
+        let dx = px - bx, dy = py - by;
+        let dist = Math.hypot(dx, dy);
+        if (dist > 0) { dx /= dist; dy /= dist; }
+
+        // === Boss A (style 0): Pink Energy - Spiral + Tracking ===
+        if (style === 0) {
+            if (e.attackPhase === 0) {
+                // Scatter + spiral
+                for (let i = -2; i <= 2; i++) {
+                    let a = Math.atan2(py - by, px - bx) + i * 0.12;
+                    let s = 150 + Math.random() * 50;
+                    this.enemyBullets.push({ x: bx - 5, y: by, w: 10, h: 10, vx: Math.cos(a) * s, vy: Math.sin(a) * s, color: '#fd79a8' , enemyType: 2 });
+                }
+                let sa = e.patternTimer * 5;
+                for (let i = 0; i < 3; i++) {
+                    let a = sa + (i / 3) * Math.PI * 2;
+                    this.enemyBullets.push({ x: bx - 4, y: by, w: 8, h: 8, vx: Math.cos(a) * 100, vy: Math.sin(a) * 100 + 40, color: '#e17055' , enemyType: 2 });
+                }
+            } else if (e.attackPhase === 1) {
+                // Big tracking + delayed bomb
+                this.enemyBullets.push({ x: bx - 18, y: by, w: 36, h: 36, vx: dx * 200, vy: dy * 200, color: '#a29bfe', damage: 2 , enemyType: 2 });
+                if (Math.random() < 0.4) this.enemyBullets.push({ x: bx - 8, y: by, w: 16, h: 16, vx: dx * 60, vy: dy * 60, color: '#ffeaa7', delayed: true, fuseTimer: 1.8 , enemyType: 2 });
+            } else if (e.attackPhase === 2) {
+                // 12-way ring
+                for (let i = 0; i < 12; i++) {
+                    let a = (i / 12) * Math.PI * 2 + e.patternTimer * 3;
+                    this.enemyBullets.push({ x: bx - 3, y: by, w: 6, h: 6, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160, color: '#74b9ff' , enemyType: 2 });
+                }
+            } else {
+                // Tracking rain + ring
+                for (let i = 0; i < 2; i++) this.enemyBullets.push({ x: bx - 10, y: by + i * 25, w: 18, h: 18, vx: dx * 170, vy: dy * 170, color: '#ffeaa7', homing: true , enemyType: 2 });
+                for (let i = 0; i < 8; i++) { let a = (i / 8) * Math.PI * 2 + e.patternTimer; this.enemyBullets.push({ x: bx - 5, y: by, w: 10, h: 10, vx: Math.cos(a) * 130, vy: Math.sin(a) * 130, color: '#fdcb6e' , enemyType: 2 }); }
             }
-        } else if (e.attackPhase === 1) {
-            // 阶段1：巨型激光弹
-            let dx = playerCX - bulletX;
-            let dy = playerCY - bulletY;
-            let dist = Math.hypot(dx, dy);
-            if (dist > 0) { dx /= dist; dy /= dist; }
-            this.enemyBullets.push({
-                x: bulletX - 15,
-                y: bulletY,
-                w: 30,
-                h: 30,
-                vx: dx * 220,
-                vy: dy * 220,
-                color: '#a29bfe',
-                damage: 2
-            });
-        } else if (e.attackPhase === 2) {
-            // 阶段2：旋转弹幕
-            for (let i = 0; i < 12; i++) {
-                let angle = (i / 12) * Math.PI * 2 + e.patternTimer * 2;
-                let speed = 140;
-                this.enemyBullets.push({
-                    x: bulletX - 4,
-                    y: bulletY,
-                    w: 8,
-                    h: 8,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    color: '#74b9ff'
-                });
+        }
+
+        // === Boss B (style 1): Purple Crystal - Wide Fan + Double Ring + Triple Tracking ===
+        else if (style === 1) {
+            if (e.attackPhase === 0) {
+                // Wide fan: 7 bullets
+                for (let i = -3; i <= 3; i++) {
+                    let a = Math.atan2(py - by, px - bx) + i * 0.22;
+                    this.enemyBullets.push({ x: bx - 4, y: by, w: 10, h: 10, vx: Math.cos(a) * 200, vy: Math.sin(a) * 200, color: '#a29bfe' , enemyType: 2 });
+                }
+            } else if (e.attackPhase === 1) {
+                // Double ring: alternating rotation
+                for (let ring = 0; ring < 2; ring++) {
+                    let rot = e.patternTimer * (2 + ring) * (ring === 0 ? 1 : -1);
+                    for (let i = 0; i < 6; i++) {
+                        let a = (i / 6) * Math.PI * 2 + rot;
+                        this.enemyBullets.push({ x: bx - 3, y: by, w: 6, h: 6, vx: Math.cos(a) * 140, vy: Math.sin(a) * 140, color: ring === 0 ? '#6c5ce7' : '#fd79a8' , enemyType: 2 });
+                    }
+                }
+            } else if (e.attackPhase === 2) {
+                // Triple tracking bullets
+                for (let i = 0; i < 3; i++) {
+                    let spread = (i - 1) * 0.08;
+                    let a = Math.atan2(py - by + i * 10, px - bx) + spread;
+                    this.enemyBullets.push({ x: bx - 6, y: by, w: 12, h: 12, vx: Math.cos(a) * 220, vy: Math.sin(a) * 220, color: '#ffeaa7', homing: true , enemyType: 2 });
+                }
+            } else {
+                // Hexagonal spray
+                for (let i = 0; i < 6; i++) {
+                    let a = (i / 6) * Math.PI * 2 + e.patternTimer * 1.5;
+                    this.enemyBullets.push({ x: bx - 4, y: by, w: 8, h: 8, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160 + 50, color: '#74b9ff' , enemyType: 2 });
+                }
             }
-        } else {
-            // 阶段3：追踪弹+环形弹幕组合
-            let dx = playerCX - bulletX;
-            let dy = playerCY - bulletY;
-            let dist = Math.hypot(dx, dy);
-            if (dist > 0) { dx /= dist; dy /= dist; }
-            
-            for (let i = 0; i < 3; i++) {
-                this.enemyBullets.push({
-                    x: bulletX - 10,
-                    y: bulletY + i * 20,
-                    w: 20,
-                    h: 20,
-                    vx: dx * 180,
-                    vy: dy * 180,
-                    color: '#ffeaa7',
-                    homing: true
-                });
+        }
+
+        // === Boss C (style 2): Golden Emperor - Expanding Ring + Fast Aim + Cross ===
+        else if (style === 2) {
+            if (e.attackPhase === 0) {
+                // Expanding ring + slow orbs
+                for (let i = 0; i < 16; i++) {
+                    let a = (i / 16) * Math.PI * 2 + e.patternTimer * 1.2;
+                    this.enemyBullets.push({ x: bx - 3, y: by, w: 6, h: 6, vx: Math.cos(a) * 120, vy: Math.sin(a) * 120, color: '#fdcb6e' , enemyType: 2 });
+                }
+                // Slow big ball
+                this.enemyBullets.push({ x: bx - 15, y: by, w: 30, h: 30, vx: dx * 90, vy: dy * 90, color: '#fab1a0', damage: 2 , enemyType: 2 });
+            } else if (e.attackPhase === 1) {
+                // Fast aimed bullets
+                for (let i = -1; i <= 1; i++) {
+                    let a = Math.atan2(py - by, px - bx) + i * 0.06;
+                    this.enemyBullets.push({ x: bx - 3, y: by, w: 5, h: 14, vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, color: '#ffeaa7' , enemyType: 2 });
+                }
+            } else if (e.attackPhase === 2) {
+                // Cross rotating
+                let cr = e.patternTimer * 2;
+                for (let i = 0; i < 4; i++) {
+                    let a = (i / 4) * Math.PI * 2 + cr;
+                    this.enemyBullets.push({ x: bx - 4, y: by, w: 8, h: 8, vx: Math.cos(a) * 180, vy: Math.sin(a) * 180, color: '#fbbf24' , enemyType: 2 });
+                }
+            } else {
+                // Side wall bullets
+                for (let side = 0; side < 2; side++) {
+                    let sx = side === 0 ? 20 : this.W - 20;
+                    let targetAngle = Math.atan2(py - by, px - sx);
+                    this.enemyBullets.push({ x: sx, y: by - 40 + side * 80, w: 8, h: 8, vx: Math.cos(targetAngle) * 180, vy: Math.sin(targetAngle) * 180, color: '#ef4444' , enemyType: 2 });
+                }
             }
-            
-            for (let i = 0; i < 6; i++) {
-                let angle = (i / 6) * Math.PI * 2 + Math.PI / 2;
-                let speed = 120;
-                this.enemyBullets.push({
-                    x: bulletX - 5,
-                    y: bulletY,
-                    w: 10,
-                    h: 10,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    color: '#fdcb6e'
-                });
+        }
+
+        // === Boss D (style 3): Dark Destroyer - Chaos + Wall + Mines ===
+        else {
+            if (e.attackPhase === 0) {
+                // Chaotic scatter
+                for (let i = 0; i < 8; i++) {
+                    let a = Math.random() * Math.PI * 2;
+                    let s = 100 + Math.random() * 180;
+                    this.enemyBullets.push({ x: bx - 3, y: by, w: 8, h: 8, vx: Math.cos(a) * s, vy: Math.sin(a) * s + 30, color: '#f59e0b' , enemyType: 2 });
+                }
+            } else if (e.attackPhase === 1) {
+                // Moving bullet wall
+                let wallX = bx + Math.sin(e.patternTimer * 0.7) * 200;
+                for (let i = 0; i < 8; i++) {
+                    let wy = e.y + i * (e.h / 7);
+                    this.enemyBullets.push({ x: Math.max(20, Math.min(this.W - 20, wallX)) - 5, y: wy, w: 10, h: 10, vx: 0, vy: 160, color: '#ef4444' , enemyType: 2 });
+                }
+            } else if (e.attackPhase === 2) {
+                // Delayed mine field + fast shot
+                for (let i = 0; i < 5; i++) {
+                    let a = (i / 5) * Math.PI * 2 + e.patternTimer * 0.5;
+                    this.enemyBullets.push({ x: bx - 6, y: by, w: 14, h: 14, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60 + 80, color: '#7c3aed', delayed: true, fuseTimer: 1.2 , enemyType: 2 });
+                }
+                this.enemyBullets.push({ x: bx - 3, y: by, w: 5, h: 16, vx: dx * 280, vy: dy * 280, color: '#fbbf24' , enemyType: 2 });
+            } else {
+                // All-direction burst + homing
+                for (let i = 0; i < 10; i++) {
+                    let a = (i / 10) * Math.PI * 2 + e.patternTimer * 2;
+                    this.enemyBullets.push({ x: bx - 4, y: by, w: 8, h: 8, vx: Math.cos(a) * 140, vy: Math.sin(a) * 140, color: '#f97316' , enemyType: 2 });
+                }
+                this.enemyBullets.push({ x: bx - 8, y: by, w: 18, h: 18, vx: dx * 190, vy: dy * 190, color: '#ef4444', homing: true , enemyType: 2 });
             }
         }
     }
+
 
     // ─────────── 爆炸系统 ───────────
 
@@ -888,6 +1009,7 @@ class PlaneShooterGame {
                 let e = this.enemies[j];
                 if (this.rectCollide(b, e)) {
                     e.hp -= 1;
+                    if (e.type >= 2) e.hitFlash = 1.0;  // 精英/Boss受击闪烁
                     hit = true;
                     if (e.hp <= 0) {
                         this.createExplosion(e.x + e.w / 2, e.y + e.h / 2);
@@ -912,6 +1034,7 @@ class PlaneShooterGame {
                         
                         let finalScore = Math.floor(baseScore * comboMultiplier);
                         this.score += finalScore;
+                        this.saveBestScore();  // 检查是否破纪录
                         
                         // 创建浮动得分文字
                         let scoreColor = '#ffff00';
@@ -926,9 +1049,22 @@ class PlaneShooterGame {
                             scoreColor
                         );
                         
-                        // 重置精英/Boss生成标志
-                        if (e.type === 2) this.eliteSpawned = false;
-                        if (e.type === 3) this.bossSpawned = false;
+                        // 精英死亡：标记已处理
+                        if (e.type === 3) {
+                            // Boss死亡：大量道具掉落
+                            this.createPowerUp('shield');
+                            this.createPowerUp('weapon');
+                            this.createPowerUp('life');
+                            if (this.bossCount >= 2) this.createPowerUp('homing');
+                            // 大爆炸特效
+                            for (let k = 0; k < 3; k++) {
+                                let ox = e.x + e.w / 2 + (Math.random() - 0.5) * 80;
+                                let oy = e.y + e.h / 2 + (Math.random() - 0.5) * 60;
+                                this.createExplosion(ox, oy);
+                            }
+                            // Boss击杀提示
+                            this.createFloatingText(e.x + e.w / 2, e.y - 10, 'BOSS DEFEATED!', '#fbbf24');
+                        }
                         
                         this.updateUI();
                         this.enemies.splice(j, 1);
@@ -1034,29 +1170,86 @@ class PlaneShooterGame {
     }
     
     updateBoss(e, dt) {
+        e.hitFlash = Math.max(0, e.hitFlash - dt * 3);
         e.phaseTimer += dt;
         e.patternTimer += dt;
         
-        // Boss：左右缓慢移动
-        e.x += e.moveDirection * 60 * dt;
-        if (e.x <= 0 || e.x >= this.W - e.w) {
-            e.moveDirection *= -1;
+        // ── 进场动画：从屏幕外飞入 ──
+        if (!e.entryDone) {
+            e.y += 120 * dt;  // 快速下飞
+            if (e.y >= e.entryY) {
+                e.y = e.entryY;
+                e.entryDone = true;
+                e.attackPhase = 0;
+                e.phaseTimer = 0;
+                e.warningFlash = 1.8;  // 进场后短闪一下当开场秀
+                this.createFloatingText(e.x + e.w / 2, e.y - 20, '⚠ BOSS ⚠', '#fbbf24');
+            }
+            return;  // 进场期间不攻击不移动
         }
         
-        // 攻击阶段切换（每5秒）
-        if (e.phaseTimer >= 5) {
+        // ── 阶段切换预警 ──
+        if (e.warningFlash > 0) {
+            e.warningFlash -= dt;
+            if (e.warningFlash <= 0) {
+                e.phaseChanged = false;
+            }
+        }
+        
+        let phaseDuration = 6;  // 每个阶段持续6秒
+        if (e.phaseTimer >= phaseDuration - 1.2 && !e.phaseChanged) {
+            // 切换前1.2秒预警
+            e.warningFlash = 1.2;
+            e.phaseChanged = true;
+        }
+        if (e.phaseTimer >= phaseDuration) {
             e.phaseTimer = 0;
             e.attackPhase = (e.attackPhase + 1) % 4;
             e.patternTimer = 0;
+            e.phaseChanged = false;
         }
         
-        // 根据阶段攻击
-        let shootInterval = 0;
-        if (e.attackPhase === 0) shootInterval = 0.6;
-        else if (e.attackPhase === 1) shootInterval = 1.0;
-        else if (e.attackPhase === 2) shootInterval = 0.3;
-        else shootInterval = 0.8;
+        // ── 冲刺攻击（30%概率，阶段1和3时）──
+        if ((e.attackPhase === 1 || e.attackPhase === 3) && !e.dashTarget) {
+            e.dashTimer += dt;
+            if (e.dashTimer > 2.5 && Math.random() < 0.02) {
+                let px = this.player.x + this.PLAYER_WIDTH / 2;
+                e.dashTarget = { x: px - e.w / 2, y: e.y };
+                e.dashTimer = 0;
+            }
+        }
+        if (e.dashTarget) {
+            let dx = e.dashTarget.x - e.x;
+            let dy = e.dashTarget.y - e.y;
+            let dist = Math.hypot(dx, dy);
+            if (dist < 30 || e.dashTimer > 1.5) {
+                e.dashTarget = null;
+                e.dashTimer = 0;
+            } else {
+                e.x += (dx / dist) * 400 * dt;
+                e.y += (dy / dist) * 400 * dt;
+                return;  // 冲刺时不射击
+            }
+        }
         
+        // ── 正常移动（密集弹幕阶段减速）──
+        let moveSpeedByPhase = [40, 90, 20, 95];
+        let moveSpeed = moveSpeedByPhase[e.attackPhase] || 80;
+        e.x += e.moveDirection * moveSpeed * dt;
+        if (e.x <= 10 || e.x >= this.W - e.w - 10) {
+            e.moveDirection *= -1;
+        }
+        
+        // Boss attack intervals: different rhythm per boss style
+        let bossIntervals = [
+            [0.8, 1.1, 0.7, 0.9],    // Boss A
+            [1.1, 1.3, 0.85, 1.0],   // Boss B
+            [1.0, 1.2, 0.9, 1.0],    // Boss C
+            [1.1, 1.4, 0.95, 1.1]    // Boss D
+        ];
+        let siSrc = (e.bossStyle !== undefined && bossIntervals[e.bossStyle]) ? bossIntervals[e.bossStyle] : bossIntervals[0];
+        let shootInterval = siSrc[e.attackPhase] || 0.9;
+
         if (this.gameRunning && this.gameTime - e.lastShootTime >= shootInterval) {
             this.enemyShoot(e);
             e.lastShootTime = this.gameTime;
@@ -1073,6 +1266,25 @@ class PlaneShooterGame {
             if (eb.y + eb.h < 0 || eb.y > this.H + 100 || eb.x < -20 || eb.x > this.W + 20) {
                 this.enemyBullets.splice(i, 1);
                 continue;
+            }
+
+            // 延时爆炸弹：引信到期 → 炸成8方向
+            if (eb.delayed && eb.fuseTimer !== undefined) {
+                eb.fuseTimer -= dt;
+                if (eb.fuseTimer <= 0) {
+                    for (let j = 0; j < 8; j++) {
+                        let angle = (j / 8) * Math.PI * 2;
+                        this.enemyBullets.push({
+                            x: eb.x, y: eb.y,
+                            w: 8, h: 8,
+                            vx: Math.cos(angle) * 180,
+                            vy: Math.sin(angle) * 180,
+                            color: '#ff6b6b'
+                        , enemyType: 2 });
+                    }
+                    this.enemyBullets.splice(i, 1);
+                    continue;
+                }
             }
 
             // 碰撞玩家
@@ -1103,9 +1315,26 @@ class PlaneShooterGame {
             let e = this.enemies[i];
             if (this.rectCollide(playerRect, e)) {
                 if (this.gameRunning) {
-                    if (this.shieldCount > 0) {
-                        this.shieldCount--;  // 使用护盾抵挡
-                    } else if (this.invincibleTimer <= 0) {
+                    let hasShield = this.shieldCount > 0;
+                    let isInvincible = this.invincibleTimer > 0;
+
+                    if (hasShield || isInvincible) {
+                        // ── 护盾/无敌碰撞伤害 ──
+                        if (hasShield) {
+                            this.shieldCount--;
+                            // 护盾碰撞：造成伤害（1秒冷却），小怪直接撞死
+                            let now = this.gameTime;
+                            if (!e.lastShieldHitTime) e.lastShieldHitTime = 0;
+                            if (now - e.lastShieldHitTime >= 1.0) {
+                                e.lastShieldHitTime = now;
+                                let dmg = (e.hp <= 3) ? e.hp : 3;
+                                e.hp -= dmg;
+                                if (e.type >= 2) e.hitFlash = 1.0;
+                            }
+                        }
+                        // 无敌金光期间不造成碰撞伤害（纯防御）
+                    } else {
+                        // 无护盾无无敌：直接扣命
                         this.lives--;
                         this.updateUI();
                         if (this.lives <= 0) {
@@ -1115,8 +1344,26 @@ class PlaneShooterGame {
                             this.invincibleTimer = this.invincibleDuration;
                         }
                     }
+                    // 小怪/残血敌机直接移除
+                    if (e.hp <= 0) {
+                        this.createExplosion(e.x + e.w / 2, e.y + e.h / 2);
+                        if (e.type === 3) {
+                            this.createPowerUp('shield');
+                            this.createPowerUp('weapon');
+                            this.createPowerUp('life');
+                            if (this.bossCount >= 2) this.createPowerUp('homing');
+                            for (let k = 0; k < 3; k++) {
+                                let ox = e.x + e.w / 2 + (Math.random() - 0.5) * 80;
+                                let oy = e.y + e.h / 2 + (Math.random() - 0.5) * 60;
+                                this.createExplosion(ox, oy);
+                            }
+                            this.createFloatingText(e.x + e.w / 2, e.y - 10, 'BOSS DEFEATED!', '#fbbf24');
+                        }
+                        this.enemies.splice(i, 1);
+                    }
+                } else {
+                    this.enemies.splice(i, 1);
                 }
-                this.enemies.splice(i, 1);
             }
         }
     }
@@ -1130,20 +1377,16 @@ class PlaneShooterGame {
         
         // 检查是否需要生成精英敌机（每2000分）
         let eliteThreshold = Math.floor(this.score / 2000) * 2000;
-        if (!hasBoss && this.score >= eliteThreshold && !this.eliteSpawned && this.score >= 2000) {
-            if (!hasElite) {
-                this.spawnEliteEnemy();
-                this.eliteSpawned = true;
-            }
+        if (!hasBoss && !hasElite && eliteThreshold > this.lastEliteThreshold && eliteThreshold >= 2000) {
+            this.spawnEliteEnemy();
+            this.lastEliteThreshold = eliteThreshold;
         }
         
-        // 检查是否需要生成Boss（每5000分）
+        // 检查是否需要生成Boss（每5000分，不与精英同场）
         let bossThreshold = Math.floor(this.score / 5000) * 5000;
-        if (this.score >= bossThreshold && !this.bossSpawned && this.score >= 5000) {
-            if (!hasBoss) {
-                this.spawnBoss();
-                this.bossSpawned = true;
-            }
+        if (!hasBoss && !hasElite && bossThreshold > this.lastBossThreshold && bossThreshold >= 5000) {
+            this.spawnBoss();
+            this.lastBossThreshold = bossThreshold;
         }
         
         // 普通敌机生成逻辑
@@ -1349,8 +1592,9 @@ class PlaneShooterGame {
 
         // 普通敌机绘制
         let enemyImg = e.type === 1 ? this.enemyImages.normal2 : this.enemyImages.normal;
-        
-        if (this.imagesLoaded && enemyImg && enemyImg.complete) {
+
+        // [BUG FIX] 同时检查 naturalWidth > 0，某些浏览器下 404 图片 complete 也会是 true
+        if (this.imagesLoaded && enemyImg && enemyImg.complete && enemyImg.naturalWidth > 0) {
             ctx.save();
             
             if (e.type === 0) {
@@ -1417,172 +1661,367 @@ class PlaneShooterGame {
     
     drawEliteEnemy(e) {
         let ctx = this.ctx;
-        let pulse = Math.sin(Date.now() / 100) * 0.3 + 0.7;
-        
+        let time = Date.now() / 100;
+        let pulse = Math.sin(time * 3) * 0.2 + 0.8;
+        let cx = e.x + e.w / 2;
+        let cy = e.y + e.h / 2;
+        let r = e.w / 2;  // 半径40
+
         ctx.save();
-        
-        // 精英光环
-        let gradient = ctx.createRadialGradient(
-            e.x + e.w / 2, e.y + e.h / 2, 0,
-            e.x + e.w / 2, e.y + e.h / 2, e.w
-        );
-        gradient.addColorStop(0, `rgba(255, 107, 107, ${pulse * 0.4})`);
-        gradient.addColorStop(1, 'rgba(255, 107, 107, 0)');
-        ctx.fillStyle = gradient;
+
+        // ── 受击闪烁 ──
+        if (e.hitFlash > 0.3) {
+            ctx.globalAlpha = 0.5 + Math.sin(time * 30) * 0.5;
+        }
+
+        // ── 外层旋转光环 ──
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(time * 1.2);
+        ctx.strokeStyle = 'rgba(255, 107, 107, 0.35)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(e.x + e.w / 2, e.y + e.h / 2, e.w, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // 主体
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#ff6b6b';
-        
-        // 三角形主体
-        ctx.fillStyle = '#ff6b6b';
-        ctx.beginPath();
-        ctx.moveTo(e.x + e.w / 2, e.y + e.h);
-        ctx.lineTo(e.x + e.w, e.y);
-        ctx.lineTo(e.x, e.y);
+        let teeth = 10;
+        for (let i = 0; i < teeth * 2; i++) {
+            let a = (i / (teeth * 2)) * Math.PI * 2;
+            let rr = r + 4 + (i % 2 === 0 ? 6 : 0);
+            if (i === 0) ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+            else ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
         ctx.closePath();
-        ctx.fill();
-        
-        // 内圈
-        ctx.fillStyle = '#ff8787';
-        ctx.beginPath();
-        ctx.moveTo(e.x + e.w / 2, e.y + e.h - 10);
-        ctx.lineTo(e.x + e.w - 15, e.y + 15);
-        ctx.lineTo(e.x + 15, e.y + 15);
-        ctx.closePath();
-        ctx.fill();
-        
-        // 核心
-        ctx.fillStyle = '#ffd93d';
-        ctx.beginPath();
-        ctx.arc(e.x + e.w / 2, e.y + e.h / 2, 10, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.shadowBlur = 0;
+        ctx.stroke();
         ctx.restore();
-        
-        // 血条
-        let hpRatio = e.hp / e.maxHp;
-        let barW = e.w + 20;
-        let barH = 6;
-        let barX = e.x - 10;
-        let barY = e.y - 15;
-        
-        ctx.fillStyle = '#333';
-        ctx.fillRect(barX, barY, barW, barH);
-        ctx.fillStyle = hpRatio > 0.5 ? '#ff6b6b' : hpRatio > 0.25 ? '#ffd93d' : '#ff4757';
-        ctx.fillRect(barX, barY, barW * hpRatio, barH);
-        
-        // 边框
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(barX, barY, barW, barH);
-        
-        // 标签
-        ctx.font = 'bold 10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ff6b6b';
-        ctx.fillText('ELITE', e.x + e.w / 2, barY - 5);
-    }
-    
-    drawBoss(e) {
-        let ctx = this.ctx;
-        let pulse = Math.sin(Date.now() / 80) * 0.2 + 0.8;
-        
-        ctx.save();
-        
-        // Boss光环
-        let gradient = ctx.createRadialGradient(
-            e.x + e.w / 2, e.y + e.h / 2, 0,
-            e.x + e.w / 2, e.y + e.h / 2, e.w * 1.2
-        );
-        gradient.addColorStop(0, `rgba(162, 155, 254, ${pulse * 0.5})`);
-        gradient.addColorStop(0.5, `rgba(108, 92, 231, ${pulse * 0.3})`);
-        gradient.addColorStop(1, 'rgba(162, 155, 254, 0)');
-        ctx.fillStyle = gradient;
+
+        // ── 外层光环（径向渐变）──
+        let auraGrad = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r + 8);
+        auraGrad.addColorStop(0, `rgba(255, 80, 80, ${pulse * 0.5})`);
+        auraGrad.addColorStop(0.6, 'rgba(255, 60, 60, 0.15)');
+        auraGrad.addColorStop(1, 'rgba(255, 40, 40, 0)');
+        ctx.fillStyle = auraGrad;
         ctx.beginPath();
-        ctx.arc(e.x + e.w / 2, e.y + e.h / 2, e.w * 1.2, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r + 8, 0, Math.PI * 2);
         ctx.fill();
-        
-        // 主体
+
+        // ── 主体六边形装甲 ──
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = '#ff4444';
+
+        // 外层装甲（深红色六边形）
+        ctx.fillStyle = '#b71c1c';
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            let a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            let sx = cx + Math.cos(a) * (r + 2);
+            let sy = cy + Math.sin(a) * (r + 2);
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // 内层装甲（亮红色六边形）
+        ctx.fillStyle = '#e53935';
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            let a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            let sx = cx + Math.cos(a) * (r - 5);
+            let sy = cy + Math.sin(a) * (r - 5);
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // ── 装甲纹路（六边形内凹槽）──
+        ctx.strokeStyle = 'rgba(255, 180, 180, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            let a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            let sx = cx + Math.cos(a) * (r - 8);
+            let sy = cy + Math.sin(a) * (r - 8);
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // ── 能量核心 ──
         ctx.shadowBlur = 20;
-        ctx.shadowColor = '#a29bfe';
-        
-        // 六边形主体
-        ctx.fillStyle = '#6c5ce7';
+        ctx.shadowColor = '#ffd93d';
+        let coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14);
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.2, '#ffe066');
+        coreGrad.addColorStop(0.5, '#ff6b6b');
+        coreGrad.addColorStop(1, 'rgba(255, 60, 60, 0)');
+        ctx.fillStyle = coreGrad;
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            let angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-            let rx = e.x + e.w / 2 + Math.cos(angle) * e.w / 2;
-            let ry = e.y + e.h / 2 + Math.sin(angle) * e.h / 2;
-            if (i === 0) ctx.moveTo(rx, ry);
-            else ctx.lineTo(rx, ry);
-        }
-        ctx.closePath();
+        ctx.arc(cx, cy, 14 * pulse, 0, Math.PI * 2);
         ctx.fill();
-        
-        // 内层
-        ctx.fillStyle = '#a29bfe';
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            let angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-            let rx = e.x + e.w / 2 + Math.cos(angle) * e.w / 3;
-            let ry = e.y + e.h / 2 + Math.sin(angle) * e.h / 3;
-            if (i === 0) ctx.moveTo(rx, ry);
-            else ctx.lineTo(rx, ry);
-        }
-        ctx.closePath();
-        ctx.fill();
-        
-        // 核心
-        ctx.fillStyle = '#ffeaa7';
-        ctx.beginPath();
-        ctx.arc(e.x + e.w / 2, e.y + e.h / 2, 15, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // 核心闪光
+
+        // 核心高光点
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#ffffff';
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(e.x + e.w / 2 - 5, e.y + e.h / 2 - 5, 5, 0, Math.PI * 2);
+        ctx.arc(cx - 2, cy - 2, 4, 0, Math.PI * 2);
         ctx.fill();
-        
+
         ctx.shadowBlur = 0;
+
+        // ── 引擎火焰 ──
+        for (let i = -1; i <= 1; i += 2) {
+            let fx = cx + i * 18;
+            let fy = e.y + e.h - 6;
+            let flameH = 14 + Math.sin(time * 12 + i) * 6;
+            let flameGrad = ctx.createLinearGradient(fx, fy, fx, fy + flameH);
+            flameGrad.addColorStop(0, '#ffd93d');
+            flameGrad.addColorStop(0.5, '#ff6b6b');
+            flameGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = flameGrad;
+            ctx.beginPath();
+            ctx.moveTo(fx - 6, fy);
+            ctx.lineTo(fx + 6, fy);
+            ctx.lineTo(fx + 2, fy + flameH);
+            ctx.lineTo(fx - 2, fy + flameH);
+            ctx.closePath();
+            ctx.fill();
+        }
+
         ctx.restore();
-        
-        // 血条
+
+        // ── 受击闪烁恢复 ──
+        ctx.globalAlpha = 1;
+
+        // ── 血条 ──
         let hpRatio = e.hp / e.maxHp;
-        let barW = e.w + 40;
-        let barH = 10;
-        let barX = e.x - 20;
-        let barY = e.y - 25;
-        
-        ctx.fillStyle = '#333';
+        let barW = e.w + 20;
+        let barH = 8;
+        let barX = e.x - 10;
+        let barY = e.y - 18;
+
+        // 血条背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(barX, barY, barW, barH);
-        
-        // 渐变色血条
-        let hpGradient = ctx.createLinearGradient(barX, barY, barX + barW, barY);
-        hpGradient.addColorStop(0, '#a29bfe');
-        hpGradient.addColorStop(0.5, '#6c5ce7');
-        hpGradient.addColorStop(1, '#fd79a8');
-        ctx.fillStyle = hpGradient;
+
+        // 血量渐变
+        let barGrad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+        if (hpRatio > 0.5) {
+            barGrad.addColorStop(0, '#ef5350');
+            barGrad.addColorStop(1, '#c62828');
+        } else if (hpRatio > 0.25) {
+            barGrad.addColorStop(0, '#ffb74d');
+            barGrad.addColorStop(1, '#e65100');
+        } else {
+            barGrad.addColorStop(0, '#ff5252');
+            barGrad.addColorStop(1, '#b71c1c');
+        }
+        ctx.fillStyle = barGrad;
         ctx.fillRect(barX, barY, barW * hpRatio, barH);
-        
-        // 边框
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+
+        // 血量分段线
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1;
+        for (let seg = 1; seg < 3; seg++) {
+            let sx = barX + (barW / 3) * seg;
+            ctx.beginPath();
+            ctx.moveTo(sx, barY);
+            ctx.lineTo(sx, barY + barH);
+            ctx.stroke();
+        }
+
+        // 血条边框
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
         ctx.strokeRect(barX, barY, barW, barH);
-        
-        // Boss标签
-        ctx.font = 'bold 14px Arial';
+
+        // ── ELITE标签 ──
+        ctx.font = 'bold 11px Arial';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#a29bfe';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#a29bfe';
-        ctx.fillText('BOSS', e.x + e.w / 2, barY - 8);
+        ctx.fillStyle = '#ff6b6b';
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#ff0000';
+        ctx.fillText('\u25c6 ELITE \u25c6', cx, barY - 6);
         ctx.shadowBlur = 0;
+    }
+
+
+    drawBoss(e) {
+        let ctx = this.ctx;
+        let time = Date.now() / 100;
+        let pulse = Math.sin(time * 3) * 0.15 + 0.85;
+        let cx = e.x + e.w / 2;
+        let cy = e.y + e.h / 2;
+        let style = e.bossStyle || 0;
+
+        // 4套配色方案
+        let colorSets = [
+            [{ main: '#fd79a8', glow: '#e84393', core: '#ffeaa7' }, { main: '#a29bfe', glow: '#6c5ce7', core: '#fd79a8' }, { main: '#74b9ff', glow: '#0984e3', core: '#a29bfe' }, { main: '#fdcb6e', glow: '#f39c12', core: '#ff6b6b' }],
+            [{ main: '#a855f7', glow: '#7c3aed', core: '#e9d5ff' }, { main: '#c084fc', glow: '#8b5cf6', core: '#fdf4ff' }, { main: '#e879f9', glow: '#a21caf', core: '#d8b4fe' }, { main: '#d946ef', glow: '#86198f', core: '#f5d0fe' }],
+            [{ main: '#f59e0b', glow: '#d97706', core: '#fef3c7' }, { main: '#fbbf24', glow: '#b45309', core: '#fffbeb' }, { main: '#fcd34d', glow: '#92400e', core: '#fef08a' }, { main: '#eab308', glow: '#854d0e', core: '#fef9c3' }],
+            [{ main: '#dc2626', glow: '#7f1d1d', core: '#fecaca' }, { main: '#b91c1c', glow: '#450a0a', core: '#fee2e2' }, { main: '#991b1b', glow: '#ef4444', core: '#fca5a5' }, { main: '#7f1d1d', glow: '#dc2626', core: '#f87171' }]
+        ];
+        let colors = colorSets[style] || colorSets[0];
+        let phase = Math.max(0, e.attackPhase);
+        let c = colors[phase % 4];
+
+        ctx.save();
+
+        if (e.hitFlash > 0.3) ctx.globalAlpha = 0.5 + Math.sin(time * 30) * 0.5;
+        if (e.warningFlash > 0) { let wf = Math.sin(time * 15) * 0.5 + 0.5; ctx.shadowBlur = 30 + wf * 20; ctx.shadowColor = c.glow; }
+        else { ctx.shadowBlur = 18; ctx.shadowColor = c.glow; }
+
+        if (style === 0) {
+            // ── Boss-A: PINK STAR ──
+            ctx.strokeStyle = c.main; ctx.lineWidth = 3;
+            for (let ring = 0; ring < 3; ring++) {
+                ctx.save(); ctx.translate(cx, cy);
+                ctx.rotate(time * (0.5 + ring * 0.3) * (ring % 2 === 0 ? 1 : -1));
+                let rr = e.w * 0.35 + ring * 12;
+                ctx.beginPath(); let teeth = 8 + ring * 4;
+                for (let i = 0; i < teeth * 2; i++) {
+                    let a = (i / (teeth * 2)) * Math.PI * 2, rrr = rr + (i % 2 === 0 ? 8 : 0);
+                    i === 0 ? ctx.moveTo(Math.cos(a) * rrr, Math.sin(a) * rrr) : ctx.lineTo(Math.cos(a) * rrr, Math.sin(a) * rrr);
+                }
+                ctx.closePath(); ctx.stroke(); ctx.restore();
+            }
+            ctx.fillStyle = c.main; ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                let a = (i / 8) * Math.PI * 2 - Math.PI / 2, rr = i % 2 === 0 ? e.w * 0.28 : e.w * 0.22;
+                i === 0 ? ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+            }
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                let a = (i / 8) * Math.PI * 2 - Math.PI / 2, rr = i % 2 === 0 ? e.w * 0.18 : e.w * 0.14;
+                i === 0 ? ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+            }
+            ctx.closePath(); ctx.fill();
+            // core
+            ctx.shadowBlur = 25; ctx.shadowColor = c.core;
+            let cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 22);
+            cg.addColorStop(0, '#fff'); cg.addColorStop(0.3, c.core); cg.addColorStop(0.7, c.glow); cg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(cx, cy, 22 * pulse, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 15; ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx - 3, cy - 3, 6, 0, Math.PI * 2); ctx.fill();
+        } else if (style === 1) {
+            // ── Boss-B: VOID CRYSTAL ──
+            // rotating crystal shards
+            ctx.strokeStyle = c.main; ctx.lineWidth = 2;
+            for (let s = 0; s < 4; s++) {
+                ctx.save(); ctx.translate(cx, cy);
+                ctx.rotate(time * 1.5 + s * Math.PI / 2);
+                ctx.beginPath(); ctx.moveTo(e.w * 0.2, -8); ctx.lineTo(e.w * 0.35, 0); ctx.lineTo(e.w * 0.2, 8); ctx.closePath(); ctx.stroke();
+                ctx.restore();
+            }
+            // diamond body
+            ctx.fillStyle = c.main; ctx.beginPath();
+            ctx.moveTo(cx, cy - e.h * 0.35); ctx.lineTo(cx + e.w * 0.25, cy); ctx.lineTo(cx, cy + e.h * 0.3); ctx.lineTo(cx - e.w * 0.25, cy); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.beginPath();
+            ctx.moveTo(cx, cy - e.h * 0.25); ctx.lineTo(cx + e.w * 0.15, cy); ctx.lineTo(cx, cy + e.h * 0.2); ctx.lineTo(cx - e.w * 0.15, cy); ctx.closePath(); ctx.fill();
+            // crystal core
+            ctx.shadowBlur = 30; ctx.shadowColor = c.core;
+            let cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 18);
+            cg.addColorStop(0, '#fff'); cg.addColorStop(0.15, c.core); cg.addColorStop(0.5, c.glow); cg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = cg; ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                let a = (i / 6) * Math.PI * 2, rr = 18 * pulse;
+                i === 0 ? ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+            }
+            ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 15; ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx - 2, cy - 2, 5, 0, Math.PI * 2); ctx.fill();
+        } else if (style === 2) {
+            // ── Boss-C: GOLDEN LORD ──
+            // golden force field
+            ctx.strokeStyle = c.main; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(cx, cy, e.w * 0.38 + Math.sin(time * 4) * 6, 0, Math.PI * 2); ctx.stroke();
+            ctx.strokeStyle = c.glow; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(cx, cy, e.w * 0.42 + Math.cos(time * 3) * 4, 0, Math.PI * 2); ctx.stroke();
+            // circular armor
+            let armorGrad = ctx.createRadialGradient(cx, cy, e.w * 0.1, cx, cy, e.w * 0.35);
+            armorGrad.addColorStop(0, c.main); armorGrad.addColorStop(0.6, c.glow); armorGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = armorGrad; ctx.beginPath(); ctx.arc(cx, cy, e.w * 0.35, 0, Math.PI * 2); ctx.fill();
+            // inner rings
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
+            for (let r = 0.15; r <= 0.3; r += 0.05) { ctx.beginPath(); ctx.arc(cx, cy, e.w * r, 0, Math.PI * 2); ctx.stroke(); }
+            // core
+            ctx.shadowBlur = 35; ctx.shadowColor = c.core;
+            let cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 20);
+            cg.addColorStop(0, '#fff'); cg.addColorStop(0.2, '#fef08a'); cg.addColorStop(0.5, c.glow); cg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(cx, cy, 20 * pulse, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 15; ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx - 2, cy - 2, 6, 0, Math.PI * 2); ctx.fill();
+        } else {
+            // ── Boss-D: DARK OBLIVION ──
+            // distorted aura
+            ctx.strokeStyle = c.main; ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < 30; i++) {
+                let a = (i / 30) * Math.PI * 2, rr = e.w * 0.38 + Math.sin(time * 8 + i * 0.5) * 10 + Math.sin(time * 5 + i) * 5;
+                i === 0 ? ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+            }
+            ctx.closePath(); ctx.stroke();
+            // irregular body
+            ctx.fillStyle = c.main; ctx.beginPath();
+            let teeth = 5 + Math.floor(Math.sin(time * 2) * 2);
+            for (let i = 0; i < teeth; i++) {
+                let a = (i / teeth) * Math.PI * 2 - Math.PI / 2, rr = e.w * 0.22 + Math.sin(time * 6 + i) * 8;
+                i === 0 ? ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+            }
+            ctx.closePath(); ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath();
+            for (let i = 0; i < teeth; i++) {
+                let a = (i / teeth) * Math.PI * 2 - Math.PI / 2, rr = e.w * 0.12 + Math.cos(time * 5 + i) * 4;
+                i === 0 ? ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+            }
+            ctx.closePath(); ctx.fill();
+            // glowing cracks
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+            for (let ck = 0; ck < 5; ck++) {
+                let a = (ck / 5) * Math.PI * 2 + time * 0.5;
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * e.w * 0.3, cy + Math.sin(a) * e.w * 0.3); ctx.stroke();
+            }
+            // core
+            ctx.shadowBlur = 30; ctx.shadowColor = c.glow;
+            let cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 18);
+            cg.addColorStop(0, '#fff'); cg.addColorStop(0.1, '#fca5a5'); cg.addColorStop(0.4, c.glow); cg.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(cx, cy, 18 * pulse, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 12; ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx - 2, cy - 2, 4, 0, Math.PI * 2); ctx.fill();
+        }
+
+        ctx.shadowBlur = 0;
+
+        // ── 引擎火焰 ──
+        if (e.entryDone) {
+            for (let i = -1; i <= 1; i += 2) {
+                let fx = cx + i * 25, fy = e.y + e.h - 10;
+                let flameH = 20 + Math.sin(time * 10 + i) * 8;
+                let flameGrad = ctx.createLinearGradient(fx, fy, fx, fy + flameH);
+                flameGrad.addColorStop(0, c.core); flameGrad.addColorStop(0.5, c.glow); flameGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = flameGrad; ctx.beginPath();
+                ctx.moveTo(fx - 8, fy); ctx.lineTo(fx + 8, fy); ctx.lineTo(fx + 3, fy + flameH); ctx.lineTo(fx - 3, fy + flameH);
+                ctx.closePath(); ctx.fill();
+            }
+        }
+
+        ctx.restore();
+
+        // ── 血条 ──
+        let hpRatio = e.hp / e.maxHp;
+        let barW = e.w + 40, barH = 12, barX = e.x - 20, barY = e.y - 28;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(barX, barY, barW, barH);
+        let barGrad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+        if (hpRatio > 0.5) { barGrad.addColorStop(0, '#4ade80'); barGrad.addColorStop(1, c.main); }
+        else if (hpRatio > 0.25) { barGrad.addColorStop(0, '#fbbf24'); barGrad.addColorStop(1, '#f97316'); }
+        else { barGrad.addColorStop(0, '#ef4444'); barGrad.addColorStop(1, '#7f1d1d'); }
+        ctx.fillStyle = barGrad; ctx.fillRect(barX, barY, barW * hpRatio, barH);
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
+        for (let seg = 1; seg < 4; seg++) { let sx = barX + (barW / 4) * seg; ctx.beginPath(); ctx.moveTo(sx, barY); ctx.lineTo(sx, barY + barH); ctx.stroke(); }
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(barX, barY, barW, barH);
+
+        ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center';
+        ctx.fillStyle = c.main; ctx.shadowBlur = 8; ctx.shadowColor = c.glow;
+        ctx.fillText(e.bossName || 'BOSS', cx, barY - 6);
+        ctx.font = 'bold 10px Arial'; ctx.fillStyle = '#fff'; ctx.shadowBlur = 0;
+        ctx.fillText('HP ' + e.hp + '/' + e.maxHp, cx, barY + barH + 13);
     }
 
     drawBullets() {
@@ -1594,45 +2033,52 @@ class PlaneShooterGame {
             this.drawPlayerBullet(b, level);
         }
 
-        // 敌机子弹保持旋转箭头造型，用双层模拟发光
+        // 敌机子弹：根据来源类型显示不同外观
         for (let eb of this.enemyBullets) {
             ctx.save();
 
             let angle = Math.atan2(eb.vy || 1, eb.vx || 0);
             let cx = eb.x + eb.w / 2;
             let cy = eb.y + eb.h / 2;
+            let etype = eb.enemyType || 0;
+            let c = eb.color || '#ff3a6f';
 
             ctx.translate(cx, cy);
             ctx.rotate(angle);
 
-            // 外发光层
-            ctx.fillStyle = 'rgba(255, 0, 102, 0.25)';
-            ctx.beginPath();
-            ctx.moveTo(eb.w / 2 + 2, 0);
-            ctx.lineTo(-eb.w / 2 - 1, -eb.h / 2 - 1);
-            ctx.lineTo(-eb.w / 3, 0);
-            ctx.lineTo(-eb.w / 2 - 1, eb.h / 2 + 1);
-            ctx.closePath();
-            ctx.fill();
+            if (etype <= 1) {
+                // 普通敌机：小圆点弹
+                ctx.shadowBlur = 8; ctx.shadowColor = c;
+                ctx.fillStyle = c;
+                ctx.beginPath(); ctx.arc(0, 0, eb.w * 0.6, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.beginPath(); ctx.arc(-1, -1, eb.w * 0.3, 0, Math.PI * 2); ctx.fill();
+            } else if (etype === 2) {
+                // 精英敌机：菱形弹
+                ctx.shadowBlur = 12; ctx.shadowColor = c;
+                ctx.fillStyle = c;
+                ctx.beginPath();
+                ctx.moveTo(eb.w * 0.7, 0); ctx.lineTo(0, eb.h * 0.7); ctx.lineTo(-eb.w * 0.7, 0);
+                ctx.lineTo(0, -eb.h * 0.7); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath();
+                ctx.moveTo(eb.w * 0.35, 0); ctx.lineTo(0, eb.h * 0.35); ctx.lineTo(-eb.w * 0.35, 0);
+                ctx.lineTo(0, -eb.h * 0.35); ctx.closePath(); ctx.fill();
+            } else {
+                // Boss弹：发光圆球 + 颜色环
+                ctx.shadowBlur = 15; ctx.shadowColor = c;
+                let grad = ctx.createRadialGradient(0, 0, 0, 0, 0, eb.w * 0.8);
+                grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+                grad.addColorStop(0.3, c);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(0, 0, eb.w * 0.8, 0, Math.PI * 2); ctx.fill();
+                // 外环
+                ctx.strokeStyle = c; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(0, 0, eb.w * 0.55, 0, Math.PI * 2); ctx.stroke();
+            }
 
-            // 主体
-            ctx.fillStyle = "#ff3a6f";
-            ctx.beginPath();
-            ctx.moveTo(eb.w / 2, 0);
-            ctx.lineTo(-eb.w / 2, -eb.h / 2);
-            ctx.lineTo(-eb.w / 3, 0);
-            ctx.lineTo(-eb.w / 2, eb.h / 2);
-            ctx.closePath();
-            ctx.fill();
-
-            ctx.fillStyle = "#ff8cae";
-            ctx.beginPath();
-            ctx.moveTo(eb.w / 2 - 2, 0);
-            ctx.lineTo(-eb.w / 4, -eb.h / 3);
-            ctx.lineTo(-eb.w / 4, eb.h / 3);
-            ctx.closePath();
-            ctx.fill();
-
+            ctx.shadowBlur = 0;
             ctx.restore();
         }
     }
@@ -2010,10 +2456,24 @@ class PlaneShooterGame {
             ctx.font = "bold 38px monospace";
             ctx.fillStyle = "#ff6680";
             ctx.textAlign = "center";
-            ctx.fillText("💀 GAME OVER 💀", this.W / 2, this.H / 2 - 50);
+            ctx.fillText("💀 GAME OVER 💀", this.W / 2, this.H / 2 - 60);
             ctx.font = "bold 18px monospace";
             ctx.fillStyle = "#ddddaa";
-            ctx.fillText("点击「重新起飞」继续征战星河", this.W / 2, this.H / 2 + 40);
+            ctx.fillText(`本局得分: ${String(this.score).padStart(6, '0')}`, this.W / 2, this.H / 2 - 20);
+            // 破纪录时高亮提示
+            if (this.score >= this.bestScore && this.score > 0) {
+                ctx.fillStyle = "#fbbf24";
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = "#fbbf24";
+                ctx.fillText(`🏆 历史最佳: ${String(this.bestScore).padStart(6, '0')} (新纪录!)`, this.W / 2, this.H / 2 + 10);
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.fillStyle = "#aaa";
+                ctx.fillText(`历史最佳: ${String(this.bestScore).padStart(6, '0')}`, this.W / 2, this.H / 2 + 10);
+            }
+            ctx.font = "bold 16px monospace";
+            ctx.fillStyle = "#ddddaa";
+            ctx.fillText("点击「重新起飞」继续征战星河", this.W / 2, this.H / 2 + 50);
             ctx.textAlign = "left";
         }
         
@@ -2194,20 +2654,19 @@ class PlaneShooterGame {
             let pulseScale = 1 + Math.sin(Date.now() / 500) * 0.1;
             ctx.scale(pulseScale, pulseScale);
 
-            // [性能优化] 用半透明外圈替代 shadowBlur
+            // [性能优化] 用半透明外圈替代 shadowBlur（避免逐帧阴影模糊）
             ctx.beginPath();
             ctx.moveTo(0, -p.h / 2 - 3);
             ctx.lineTo(p.w / 2 + 3, 0);
             ctx.lineTo(0, p.h / 2 + 3);
             ctx.lineTo(-p.w / 2 - 3, 0);
             ctx.closePath();
-            ctx.fillStyle = p.color.replace(')', ', 0.25)').replace('rgb', 'rgba').replace('#', '');
-            // 简化：直接用半透明色
             ctx.globalAlpha = 0.3;
             ctx.fillStyle = p.color;
             ctx.fill();
-
             ctx.globalAlpha = 1;
+
+            // 道具主体
             ctx.beginPath();
             ctx.moveTo(0, -p.h / 2);
             ctx.lineTo(p.w / 2, 0);
@@ -2254,6 +2713,42 @@ class PlaneShooterGame {
         this.ctx.font = "12px monospace";
         this.ctx.fillStyle = "#66ffccaa";
         this.ctx.fillText("经典弹幕 · 火力全开", this.W - 130, 30);
+
+        // 暂停遮罩（最后画，盖在上面）
+        if (this.paused) {
+            this.drawPausedOverlay();
+        }
+    }
+
+    drawPausedOverlay() {
+        let ctx = this.ctx;
+        ctx.save();
+
+        // 半透明黑色遮罩
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(0, 0, this.W, this.H);
+
+        // 主标题
+        ctx.font = 'bold 52px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#2affcc';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#2affcc';
+        ctx.fillText('⏸  PAUSED', this.W / 2, this.H / 2 - 20);
+
+        // 副提示
+        ctx.font = '16px monospace';
+        ctx.fillStyle = '#cccccc';
+        ctx.shadowBlur = 0;
+        ctx.fillText('按 P 或 Esc 继续', this.W / 2, this.H / 2 + 30);
+
+        // 额外信息：当前分数
+        ctx.font = '14px monospace';
+        ctx.fillStyle = '#888888';
+        ctx.fillText(`当前分数 ${String(this.score).padStart(6, '0')}   历史最佳 ${String(this.bestScore).padStart(6, '0')}`, this.W / 2, this.H / 2 + 65);
+
+        ctx.textAlign = 'left';
+        ctx.restore();
     }
 
     // ─────────── 游戏主循环 ───────────
@@ -2263,7 +2758,8 @@ class PlaneShooterGame {
         let dt = Math.min(now - this.lastTime, this.DT_CAP);
         this.lastTime = now;
 
-        if (this.gameRunning) {
+        // 暂停时跳过逻辑更新但保持画面渲染（星空滚动不停、闪烁动画不断）
+        if (this.gameRunning && !this.paused) {
             this.updateGame(dt);
         }
         this.drawScene();
@@ -2285,6 +2781,14 @@ class PlaneShooterGame {
         if (code === 'KeyR') {
             e.preventDefault();
             this.restartGame();
+        }
+        // 暂停切换：P 或 Esc
+        if (code === 'KeyP' || code === 'Escape') {
+            e.preventDefault();
+            if (this.gameRunning) {
+                this.paused = !this.paused;
+                if (this.paused) this.resetKeys();  // 防卡键
+            }
         }
     }
 
