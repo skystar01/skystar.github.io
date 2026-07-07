@@ -11,7 +11,7 @@
 .game-plane-canvas-wrapper {
     position: relative;
     width: 100%;
-    max-width: 850px;
+    max-width: 1000px;
 }
 
 .game-plane-canvas {
@@ -27,16 +27,16 @@
     display: flex;
     justify-content: space-around;
     align-items: center;
-    margin-top: 15px;
-    padding: 12px 20px;
+    margin-top: 10px;
+    padding: 8px 16px;
     background: linear-gradient(135deg, rgba(11, 12, 26, 0.95), rgba(20, 25, 40, 0.95));
     border-radius: 16px;
     backdrop-filter: blur(12px);
     border: 1px solid rgba(42, 255, 158, 0.3);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     width: 100%;
-    max-width: 800px;
-    gap: 20px;
+    max-width: 1000px;
+    gap: 16px;
 }
 
 .hud-section {
@@ -83,9 +83,9 @@
     background: linear-gradient(135deg, #2c2e4e, #3d3f6e);
     border: 1px solid rgba(42, 255, 158, 0.3);
     font-family: inherit;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: bold;
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 12px;
     color: #2affcc;
     cursor: pointer;

@@ -7,11 +7,11 @@ class SnakeGame {
         this.overlay = document.getElementById(overlayId);
         this.finalScoreEl = document.getElementById(finalScoreId);
 
-        this.WINDOW_WIDTH = 600;
-        this.WINDOW_HEIGHT = 400;
-        this.CELL_SIZE = 20;
-        this.CELL_X = this.WINDOW_WIDTH / this.CELL_SIZE;
-        this.CELL_Y = this.WINDOW_HEIGHT / this.CELL_SIZE;
+        this.WINDOW_WIDTH = 0;
+        this.WINDOW_HEIGHT = 0;
+        this.CELL_SIZE = 0;
+        this.CELL_X = 0;
+        this.CELL_Y = 0;
 
         this.FPS = 8;
         this.MAX_FPS = 30;
@@ -33,7 +33,7 @@ class SnakeGame {
         };
 
         this.snake = [];
-        this.direction = { x: this.CELL_SIZE, y: 0 };
+        this.direction = { x: 1, y: 0 };
         this.food = { x: 0, y: 0 };
         this.score = 0;
         this.running = false;
@@ -47,18 +47,70 @@ class SnakeGame {
     }
 
     init() {
-        this.drawGradientBg();
-        this.drawGrid();
+        this.fitSnake();
         this.setupEventListeners();
     }
 
+    // 根据 game-container 的可用空间计算 canvas 尺寸和网格
+    fitSnake() {
+        const container = this.canvas.parentElement;
+        if (!container) return;
+        const cs = getComputedStyle(container);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const header = container.querySelector('.game-header');
+        const instructions = container.querySelector('.game-instructions');
+        const controls = container.querySelector('.game-controls');
+        const outerH = (el) => {
+            if (!el) return 0;
+            const s = getComputedStyle(el);
+            return el.offsetHeight + (parseFloat(s.marginTop) || 0) + (parseFloat(s.marginBottom) || 0);
+        };
+        const headerH = outerH(header);
+        const instrH = outerH(instructions);
+        const ctrlH = outerH(controls);
+        const availW = container.clientWidth - padX;
+        const availH = container.clientHeight - padY - headerH - instrH - ctrlH;
+        if (availW <= 0 || availH <= 0) return;
+
+        const aspect = availW / availH;
+        const targetCells = 480;
+        const gridX = Math.max(18, Math.round(Math.sqrt(targetCells * aspect)));
+        const gridY = Math.max(18, Math.round(targetCells / gridX));
+        const cellSize = Math.min(availW / gridX, availH / gridY);
+
+        this.canvas.width = Math.floor(gridX * cellSize);
+        this.canvas.height = Math.floor(gridY * cellSize);
+        this.canvas.style.width = this.canvas.width + 'px';
+        this.canvas.style.height = this.canvas.height + 'px';
+        this.WINDOW_WIDTH = this.canvas.width;
+        this.WINDOW_HEIGHT = this.canvas.height;
+        this.CELL_SIZE = cellSize;
+        this.CELL_X = gridX;
+        this.CELL_Y = gridY;
+
+        this.render();
+    }
+
+    render() {
+        this.drawGradientBg();
+        this.drawGrid();
+        if (this.running) {
+            this.drawFood();
+            this.drawSnake();
+            this.drawUI();
+        }
+    }
+
     initGame() {
+        const midX = Math.floor(this.CELL_X / 2);
+        const midY = Math.floor(this.CELL_Y / 2);
         this.snake = [
-            { x: 5 * this.CELL_SIZE, y: 10 * this.CELL_SIZE },
-            { x: 4 * this.CELL_SIZE, y: 10 * this.CELL_SIZE },
-            { x: 3 * this.CELL_SIZE, y: 10 * this.CELL_SIZE }
+            { x: midX, y: midY },
+            { x: midX - 1, y: midY },
+            { x: midX - 2, y: midY }
         ];
-        this.direction = { x: this.CELL_SIZE, y: 0 };
+        this.direction = { x: 1, y: 0 };
         this.score = 0;
         this.FPS = 8;
         this.food = this.generateFood();
@@ -71,8 +123,8 @@ class SnakeGame {
         let foodPos;
         do {
             foodPos = {
-                x: Math.floor(Math.random() * this.CELL_X) * this.CELL_SIZE,
-                y: Math.floor(Math.random() * this.CELL_Y) * this.CELL_SIZE
+                x: Math.floor(Math.random() * this.CELL_X),
+                y: Math.floor(Math.random() * this.CELL_Y)
             };
         } while (this.snake.some(s => s.x === foodPos.x && s.y === foodPos.y));
         return foodPos;
@@ -104,6 +156,9 @@ class SnakeGame {
     }
 
     drawFood() {
+        const fx = this.food.x * this.CELL_SIZE;
+        const fy = this.food.y * this.CELL_SIZE;
+
         this.foodGlowIntensity += 0.05 * this.foodGlowDirection;
         if (this.foodGlowIntensity >= 1 || this.foodGlowIntensity <= 0) {
             this.foodGlowDirection *= -1;
@@ -111,78 +166,80 @@ class SnakeGame {
 
         const glowRadius = this.CELL_SIZE * 1.5 + this.foodGlowIntensity * 5;
         const glowGradient = this.ctx.createRadialGradient(
-            this.food.x + this.CELL_SIZE/2, this.food.y + this.CELL_SIZE/2, 0,
-            this.food.x + this.CELL_SIZE/2, this.food.y + this.CELL_SIZE/2, glowRadius
+            fx + this.CELL_SIZE/2, fy + this.CELL_SIZE/2, 0,
+            fx + this.CELL_SIZE/2, fy + this.CELL_SIZE/2, glowRadius
         );
         glowGradient.addColorStop(0, `rgba(239, 68, 68, ${0.3 * this.foodGlowIntensity})`);
         glowGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
         this.ctx.fillStyle = glowGradient;
         this.ctx.beginPath();
-        this.ctx.arc(this.food.x + this.CELL_SIZE/2, this.food.y + this.CELL_SIZE/2, glowRadius, 0, Math.PI * 2);
+        this.ctx.arc(fx + this.CELL_SIZE/2, fy + this.CELL_SIZE/2, glowRadius, 0, Math.PI * 2);
         this.ctx.fill();
 
         this.ctx.fillStyle = this.COLORS.food;
         this.ctx.beginPath();
-        this.ctx.arc(this.food.x + this.CELL_SIZE/2, this.food.y + this.CELL_SIZE/2, this.CELL_SIZE/2 - 2, 0, Math.PI * 2);
+        this.ctx.arc(fx + this.CELL_SIZE/2, fy + this.CELL_SIZE/2, this.CELL_SIZE/2 - 2, 0, Math.PI * 2);
         this.ctx.fill();
 
         this.ctx.fillStyle = this.COLORS.foodGlow;
         this.ctx.beginPath();
-        this.ctx.arc(this.food.x + this.CELL_SIZE/2, this.food.y + this.CELL_SIZE/2, this.CELL_SIZE/2 - 4, 0, Math.PI * 2);
+        this.ctx.arc(fx + this.CELL_SIZE/2, fy + this.CELL_SIZE/2, this.CELL_SIZE/2 - 4, 0, Math.PI * 2);
         this.ctx.fill();
     }
 
     drawSnake() {
         this.snake.forEach((segment, i) => {
+            const sx = segment.x * this.CELL_SIZE;
+            const sy = segment.y * this.CELL_SIZE;
             if (i === 0) {
                 this.ctx.fillStyle = this.COLORS.snakeHead;
-                this.ctx.fillRect(segment.x, segment.y, this.CELL_SIZE, this.CELL_SIZE);
+                this.ctx.fillRect(sx, sy, this.CELL_SIZE, this.CELL_SIZE);
 
                 this.ctx.strokeStyle = this.COLORS.snakeHeadGlow;
                 this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(segment.x, segment.y, this.CELL_SIZE, this.CELL_SIZE);
+                this.ctx.strokeRect(sx, sy, this.CELL_SIZE, this.CELL_SIZE);
 
                 const eyeOffset = 4;
                 this.ctx.fillStyle = '#fff';
                 if (this.direction.x > 0) {
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + this.CELL_SIZE - 6, segment.y + eyeOffset, 3, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + this.CELL_SIZE - 6, segment.y + this.CELL_SIZE - eyeOffset, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - 6, sy + eyeOffset, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - 6, sy + this.CELL_SIZE - eyeOffset, 3, 0, Math.PI * 2);
                     this.ctx.fill();
                     this.ctx.fillStyle = '#000';
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + this.CELL_SIZE - 5, segment.y + eyeOffset, 1, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + this.CELL_SIZE - 5, segment.y + this.CELL_SIZE - eyeOffset, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - 5, sy + eyeOffset, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - 5, sy + this.CELL_SIZE - eyeOffset, 1, 0, Math.PI * 2);
                     this.ctx.fill();
                 } else if (this.direction.x < 0) {
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + 6, segment.y + eyeOffset, 3, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + 6, segment.y + this.CELL_SIZE - eyeOffset, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + 6, sy + eyeOffset, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + 6, sy + this.CELL_SIZE - eyeOffset, 3, 0, Math.PI * 2);
                     this.ctx.fill();
                     this.ctx.fillStyle = '#000';
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + 5, segment.y + eyeOffset, 1, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + 5, segment.y + this.CELL_SIZE - eyeOffset, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + 5, sy + eyeOffset, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + 5, sy + this.CELL_SIZE - eyeOffset, 1, 0, Math.PI * 2);
                     this.ctx.fill();
                 } else if (this.direction.y < 0) {
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + eyeOffset, segment.y + 6, 3, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + this.CELL_SIZE - eyeOffset, segment.y + 6, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + eyeOffset, sy + 6, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - eyeOffset, sy + 6, 3, 0, Math.PI * 2);
                     this.ctx.fill();
                     this.ctx.fillStyle = '#000';
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + eyeOffset, segment.y + 5, 1, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + this.CELL_SIZE - eyeOffset, segment.y + 5, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + eyeOffset, sy + 5, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - eyeOffset, sy + 5, 1, 0, Math.PI * 2);
                     this.ctx.fill();
                 } else {
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + eyeOffset, segment.y + this.CELL_SIZE - 6, 3, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + this.CELL_SIZE - eyeOffset, segment.y + this.CELL_SIZE - 6, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + eyeOffset, sy + this.CELL_SIZE - 6, 3, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - eyeOffset, sy + this.CELL_SIZE - 6, 3, 0, Math.PI * 2);
                     this.ctx.fill();
                     this.ctx.fillStyle = '#000';
                     this.ctx.beginPath();
-                    this.ctx.arc(segment.x + eyeOffset, segment.y + this.CELL_SIZE - 5, 1, 0, Math.PI * 2);
-                    this.ctx.arc(segment.x + this.CELL_SIZE - eyeOffset, segment.y + this.CELL_SIZE - 5, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + eyeOffset, sy + this.CELL_SIZE - 5, 1, 0, Math.PI * 2);
+                    this.ctx.arc(sx + this.CELL_SIZE - eyeOffset, sy + this.CELL_SIZE - 5, 1, 0, Math.PI * 2);
                     this.ctx.fill();
                 }
             } else {
@@ -191,10 +248,10 @@ class SnakeGame {
                 const g = Math.round(163 * (1 - ratio) + 128 * ratio);
                 const b = Math.round(74 * (1 - ratio) + 59 * ratio);
                 this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                this.ctx.fillRect(segment.x, segment.y, this.CELL_SIZE, this.CELL_SIZE);
+                this.ctx.fillRect(sx, sy, this.CELL_SIZE, this.CELL_SIZE);
                 this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
                 this.ctx.lineWidth = 1;
-                this.ctx.strokeRect(segment.x, segment.y, this.CELL_SIZE, this.CELL_SIZE);
+                this.ctx.strokeRect(sx, sy, this.CELL_SIZE, this.CELL_SIZE);
             }
         });
     }
@@ -227,7 +284,7 @@ class SnakeGame {
     }
 
     checkCollision(head) {
-        if (head.x < 0 || head.x >= this.WINDOW_WIDTH || head.y < 0 || head.y >= this.WINDOW_HEIGHT) {
+        if (head.x < 0 || head.x >= this.CELL_X || head.y < 0 || head.y >= this.CELL_Y) {
             return true;
         }
         return this.snake.some((s, i) => i > 0 && s.x === head.x && s.y === head.y);
@@ -238,22 +295,22 @@ class SnakeGame {
         const queue = [start];
         visited.add(`${start.x},${start.y}`);
         let count = 0;
-        
+
         while (queue.length > 0) {
             const current = queue.shift();
             count++;
-            
+
             const neighbors = [
-                { x: current.x + this.CELL_SIZE, y: current.y },
-                { x: current.x - this.CELL_SIZE, y: current.y },
-                { x: current.x, y: current.y + this.CELL_SIZE },
-                { x: current.x, y: current.y - this.CELL_SIZE }
+                { x: current.x + 1, y: current.y },
+                { x: current.x - 1, y: current.y },
+                { x: current.x, y: current.y + 1 },
+                { x: current.x, y: current.y - 1 }
             ];
-            
+
             for (const neighbor of neighbors) {
                 const key = `${neighbor.x},${neighbor.y}`;
-                if (neighbor.x >= 0 && neighbor.x < this.WINDOW_WIDTH &&
-                    neighbor.y >= 0 && neighbor.y < this.WINDOW_HEIGHT &&
+                if (neighbor.x >= 0 && neighbor.x < this.CELL_X &&
+                    neighbor.y >= 0 && neighbor.y < this.CELL_Y &&
                     !visited.has(key) && !obstacles.has(key)) {
                     visited.add(key);
                     queue.push(neighbor);
@@ -265,29 +322,29 @@ class SnakeGame {
 
     bfs(start, goal, obstacles) {
         if (start.x === goal.x && start.y === goal.y) return [start];
-        
+
         const queue = [start];
         const visited = new Set([`${start.x},${start.y}`]);
         const parent = {};
-        
+
         while (queue.length > 0) {
             const current = queue.shift();
-            
+
             const neighbors = [
-                { x: current.x + this.CELL_SIZE, y: current.y },
-                { x: current.x - this.CELL_SIZE, y: current.y },
-                { x: current.x, y: current.y + this.CELL_SIZE },
-                { x: current.x, y: current.y - this.CELL_SIZE }
+                { x: current.x + 1, y: current.y },
+                { x: current.x - 1, y: current.y },
+                { x: current.x, y: current.y + 1 },
+                { x: current.x, y: current.y - 1 }
             ];
-            
+
             for (const next of neighbors) {
                 const key = `${next.x},${next.y}`;
-                if (next.x >= 0 && next.x < this.WINDOW_WIDTH &&
-                    next.y >= 0 && next.y < this.WINDOW_HEIGHT &&
+                if (next.x >= 0 && next.x < this.CELL_X &&
+                    next.y >= 0 && next.y < this.CELL_Y &&
                     !visited.has(key) && !obstacles.has(key)) {
                     visited.add(key);
                     parent[key] = current;
-                    
+
                     if (next.x === goal.x && next.y === goal.y) {
                         const path = [];
                         let node = next;
@@ -314,18 +371,18 @@ class SnakeGame {
         const foodPath = this.bfs(head, this.food, snakeSet);
 
         const directions = [
-            { x: this.CELL_SIZE, y: 0 },
-            { x: -this.CELL_SIZE, y: 0 },
-            { x: 0, y: this.CELL_SIZE },
-            { x: 0, y: -this.CELL_SIZE }
+            { x: 1, y: 0 },
+            { x: -1, y: 0 },
+            { x: 0, y: 1 },
+            { x: 0, y: -1 }
         ];
 
         for (const dir of directions) {
             const newHead = { x: head.x + dir.x, y: head.y + dir.y };
 
-            if (newHead.x < 0 || newHead.x >= this.WINDOW_WIDTH ||
-                newHead.y < 0 || newHead.y >= this.WINDOW_HEIGHT) continue;
-            
+            if (newHead.x < 0 || newHead.x >= this.CELL_X ||
+                newHead.y < 0 || newHead.y >= this.CELL_Y) continue;
+
             const newHeadKey = `${newHead.x},${newHead.y}`;
             if (snakeSet.has(newHeadKey)) continue;
 
@@ -461,13 +518,13 @@ class SnakeGame {
         } else if (!this.aiMode && !this.paused) {
             let newDir = null;
             if (e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') {
-                if (this.direction.y !== this.CELL_SIZE) newDir = { x: 0, y: -this.CELL_SIZE };
+                if (this.direction.y !== 1) newDir = { x: 0, y: -1 };
             } else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') {
-                if (this.direction.y !== -this.CELL_SIZE) newDir = { x: 0, y: this.CELL_SIZE };
+                if (this.direction.y !== -1) newDir = { x: 0, y: 1 };
             } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
-                if (this.direction.x !== this.CELL_SIZE) newDir = { x: -this.CELL_SIZE, y: 0 };
+                if (this.direction.x !== 1) newDir = { x: -1, y: 0 };
             } else if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
-                if (this.direction.x !== -this.CELL_SIZE) newDir = { x: this.CELL_SIZE, y: 0 };
+                if (this.direction.x !== -1) newDir = { x: 1, y: 0 };
             }
             if (newDir) this.direction = newDir;
         }
@@ -489,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'gameOverOverlay',
             'finalScore'
         );
+        window.snakeGame = snakeGame;
 
         document.getElementById('gameStart').addEventListener('click', () => snakeGame.start());
         document.getElementById('gamePause').addEventListener('click', () => snakeGame.togglePause());

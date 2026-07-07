@@ -62,16 +62,19 @@
 .game-container.game-tic-tac-toe .tic-tac-toe-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 8px;                /* gap 8px 不变 (用户要求) */
     background: rgba(139, 92, 246, 0.2);
     padding: 8px;
     border-radius: 16px;
     margin-bottom: 20px;
+    width: 100%;
+    max-width: 540px;        /* 跟随容器撑满, 最大 540 (跟 plane 高度对齐) */
+    aspect-ratio: 1 / 1;     /* 正方形, cell 自动等大 */
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-cell {
-    width: 100px;
-    height: 100px;
+    /* 去掉 width: 100px; height: 100px 固定值, 改用 aspect-ratio 自适应 */
+    aspect-ratio: 1 / 1;
     background: rgba(15, 23, 42, 0.9);
     border-radius: 12px;
     display: flex;

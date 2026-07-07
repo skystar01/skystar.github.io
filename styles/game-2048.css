@@ -56,7 +56,8 @@
     border-radius: 16px;
     padding: 12px;
     width: 100%;
-    max-width: 400px;
+    max-width: 540px;        /* 400→540, 配合容器变大 (fit 后 540×540, 跟 plane 高度对齐) */
+    aspect-ratio: 1 / 1;     /* 正方形, 高度自动算 */
     margin: 0 auto;
 }
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -15,48 +15,157 @@
     <link rel="stylesheet" href="styles/game-tetris.css">
     <style>
         /* ─── GAME MODULE ─── */
-        .game-tabs {
+        /* games-layout: 左侧可滚动 tab list + 右侧 game-stage (占满右上) */
+        .games-layout {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 16px;
+            gap: 24px;
+            align-items: flex-start;
         }
 
-        .game-tab {
+        /* tabs sidebar: carousel 容器 (overflow:hidden, 由 track 的 transform 移动实现循环) */
+        .tabs-sidebar {
+            position: sticky;
+            top: 24px;
+            flex: 0 0 220px;
+            height: 620px;          /* 跟 game-stage min-height 对齐 */
+            overflow: hidden;
+        }
+
+        /* 顶部 games-header: panel-heading 风格 (横排, 跟其他 panel 统一)
+           max-width: 1100 + margin auto 居中, 跟其他 panel-heading 视觉协调;
+           下面 games-layout 撑满整个 inner-panel content 宽度 */
+        .games-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 4px 16px;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+        }
+        .tabs-title {
+            margin: 0;
+            padding: 0;
+            background: none;
+            backdrop-filter: none;
+        }
+        .tabs-title .eyebrow {
+            font-size: 0.75rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .tabs-title h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem;
+            color: #fff;
+            line-height: 1;
+            margin: 0;
+            letter-spacing: 0.04em;
+        }
+        .tabs-title .underline {
+            width: 36px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            border-radius: 2px;
+            margin-top: 10px;
+        }
+        .tabs-hint {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 9px 18px;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 10px;
+            gap: 8px;
+            font-size: 0.78rem;
             color: #94a3b8;
-            font-size: 0.88rem;
+            opacity: 0.75;
+            padding-bottom: 8px;
+        }
+        .tabs-hint i { font-size: 0.85rem; }
+
+        /* track: 真 tab + 副本 tab, JS 用 transform translateY 移动 */
+        .tabs-track {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            will-change: transform;
+        }
+
+        /* 副本: 跟真 tab 完全一致 (可交互, 可高亮), 唯一区别是 DOM 多一份用来做 carousel 无缝循环 */
+
+        .game-stage {
+            flex: 1;
+            min-width: 0;
+            display: block;         /* 改 flex 为 block, 让 game-container width: 100% 直接撑满 (避免 flex 居中缩水) */
+            height: 720px;          /* 固定高度, 切游戏时容器完全不跳变 */
+        }
+
+        /* 每个 tab: 透明底去边框; 字号统一, 距离虚化柔和; 短 transition 避免跟 rAF 打架 */
+        .game-tab {
+            scroll-snap-align: center;
+            scroll-snap-stop: always;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: transparent;
+            border: none;
+            border-radius: 14px;
+            color: #94a3b8;
+            font-size: 0.95rem;                           /* 统一字号, 不再 calc */
             font-weight: 600;
+            letter-spacing: 0.02em;
             cursor: pointer;
-            transition: all 0.3s ease;
+            opacity: calc(1 - var(--d, 0) * 0.16);         /* 虚化柔和: d=1:0.84, d=5:0.20 */
+            transform: scale(calc(1 - var(--d, 0) * 0.04)); /* scale 柔和: d=1:0.96, d=5:0.80 */
+            transform-origin: center center;
+            transition: opacity 0.10s linear,              /* 短 transition 避免每帧重启 */
+                        transform 0.10s linear,
+                        background 0.25s ease, color 0.25s ease;
+            position: relative;
+            width: 100%;
         }
-
-        .game-tab:hover {
-            background: rgba(139, 92, 246, 0.15);
-            border-color: rgba(139, 92, 246, 0.4);
-            color: #a78bfa;
-            transform: translateY(-2px);
-        }
-
-        .game-tab.active {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(78, 205, 196, 0.2));
-            border-color: rgba(139, 92, 246, 0.6);
-            color: #fff;
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-        }
-
         .game-tab i {
-            font-size: 1.1rem;
+            font-size: 1.15rem;                            /* 统一图标字号 */
+            flex-shrink: 0;
+        }
+        .game-tab:hover {
+            background: rgba(139, 92, 246, 0.10);
+            color: #d8c8ff;
+        }
+/* 高亮: 用 .is-center class 选择器 (位于 sidebar 视觉中心的 tab 才有高亮, 真+副本一视同仁)
+           副本可独立高亮 (位于中心时), 跟 .active (控制游戏区) 完全解耦 */
+        .game-tab.is-center {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.32), rgba(78, 205, 196, 0.18));
+            color: #fff;
+            border: 1px solid rgba(139, 92, 246, 0.45);
+            box-shadow: 0 6px 24px rgba(139, 92, 246, 0.40),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            opacity: 1;                              /* 强制覆盖 calc 虚化 */
+            z-index: 1;
+        }
+        .game-tab.is-center::before {
+            content: '';
+            position: absolute;
+            left: -1px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 28px;
+            border-radius: 0 3px 3px 0;
+            background: linear-gradient(180deg, #8b5cf6, #4ecdc4);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
         }
 
+        /* game-container: 占满 game-stage 固定大小, 所有游戏 fit 到这个容器内, 切换不跳变 */
         .game-container {
             position: relative;
+            width: 100%;             /* 占满 game-stage 宽度 (game-stage 固定 720) */
+            height: 100%;            /* 占满 game-stage 高度 */
+            overflow-y: auto;         /* 内容超出可滚动，不被裁切 */
             background: rgba(15, 23, 42, 0.85);
             border-radius: 24px;
             padding: 20px;
@@ -65,8 +174,14 @@
             backdrop-filter: blur(12px);
         }
 
-        #gameCanvas {
+        /* canvas 在固定容器内 fit (CSS max-size 兜底, JS fitGameCanvas 主动算精确尺寸) */
+        .game-container canvas {
             display: block;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        #gameCanvas {
             border-radius: 16px;
             background: #0f172a;
             border: 2px solid rgba(0, 215, 195, 0.3);
@@ -75,7 +190,6 @@
 
         /* Flappy Bird Canvas */
         #flappyCanvas {
-            display: block;
             border-radius: 16px;
             box-shadow: 0 0 40px rgba(113, 197, 207, 0.3);
         }
@@ -86,23 +200,16 @@
             opacity: 0;
             transform: translateY(10px);
             transition: opacity 0.3s ease, transform 0.3s ease;
-            width: fit-content;
             max-width: 100%;
-            margin: 0 auto;
         }
 
         .game-container.active {
             display: flex !important;
             flex-direction: column;
-            align-items: center;
+            align-items: center;        /* 子元素水平居中 */
+            justify-content: center;    /* 整体内容垂直居中 */
             opacity: 1;
             transform: translateY(0);
-        }
-
-        /* Canvas responsive scaling */
-        .game-container canvas {
-            max-width: 100%;
-            height: auto;
         }
 
         .game-container.game-flappy {
@@ -112,11 +219,11 @@
         .game-instructions {
             text-align: center;
             color: #94a3b8;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             max-width: 600px;
-            line-height: 1.6;
-            margin-top: 15px;
-            padding-top: 15px;
+            line-height: 1.5;
+            margin-top: 10px;
+            padding-top: 8px;
             border-top: 1px solid rgba(139, 92, 246, 0.2);
         }
 
@@ -464,40 +571,90 @@
         <!-- GAME PANEL -->
         <section class="panel" id="panel-game">
             <div class="inner-panel">
-                <div class="panel-heading">
-                    <div class="eyebrow">Fun Time</div>
-                        <h2>游戏中心</h2>
-                        <div class="underline"></div>
-                    </div>
-                    
-                    <!-- Game Tab Switcher -->
-                    <div class="game-tabs">
-                        <button class="game-tab active" data-game="snake">
-                            <i class="fas fa-gamepad"></i>
-                            <span>贪吃蛇</span>
-                        </button>
-                        <button class="game-tab" data-game="flappy">
-                            <i class="fas fa-feather"></i>
-                            <span>Flappy Bird</span>
-                        </button>
-                        <button class="game-tab" data-game="2048">
-                            <i class="fas fa-square"></i>
-                            <span>2048</span>
-                        </button>
-                        <button class="game-tab" data-game="tetris">
-                            <i class="fas fa-square-full"></i>
-                            <span>俄罗斯方块</span>
-                        </button>
-                        <button class="game-tab" data-game="tic-tac-toe">
-                            <i class="fas fa-square-plus"></i>
-                            <span>井字棋</span>
-                        </button>
-                        <button class="game-tab" data-game="plane">
-                            <i class="fas fa-plane"></i>
-                            <span>打飞机</span>
-                        </button>
-                    </div>
-                    
+
+                    <!-- 顶部: panel-heading 风格标题栏 (横排, 独立容器, 不绑 sidebar) -->
+                    <header class="games-header">
+                        <div class="tabs-title">
+                            <div class="eyebrow">Fun Time</div>
+                            <h2>游戏中心</h2>
+                            <div class="underline"></div>
+                        </div>
+                        <div class="tabs-hint">
+                            <i class="fas fa-arrows-up-down"></i>
+                            <span>滚轮切换游戏</span>
+                        </div>
+                    </header>
+
+                    <!-- 主体: sidebar (竖向 carousel) + game-stage -->
+                    <div class="games-layout">
+                    <nav class="tabs-sidebar">
+                        <div class="tabs-track">
+                            <!-- 6 真 tab -->
+                            <button class="game-tab active" style="--d:0" data-game="snake">
+                                <i class="fas fa-gamepad"></i>
+                                <span>贪吃蛇</span>
+                            </button>
+                            <button class="game-tab" style="--d:1" data-game="flappy">
+                                <i class="fas fa-feather"></i>
+                                <span>Flappy Bird</span>
+                            </button>
+                            <button class="game-tab" style="--d:2" data-game="2048">
+                                <i class="fas fa-square"></i>
+                                <span>2048</span>
+                            </button>
+                            <button class="game-tab" style="--d:3" data-game="tetris">
+                                <i class="fas fa-square-full"></i>
+                                <span>俄罗斯方块</span>
+                            </button>
+                            <button class="game-tab" style="--d:4" data-game="tic-tac-toe">
+                                <i class="fas fa-square-plus"></i>
+                                <span>井字棋</span>
+                            </button>
+                            <button class="game-tab" style="--d:5" data-game="plane">
+                                <i class="fas fa-plane"></i>
+                                <span>打飞机</span>
+                            </button>
+                            <!-- 副本 6 (向下循环用) -->
+                            <button class="game-tab clone" aria-hidden="true" data-game="snake">
+                                <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
+                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="2048">
+                                <i class="fas fa-square"></i><span>2048</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="tetris">
+                                <i class="fas fa-square-full"></i><span>俄罗斯方块</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="tic-tac-toe">
+                                <i class="fas fa-square-plus"></i><span>井字棋</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="plane">
+                                <i class="fas fa-plane"></i><span>打飞机</span>
+                            </button>
+                            <!-- 副本 6 (向上循环用) -->
+                            <button class="game-tab clone" aria-hidden="true" data-game="snake">
+                                <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
+                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="2048">
+                                <i class="fas fa-square"></i><span>2048</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="tetris">
+                                <i class="fas fa-square-full"></i><span>俄罗斯方块</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="tic-tac-toe">
+                                <i class="fas fa-square-plus"></i><span>井字棋</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="plane">
+                                <i class="fas fa-plane"></i><span>打飞机</span>
+                            </button>
+                        </div>
+                    </nav>
+                    <div class="game-stage">
                     <!-- Snake Game Container -->
                     <div class="game-container game-snake active">
                         <div class="game-header">
@@ -512,24 +669,24 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <canvas id="gameCanvas" width="600" height="400"></canvas>
-                        
+
+                        <p class="game-instructions">
+                            <strong>操作说明：</strong> WASD 或 方向键 控制方向 | 空格键 暂停/继续 | M键 切换AI模式
+                        </p>
+
+                        <canvas id="gameCanvas"></canvas>
+
                         <div class="game-controls">
                             <button class="game-btn game-btn-primary" id="gameStart">开始游戏</button>
                             <button class="game-btn game-btn-secondary" id="gamePause">暂停</button>
                             <button class="game-btn game-btn-secondary" id="gameAI">AI模式</button>
                         </div>
-                        
+
                         <div class="game-over-overlay" id="gameOverOverlay">
                             <div class="game-over-title">Game Over</div>
                             <div class="game-over-score" id="finalScore">Final Score: 0</div>
                             <button class="game-btn game-btn-primary" id="gameRestart">再来一局</button>
                         </div>
-                        
-                        <p class="game-instructions">
-                            <strong>操作说明：</strong> WASD 或 方向键 控制方向 | 空格键 暂停/继续 | M键 切换AI模式
-                        </p>
                     </div>
                     
                     <!-- Flappy Bird Game Container -->
@@ -602,37 +759,63 @@
                     <!-- Tetris Game Container -->
                     <div class="game-container game-tetris">
                         <div class="tetris-wrapper">
-                            <div class="tetris-canvas-area">
-                                <canvas id="tetrisCanvas" class="tetris-canvas"></canvas>
-                            </div>
-                            <div class="tetris-info-panel">
+                            <div class="tetris-side-panel">
+                                <div class="tetris-stat-card">
+                                    <div class="tetris-stat-label">🔒 暂存</div>
+                                    <div class="tetris-next-preview">
+                                        <canvas id="tetrisHoldCanvas" width="80" height="40"></canvas>
+                                    </div>
+                                </div>
                                 <div class="tetris-stat-card">
                                     <div class="tetris-stat-label">🎯 得分</div>
                                     <div class="tetris-stat-value" id="tetrisScore">0</div>
                                 </div>
                                 <div class="tetris-stat-card">
+                                    <div class="tetris-stat-label">📊 消除行</div>
+                                    <div class="tetris-stat-value" id="tetrisLines">0</div>
+                                </div>
+                                <div class="tetris-stat-card">
+                                    <div class="tetris-stat-label">⚡ 升级进度</div>
+                                    <div class="tetris-progress-bar">
+                                        <div class="tetris-progress-fill" id="tetrisProgressFill"></div>
+                                    </div>
+                                    <div class="tetris-progress-text" id="tetrisProgressText">0 / 10</div>
+                                </div>
+                            </div>
+                            <div class="tetris-canvas-area">
+                                <canvas id="tetrisCanvas" class="tetris-canvas"></canvas>
+                            </div>
+                            <div class="tetris-info-panel">
+                                <div class="tetris-stat-card">
                                     <div class="tetris-stat-label">⚡ 等级</div>
                                     <div class="tetris-stat-value" id="tetrisLevel">1</div>
                                 </div>
                                 <div class="tetris-stat-card">
-                                    <div class="tetris-stat-label">📊 消除行</div>
-                                    <div class="tetris-stat-value" id="tetrisLines">0</div>
+                                    <div class="tetris-stat-label">🧩 下一块</div>
+                                    <div class="tetris-next-preview">
+                                        <canvas id="tetrisNextCanvas" width="80" height="40"></canvas>
+                                    </div>
                                 </div>
                                 <div class="tetris-controls">
                                     <button class="tetris-btn" id="tetrisStart">🎮 开始游戏</button>
-                                    <button class="tetris-btn tetris-btn-ai" id="tetrisAI">🤖 AI 模式</button>
+                                    <div class="tetris-ai-row">
+                                        <button class="tetris-btn tetris-btn-ai" id="tetrisAI">🤖 AI 模式</button>
+                                        <div class="tetris-speed-selector" id="tetrisSpeedSelector">
+                                            <button class="speed-btn" data-speed="500">慢</button>
+                                            <button class="speed-btn active" data-speed="300">中</button>
+                                            <button class="speed-btn" data-speed="150">快</button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="tetris-tip">
                                     ◀ A/←  &nbsp;&nbsp; ▶ D/→<br>
                                     ▼ S/↓  &nbsp;&nbsp; 🔄 W/↑<br>
-                                    ␣ 硬降落 &nbsp;&nbsp; P 暂停
+                                    ␣ 硬降落 &nbsp;&nbsp; P 暂停<br>
+                                    ⇧ Shift / C &nbsp;暂存方块
                                 </div>
                             </div>
                         </div>
                         
-                        <p class="game-instructions">
-                            <strong>操作说明：</strong> 方向键/WASD 移动和旋转 | 空格键 硬降落 | P/ESC 暂停
-                        </p>
                     </div>
                     
                     <!-- Tic Tac Toe Game Container -->
@@ -677,7 +860,9 @@
                     
                     <!-- Plane Shooter Game Container -->
                     <div class="game-container game-plane">
-                        <canvas id="planeCanvas" width="1000" height="600" class="game-plane-canvas"></canvas>
+                        <div class="game-plane-canvas-wrapper">
+                            <canvas id="planeCanvas" width="1000" height="600" class="game-plane-canvas"></canvas>
+                        </div>
                         <div class="plane-hud">
                             <div class="hud-section hud-score">
                                 <span class="hud-label">SCORE</span>
@@ -692,8 +877,10 @@
                                 <span class="hud-value weapon-value" id="planeWeaponValue">★☆☆☆☆</span>
                             </div>
                             <button class="plane-restart-btn" id="planeRestartButton">🔄 重新起飞</button>
-                        </div>
                     </div>
+                    </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -932,6 +1119,8 @@
     document.getElementById('searchSend').addEventListener('click', () => {
         const q = document.getElementById('searchInput').value.trim();
         if (!q) return;
+        // TODO: 接入自己训练的对话模型时，把这里改成 fetch('/api/chat', { method: 'POST', body: JSON.stringify({ q }) })
+        //      然后在响应里调 showToast(answer) 或把回答渲染到 chat-bubble 元素里
         showToast('问题已收到：' + q);
         document.getElementById('searchInput').value = '';
     });
@@ -1165,34 +1354,343 @@
 
     console.log('🌟 Sky Star Portfolio loaded!');
     
-    // ─── GAME TAB SWITCHING ───
-    document.querySelectorAll('.game-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const gameName = tab.dataset.game;
-            
-            document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            
-            document.querySelectorAll('.game-container').forEach(container => {
-                container.classList.remove('active');
-            });
-            document.querySelector(`.game-container.game-${gameName}`).classList.add('active');
-            
-            if(gameName === 'plane' && window.startPlaneGame) {
-                window.startPlaneGame();
+    // ─── GAME TAB CAROUSEL (transform translateY + 无限循环 wrap) ───
+    const tabsSidebar = document.querySelector('.tabs-sidebar');
+    const tabsTrack   = document.querySelector('.tabs-track');
+    const allTrackTabs = tabsTrack ? Array.from(tabsTrack.querySelectorAll('.game-tab')) : [];
+    const realTabs    = allTrackTabs.filter(t => !t.classList.contains('clone'));
+    const N           = realTabs.length;
+
+    // 按 data-game 计算每个 tab 的 --d (真+副本同步)
+    function updateTabDistances() {
+        const activeTab = realTabs.find(t => t.classList.contains('active'));
+        if (!activeTab) return;
+        const activeRealIdx = realTabs.findIndex(t => t.dataset.game === activeTab.dataset.game);
+        if (activeRealIdx < 0) return;
+        allTrackTabs.forEach(tab => {
+            const myRealIdx = realTabs.findIndex(t => t.dataset.game === tab.dataset.game);
+            if (myRealIdx < 0) return;
+            tab.style.setProperty('--d', Math.abs(myRealIdx - activeRealIdx));
+        });
+    }
+
+    // 计算容器内除目标元素外，其他非绝对定位子元素占用的总高度
+    function calcOtherHeight(container, exclude) {
+        let h = 0;
+        Array.from(container.children).forEach(el => {
+            if (!el || el === exclude) return;
+            const style = getComputedStyle(el);
+            if (style.display === 'none') return;
+            if (style.position === 'absolute' || style.position === 'fixed') return;
+            h += el.offsetHeight;
+            h += (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0);
+        });
+        return h;
+    }
+
+    // 通用 canvas 适配：在可用空间内按原始宽高比缩放，不超过原始尺寸
+    function fitCanvasToContainer(canvas, container, opts) {
+        opts = opts || {};
+        const cs = getComputedStyle(container);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const cw = container.clientWidth - padX;
+        const ch = container.clientHeight - padY;
+        const otherH = calcOtherHeight(container, canvas);
+        const availH = ch - otherH;
+        if (cw <= 0 || availH <= 0) return;
+
+        const aspect = canvas.width / canvas.height;
+        let w = cw;
+        let h = w / aspect;
+        if (h > availH) { h = availH; w = h * aspect; }
+
+        // 不放大超过原始尺寸，避免模糊
+        if (w > canvas.width) { w = canvas.width; h = w / aspect; }
+        if (h > canvas.height) { h = canvas.height; w = h * aspect; }
+
+        // 可选最大宽度限制
+        if (opts.maxWidth && w > opts.maxWidth) { w = opts.maxWidth; h = w / aspect; }
+
+        canvas.style.width = Math.floor(w) + 'px';
+        canvas.style.height = Math.floor(h) + 'px';
+    }
+
+    function fit2048(container) {
+        const grid = container.querySelector('.game2048-grid-container');
+        if (!grid) return;
+        const cs = getComputedStyle(container);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const cw = container.clientWidth - padX;
+        const ch = container.clientHeight - padY;
+        const otherH = calcOtherHeight(container, grid);
+        const size = Math.max(240, Math.min(cw, ch - otherH, 540));
+        grid.style.maxWidth = size + 'px';
+        // 同步调整数字大小，避免格子大了数字太小
+        const cells = grid.querySelectorAll('.cell-2048');
+        const fontRem = Math.max(0.9, Math.min(1.8, size / 300));
+        cells.forEach(cell => { cell.style.fontSize = fontRem + 'rem'; });
+    }
+
+    function fitTicTacToe(container) {
+        const board = container.querySelector('.tic-tac-toe-board');
+        if (!board) return;
+        const cs = getComputedStyle(container);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const cw = container.clientWidth - padX;
+        const ch = container.clientHeight - padY;
+        const otherH = calcOtherHeight(container, board);
+        const size = Math.max(240, Math.min(cw, ch - otherH, 540));
+        board.style.maxWidth = size + 'px';
+        // 同步调整棋子大小
+        const cells = board.querySelectorAll('.tic-tac-toe-cell');
+        const fontRem = Math.max(1.4, Math.min(2.8, size / 200));
+        cells.forEach(cell => { cell.style.fontSize = fontRem + 'rem'; });
+    }
+
+    function fitTetris(container) {
+        const canvas = document.getElementById('tetrisCanvas');
+        if (!canvas) return;
+        const cs = getComputedStyle(container);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const cw = container.clientWidth - padX;
+        const ch = container.clientHeight - padY;
+        // 横向布局，主 canvas 高度尽量撑满，宽度不超过容器的 48%
+        const availH = ch - 20;
+        const aspect = canvas.width / canvas.height;
+        let h = availH;
+        let w = h * aspect;
+        const maxW = cw * 0.48;
+        if (w > maxW) { w = maxW; h = w / aspect; }
+        // 限制最大放大倍数
+        const maxScale = 2.2;
+        if (h > canvas.height * maxScale) { h = canvas.height * maxScale; w = h * aspect; }
+        canvas.style.width = Math.floor(w) + 'px';
+        canvas.style.height = Math.floor(h) + 'px';
+
+        // 让两侧卡片面板与画布同高，并允许内容超出时滚动
+        const sidePanel = container.querySelector('.tetris-side-panel');
+        const infoPanel = container.querySelector('.tetris-info-panel');
+        const panelH = Math.floor(h) + 'px';
+        if (sidePanel) { sidePanel.style.height = panelH; sidePanel.style.overflowY = 'auto'; }
+        if (infoPanel) { infoPanel.style.height = panelH; infoPanel.style.overflowY = 'auto'; }
+    }
+
+    function fitPlane(container) {
+        const canvas = document.getElementById('planeCanvas');
+        if (!canvas) return;
+        const cs = getComputedStyle(container);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const cw = container.clientWidth - padX;
+        const ch = container.clientHeight - padY;
+        const hud = container.querySelector('.plane-hud');
+        const hudH = hud ? hud.offsetHeight + (parseFloat(getComputedStyle(hud).marginTop) || 0) + (parseFloat(getComputedStyle(hud).marginBottom) || 0) : 0;
+        const availH = ch - hudH;
+        if (cw <= 0 || availH <= 0) return;
+
+        const aspect = canvas.width / canvas.height;
+        let w = Math.min(cw, 1000);
+        let h = w / aspect;
+        if (h > availH) { h = availH; w = h * aspect; }
+        if (w > canvas.width) { w = canvas.width; h = w / aspect; }
+
+        canvas.style.width = Math.floor(w) + 'px';
+        canvas.style.height = Math.floor(h) + 'px';
+    }
+
+    // 按游戏类型分别适配固定容器
+    function fitGame(gameName, container) {
+        if (!container) return;
+        requestAnimationFrame(() => {
+            switch (gameName) {
+                case 'snake':
+                    if (window.snakeGame && window.snakeGame.fitSnake) window.snakeGame.fitSnake();
+                    break;
+                case '2048':
+                    fit2048(container);
+                    break;
+                case 'tetris':
+                    fitTetris(container);
+                    break;
+                case 'tic-tac-toe':
+                    fitTicTacToe(container);
+                    break;
+                case 'plane':
+                    fitPlane(container);
+                    break;
+                case 'flappy':
+                default: {
+                    const canvas = container.querySelector('canvas');
+                    if (canvas) fitCanvasToContainer(canvas, container);
+                    break;
+                }
             }
         });
+    }
+
+    // 切换 active (按 game 名, 只对真 tab 同步 active, 副本不加 active class)
+    function setActiveByGame(gameName, opts) {
+        const force = opts && opts.force;
+        let changed = force;
+        realTabs.forEach(t => {
+            const want = t.dataset.game === gameName;
+            const has  = t.classList.contains('active');
+            if (want && !has) { t.classList.add('active'); changed = true; }
+            else if (!want && has) { t.classList.remove('active'); changed = true; }
+        });
+        if (!changed) return;
+
+        updateTabDistances();
+        document.querySelectorAll('.game-container').forEach(gc => gc.classList.remove('active'));
+        const targetGc = document.querySelector(`.game-container.game-${gameName}`);
+        if (targetGc) {
+            targetGc.classList.add('active');
+            fitGame(gameName, targetGc);
+        }
+        if (gameName === 'plane' && window.startPlaneGame) window.startPlaneGame();
+    }
+
+    function switchTo(gameName) {
+        setActiveByGame(gameName);
+    }
+
+    // 检测 viewport 中心最近的 tab → 加 .is-center 高亮 + 切游戏 (.active 只给真 tab)
+    // 真+副本一视同仁: 副本在中心时也高亮, 互不影响
+    function detectCenterTab() {
+        if (!tabsSidebar.clientHeight) return;
+        const viewportCenterY = -trackOffset + tabsSidebar.clientHeight / 2;
+        let bestIdx = -1, minDist = Infinity;
+        allTrackTabs.forEach((tab, i) => {
+            const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
+            const d = Math.abs(tabCenterY - viewportCenterY);
+            if (d < minDist) { minDist = d; bestIdx = i; }
+        });
+        if (bestIdx < 0) return;
+        const best = allTrackTabs[bestIdx];
+        // 高亮: 给所有 tab 移除 .is-center, 只给最近的加
+        allTrackTabs.forEach(t => t.classList.remove('is-center'));
+        best.classList.add('is-center');
+        // 切游戏 (走真 tab .active, setActiveByGame 只改真 tab, 副本不影响)
+        if (!best.classList.contains('active')) {
+            switchTo(best.dataset.game);
+        }
+    }
+
+    let trackOffset = 0;
+    let targetOffset = 0;
+
+    function applyTransform() {
+        if (tabsTrack) tabsTrack.style.transform = `translateY(${trackOffset}px)`;
+    }
+
+    // rAF loop: 平滑跟踪 targetOffset, 超出范围时 wrap, 同时检测中心
+    function rafLoop() {
+        if (!realTabs.length) return;
+        const itemH = realTabs[0].offsetHeight + 6;  // 含 gap
+        const cycle = N * itemH;
+        const diff  = targetOffset - trackOffset;
+
+        if (Math.abs(diff) > 0.1) {
+            trackOffset += diff * 0.28;     // 平滑系数 (ease-out) - 跟手, 不预 ease
+            // wrap: 离开合理范围时瞬移到等价位置 (无缝)
+            const half = cycle * 0.55;
+            if (trackOffset > half) {
+                trackOffset -= cycle; targetOffset -= cycle;
+            } else if (trackOffset < -cycle - half) {
+                trackOffset += cycle; targetOffset += cycle;
+            }
+            applyTransform();
+            detectCenterTab();
+        }
+        requestAnimationFrame(rafLoop);
+    }
+
+    if (tabsSidebar && tabsTrack && realTabs.length) {
+        // 鼠标滚轮: 量化到 itemH 步进, 每次 wheel 最多移动一个 tab 高度 (避免跳两个)
+        tabsSidebar.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (!realTabs.length) return;
+            const itemH = realTabs[0].offsetHeight + 6;  // 含 gap
+            if (e.deltaY > 0)      targetOffset -= itemH;   // 向下滚 → tab 上移 → 下一个
+            else if (e.deltaY < 0) targetOffset += itemH;   // 向上滚 → tab 下移 → 上一个
+        }, { passive: false });
+
+        // 触摸拖动
+        let touchStartY = 0, touchStartOffset = 0;
+        tabsSidebar.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+            touchStartOffset = targetOffset;
+        }, { passive: true });
+        tabsSidebar.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const dy = e.touches[0].clientY - touchStartY;
+            targetOffset = touchStartOffset + dy;
+        }, { passive: false });
+
+        // click 真+副本 tab → 滚到中心 (副本可独立点击, 视觉一致)
+        allTrackTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
+                // 让 tabCenterY 落在 viewport 中心: tabCenterY + offset = clientHeight/2
+                targetOffset = tabsSidebar.clientHeight / 2 - tabCenterY;
+            });
+        });
+
+        // 初始化: snake 居中
+        requestAnimationFrame(() => {
+            const snakeTab = realTabs.find(t => t.dataset.game === 'snake');
+            if (snakeTab) {
+                const tabCenterY = snakeTab.offsetTop + snakeTab.offsetHeight / 2;
+                trackOffset = targetOffset = tabsSidebar.clientHeight / 2 - tabCenterY;
+            }
+            applyTransform();
+            setActiveByGame('snake', { force: true });
+            detectCenterTab();
+            requestAnimationFrame(rafLoop);
+        });
+    }
+
+    // 窗口大小变化时，重新适配当前激活的游戏
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const activeTab = document.querySelector('.game-tab.active');
+            const activeContainer = document.querySelector('.game-container.active');
+            if (activeTab && activeContainer) {
+                fitGame(activeTab.dataset.game, activeContainer);
+            }
+        }, 120);
     });
-    
-    // Initialize active states
-    document.querySelector('.game-container.game-snake').classList.add('active');
+
+    // game container 默认激活 (snake)
+    const snakeContainer = document.querySelector('.game-container.game-snake');
+    if (snakeContainer && !snakeContainer.classList.contains('active')) {
+        snakeContainer.classList.add('active');
+    }
     </script>
+    
+    
+    
+    
+    
+    
+    <!-- MediaPipe Hands 核心库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+    <!-- Game scripts -->
     <script src="scripts/snake-game.js"></script>
     <script src="scripts/flappy-bird.js"></script>
     <script src="scripts/game-2048.js"></script>
     <script src="scripts/game-tetris.js"></script>
     <script src="scripts/game-tic-tac-toe.js"></script>
     <script src="scripts/game-plane.js"></script>
-    <!-- MediaPipe Hands 核心库 -->
     </body>
 </html>

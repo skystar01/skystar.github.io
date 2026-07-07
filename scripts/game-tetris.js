@@ -14,6 +14,9 @@ class TetrisGame {
         
         this.board = [];
         this.currentPiece = null;
+        this.nextPiece = null;
+        this.holdPiece = null;
+        this.canHold = true;
         this.currentPosition = { x: 0, y: 0 };
         this.score = 0;
         this.level = 1;
@@ -21,13 +24,17 @@ class TetrisGame {
         this.gameRunning = false;
         this.gameOver = false;
         this.paused = false;
-        
+
         this.dropInterval = 1000;
         this.lastDropTime = 0;
-        
+
         this.flashRows = [];
         this.flashTimeout = null;
         this.ghostY = 0;
+
+        this.aiSpeed = 300;
+        this.aiPlaying = false;
+        this.aiTimer = null;
         
         this.TETROMINOES = {
             I: { shape: [[1, 1, 1, 1]], color: '#00f5ff' },
@@ -66,13 +73,21 @@ class TetrisGame {
     }
     
     spawnPiece() {
-        this.currentPiece = this.getRandomPiece();
+        if (this.nextPiece) {
+            this.currentPiece = this.nextPiece;
+        } else {
+            this.currentPiece = this.getRandomPiece();
+        }
+        this.nextPiece = this.getRandomPiece();
+        this.canHold = true;
         this.currentPosition = {
             x: Math.floor((this.COLS - this.currentPiece.shape[0].length) / 2),
             y: 0
         };
         this.updateGhostPosition();
-        
+        this.drawNextPiece();
+        this.drawHoldPiece();
+
         if (!this.isValidPosition(this.currentPosition.x, this.currentPosition.y)) {
             this.gameOver = true;
             this.gameRunning = false;
@@ -88,7 +103,71 @@ class TetrisGame {
         }
         this.ghostY = y;
     }
-    
+
+    swapHold() {
+        if (!this.gameRunning || this.gameOver || this.paused || !this.canHold) return;
+
+        if (!this.holdPiece) {
+            this.holdPiece = this.createPiece(this.currentPiece.type);
+            this.currentPiece = this.nextPiece || this.getRandomPiece();
+            this.nextPiece = this.getRandomPiece();
+        } else {
+            const tempType = this.currentPiece.type;
+            this.currentPiece = this.createPiece(this.holdPiece.type);
+            this.holdPiece = this.createPiece(tempType);
+        }
+
+        this.currentPosition = {
+            x: Math.floor((this.COLS - this.currentPiece.shape[0].length) / 2),
+            y: 0
+        };
+        this.canHold = false;
+        this.updateGhostPosition();
+        this.drawNextPiece();
+        this.drawHoldPiece();
+        this.drawBoard();
+    }
+
+    drawMiniBlock(ctx, x, y, size, color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, size, size);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, size, size);
+    }
+
+    drawPieceToCanvas(canvas, piece, blockSize) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!piece) return;
+        const shape = piece.shape;
+        const rows = shape.length;
+        const cols = shape[0].length;
+        const offsetX = (canvas.width - cols * blockSize) / 2;
+        const offsetY = (canvas.height - rows * blockSize) / 2;
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                if (shape[row][col]) {
+                    this.drawMiniBlock(ctx, offsetX + col * blockSize, offsetY + row * blockSize, blockSize, piece.color);
+                }
+            }
+        }
+    }
+
+    drawNextPiece() {
+        const nextCanvas = document.getElementById('tetrisNextCanvas');
+        if (nextCanvas) {
+            this.drawPieceToCanvas(nextCanvas, this.nextPiece, 16);
+        }
+    }
+
+    drawHoldPiece() {
+        const holdCanvas = document.getElementById('tetrisHoldCanvas');
+        if (holdCanvas) {
+            this.drawPieceToCanvas(holdCanvas, this.holdPiece, 16);
+        }
+    }
+
     isValidPosition(x, y, piece = null) {
         const shape = piece ? piece.shape : this.currentPiece.shape;
         for (let row = 0; row < shape.length; row++) {
@@ -390,6 +469,12 @@ class TetrisGame {
         this.scoreElement.textContent = this.score;
         this.levelElement.textContent = this.level;
         this.linesElement.textContent = this.lines;
+
+        const progress = this.lines % 10;
+        const progressFill = document.getElementById('tetrisProgressFill');
+        const progressText = document.getElementById('tetrisProgressText');
+        if (progressFill) progressFill.style.width = (progress / 10 * 100) + '%';
+        if (progressText) progressText.textContent = `${progress} / 10`;
     }
     
     start() {
@@ -402,6 +487,9 @@ class TetrisGame {
         this.paused = false;
         this.dropInterval = 1000;
         this.flashRows = [];
+        this.nextPiece = null;
+        this.holdPiece = null;
+        this.canHold = true;
         this.aiPlaying = false;
         if (this.aiTimer) clearInterval(this.aiTimer);
         if (this.flashTimeout) clearTimeout(this.flashTimeout);
@@ -649,19 +737,20 @@ class TetrisGame {
         return true;
     }
     
-    startAI(intervalMs = 400) {
+    startAI(intervalMs = null) {
         if (this.aiPlaying) return;
         if (!this.gameRunning) this.start();
         this.aiPlaying = true;
         this.updateAIButton();
-        
+
+        const speed = intervalMs || this.aiSpeed || 300;
         this.aiTimer = setInterval(() => {
             if (this.gameRunning && !this.gameOver && !this.paused) {
                 this.executeAIMove();
             } else if (this.gameOver) {
                 this.stopAI();
             }
-        }, intervalMs);
+        }, speed);
     }
     
     stopAI() {
@@ -689,7 +778,7 @@ class TetrisGame {
     bindEvents() {
         document.addEventListener('keydown', (e) => {
             const key = e.code;
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyP', 'Escape'].includes(key)) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyP', 'Escape', 'KeyC', 'ShiftLeft', 'ShiftRight'].includes(key)) {
                 e.preventDefault();
             }
             switch (key) {
@@ -717,6 +806,11 @@ class TetrisGame {
                     this.hardDrop();
                     this.drawBoard();
                     break;
+                case 'KeyC':
+                case 'ShiftLeft':
+                case 'ShiftRight':
+                    this.swapHold();
+                    break;
                 case 'KeyP':
                 case 'Escape':
                     this.togglePause();
@@ -735,17 +829,32 @@ document.addEventListener('DOMContentLoaded', () => {
         'tetrisLines'
     );
     window.tetris = tetris;
-    
+
     document.getElementById('tetrisStart').addEventListener('click', () => {
         if (tetris.aiPlaying) tetris.stopAI();
         tetris.start();
     });
-    
+
     document.getElementById('tetrisAI').addEventListener('click', () => {
         if (tetris.aiPlaying) {
             tetris.stopAI();
         } else {
-            tetris.startAI(100);
+            tetris.startAI();
         }
     });
+
+    const speedSelector = document.getElementById('tetrisSpeedSelector');
+    if (speedSelector) {
+        speedSelector.addEventListener('click', (e) => {
+            if (e.target.classList.contains('speed-btn')) {
+                speedSelector.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                tetris.aiSpeed = parseInt(e.target.dataset.speed);
+                if (tetris.aiPlaying) {
+                    tetris.stopAI();
+                    tetris.startAI();
+                }
+            }
+        });
+    }
 });

@@ -372,13 +372,19 @@ html, body {
 
 /* ─── GAME PANEL OVERRIDE ─── */
 #panel-game .inner-panel {
+    /* 解除 max-width: 1100 限制, 让游戏模块撑满 panel (其他 panel 仍是 1100 居中) */
+    max-width: none;
+    width: 100%;
     min-height: unset;
     height: auto;
     padding: 50px 40px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
 }
 
 .panel-heading {
-    margin-bottom: 50px;
+    margin-bottom: 30px;
 }
 .panel-heading .eyebrow {
     font-size: 0.72rem; letter-spacing: 0.25em;
