@@ -102,7 +102,7 @@
             height: 720px;          /* 固定高度, 切游戏时容器完全不跳变 */
         }
 
-        /* 每个 tab: 透明底去边框; 字号统一, 距离虚化柔和; 短 transition 避免跟 rAF 打架 */
+        /* 每个 tab: 透明底去边框; 字号统一; 虚化由 JS 按物理距离计算 */
         .game-tab {
             scroll-snap-align: center;
             scroll-snap-stop: always;
@@ -115,16 +115,14 @@
             border: none;
             border-radius: 14px;
             color: #94a3b8;
-            font-size: 0.95rem;                           /* 统一字号, 不再 calc */
+            font-size: 0.95rem;
             font-weight: 600;
             letter-spacing: 0.02em;
             cursor: pointer;
-            opacity: calc(1 - var(--d, 0) * 0.16);         /* 虚化柔和: d=1:0.84, d=5:0.20 */
-            transform: scale(calc(1 - var(--d, 0) * 0.04)); /* scale 柔和: d=1:0.96, d=5:0.80 */
+            opacity: var(--v, 1);
+            transform: scale(var(--s, 1));
             transform-origin: center center;
-            transition: opacity 0.10s linear,              /* 短 transition 避免每帧重启 */
-                        transform 0.10s linear,
-                        background 0.25s ease, color 0.25s ease;
+            transition: background 0.25s ease, color 0.25s ease;
             position: relative;
             width: 100%;
         }
@@ -136,15 +134,13 @@
             background: rgba(139, 92, 246, 0.10);
             color: #d8c8ff;
         }
-/* 高亮: 用 .is-center class 选择器 (位于 sidebar 视觉中心的 tab 才有高亮, 真+副本一视同仁)
-           副本可独立高亮 (位于中心时), 跟 .active (控制游戏区) 完全解耦 */
+/* 高亮: 用 .is-center class (位于 sidebar 视觉中心的 tab 才有高亮)
+           副本可独立高亮, 跟 .active (控制游戏区) 完全解耦 */
         .game-tab.is-center {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.32), rgba(78, 205, 196, 0.18));
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(78, 205, 196, 0.14));
             color: #fff;
-            border: 1px solid rgba(139, 92, 246, 0.45);
-            box-shadow: 0 6px 24px rgba(139, 92, 246, 0.40),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.12);
-            opacity: 1;                              /* 强制覆盖 calc 虚化 */
+            border: 1px solid rgba(139, 92, 246, 0.40);
+            opacity: 1;
             z-index: 1;
         }
         .game-tab.is-center::before {
@@ -589,32 +585,56 @@
                     <div class="games-layout">
                     <nav class="tabs-sidebar">
                         <div class="tabs-track">
+                            <!-- 7 个上方副本站上方 (snake 的前方元素, 形成环形): -->
+                            <!-- snake前: flappy → 2048 → tetris → tic-tac-toe → plane → snake → flappy -->
+                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
+                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="snake">
+                                <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
+                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="2048">
+                                <i class="fas fa-square"></i><span>2048</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="tetris">
+                                <i class="fas fa-square-full"></i><span>俄罗斯方块</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="tic-tac-toe">
+                                <i class="fas fa-square-plus"></i><span>井字棋</span>
+                            </button>
+                            <button class="game-tab clone" aria-hidden="true" data-game="plane">
+                                <i class="fas fa-plane"></i><span>打飞机</span>
+                            </button>
                             <!-- 6 真 tab -->
-                            <button class="game-tab active" style="--d:0" data-game="snake">
+                            <button class="game-tab active" data-game="snake">
                                 <i class="fas fa-gamepad"></i>
                                 <span>贪吃蛇</span>
                             </button>
-                            <button class="game-tab" style="--d:1" data-game="flappy">
+                            <button class="game-tab" data-game="flappy">
                                 <i class="fas fa-feather"></i>
                                 <span>Flappy Bird</span>
                             </button>
-                            <button class="game-tab" style="--d:2" data-game="2048">
+                            <button class="game-tab" data-game="2048">
                                 <i class="fas fa-square"></i>
                                 <span>2048</span>
                             </button>
-                            <button class="game-tab" style="--d:3" data-game="tetris">
+                            <button class="game-tab" data-game="tetris">
                                 <i class="fas fa-square-full"></i>
                                 <span>俄罗斯方块</span>
                             </button>
-                            <button class="game-tab" style="--d:4" data-game="tic-tac-toe">
+                            <button class="game-tab" data-game="tic-tac-toe">
                                 <i class="fas fa-square-plus"></i>
                                 <span>井字棋</span>
                             </button>
-                            <button class="game-tab" style="--d:5" data-game="plane">
+                            <button class="game-tab" data-game="plane">
                                 <i class="fas fa-plane"></i>
                                 <span>打飞机</span>
                             </button>
-                            <!-- 副本 6 (向下循环用) -->
+                            <!-- 7 个下方副本站下方 (plane 的后方元素, 形成环形): -->
+                            <!-- plane后: snake → flappy → 2048 → tetris → tic-tac-toe → plane → snake -->
                             <button class="game-tab clone" aria-hidden="true" data-game="snake">
                                 <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
                             </button>
@@ -633,24 +653,8 @@
                             <button class="game-tab clone" aria-hidden="true" data-game="plane">
                                 <i class="fas fa-plane"></i><span>打飞机</span>
                             </button>
-                            <!-- 副本 6 (向上循环用) -->
                             <button class="game-tab clone" aria-hidden="true" data-game="snake">
                                 <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
-                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="2048">
-                                <i class="fas fa-square"></i><span>2048</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="tetris">
-                                <i class="fas fa-square-full"></i><span>俄罗斯方块</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="tic-tac-toe">
-                                <i class="fas fa-square-plus"></i><span>井字棋</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="plane">
-                                <i class="fas fa-plane"></i><span>打飞机</span>
                             </button>
                         </div>
                     </nav>
@@ -1354,25 +1358,12 @@
 
     console.log('🌟 Sky Star Portfolio loaded!');
     
-    // ─── GAME TAB CAROUSEL (transform translateY + 无限循环 wrap) ───
+    // ─── GAME TAB CAROUSEL (CarPlay 风格: 物理距离 fade + 无缝循环) ───
     const tabsSidebar = document.querySelector('.tabs-sidebar');
     const tabsTrack   = document.querySelector('.tabs-track');
     const allTrackTabs = tabsTrack ? Array.from(tabsTrack.querySelectorAll('.game-tab')) : [];
     const realTabs    = allTrackTabs.filter(t => !t.classList.contains('clone'));
     const N           = realTabs.length;
-
-    // 按 data-game 计算每个 tab 的 --d (真+副本同步)
-    function updateTabDistances() {
-        const activeTab = realTabs.find(t => t.classList.contains('active'));
-        if (!activeTab) return;
-        const activeRealIdx = realTabs.findIndex(t => t.dataset.game === activeTab.dataset.game);
-        if (activeRealIdx < 0) return;
-        allTrackTabs.forEach(tab => {
-            const myRealIdx = realTabs.findIndex(t => t.dataset.game === tab.dataset.game);
-            if (myRealIdx < 0) return;
-            tab.style.setProperty('--d', Math.abs(myRealIdx - activeRealIdx));
-        });
-    }
 
     // 计算容器内除目标元素外，其他非绝对定位子元素占用的总高度
     function calcOtherHeight(container, exclude) {
@@ -1544,7 +1535,6 @@
         });
         if (!changed) return;
 
-        updateTabDistances();
         document.querySelectorAll('.game-container').forEach(gc => gc.classList.remove('active'));
         const targetGc = document.querySelector(`.game-container.game-${gameName}`);
         if (targetGc) {
@@ -1558,23 +1548,33 @@
         setActiveByGame(gameName);
     }
 
-    // 检测 viewport 中心最近的 tab → 加 .is-center 高亮 + 切游戏 (.active 只给真 tab)
-    // 真+副本一视同仁: 副本在中心时也高亮, 互不影响
+    // 检测 viewport 中心最近的 tab → 加 .is-center 高亮 + 切游戏 + 物理距离 fade
     function detectCenterTab() {
         if (!tabsSidebar.clientHeight) return;
         const viewportCenterY = -trackOffset + tabsSidebar.clientHeight / 2;
+        const maxDist = tabsSidebar.clientHeight / 2;
         let bestIdx = -1, minDist = Infinity;
+
+        // 遍历所有 tab: 计算物理距离、设置 opacity/scale、找最近的
         allTrackTabs.forEach((tab, i) => {
             const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
             const d = Math.abs(tabCenterY - viewportCenterY);
+            // CarPlay fade: 距离越远越淡、越小
+            const t = Math.min(d / maxDist, 1);
+            tab.style.setProperty('--v', (1 - t * 0.85).toFixed(3));   // 最远 ~15% opacity
+            tab.style.setProperty('--s', (1 - t * 0.20).toFixed(3));  // 最远 ~80% scale
             if (d < minDist) { minDist = d; bestIdx = i; }
         });
+
         if (bestIdx < 0) return;
         const best = allTrackTabs[bestIdx];
-        // 高亮: 给所有 tab 移除 .is-center, 只给最近的加
+        // 高亮: 移除所有 .is-center, 只给最近的加
         allTrackTabs.forEach(t => t.classList.remove('is-center'));
         best.classList.add('is-center');
-        // 切游戏 (走真 tab .active, setActiveByGame 只改真 tab, 副本不影响)
+        // 强制中心 tab 满 opacity/scale (覆盖 fade)
+        best.style.setProperty('--v', '1');
+        best.style.setProperty('--s', '1');
+        // 切游戏 (走真 tab .active, setActiveByGame 只改真 tab)
         if (!best.classList.contains('active')) {
             switchTo(best.dataset.game);
         }
@@ -1595,12 +1595,13 @@
         const diff  = targetOffset - trackOffset;
 
         if (Math.abs(diff) > 0.1) {
-            trackOffset += diff * 0.28;     // 平滑系数 (ease-out) - 跟手, 不预 ease
-            // wrap: 离开合理范围时瞬移到等价位置 (无缝)
-            const half = cycle * 0.55;
+            trackOffset += diff * 0.28;
+            // wrap: 对称 cycle*0.5 阈值
+            // 12上副+6真+8下副=26项, 向上方向12个副本能撑满sidebar不需要wrap
+            const half = cycle * 0.5;
             if (trackOffset > half) {
                 trackOffset -= cycle; targetOffset -= cycle;
-            } else if (trackOffset < -cycle - half) {
+            } else if (trackOffset < -half) {
                 trackOffset += cycle; targetOffset += cycle;
             }
             applyTransform();
