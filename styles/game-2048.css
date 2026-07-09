@@ -16,11 +16,10 @@
 .game2048-title {
     font-size: 2.5rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #eee4da, #edc53f);
+    background: linear-gradient(135deg, #f8fafc, #fbbf24);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
     letter-spacing: 2px;
 }
 
@@ -30,17 +29,19 @@
 }
 
 .game2048-score-card {
-    background: #bbada0;
-    border-radius: 12px;
-    padding: 6px 14px;
+    background: var(--game-card-strong);
+    border: 1px solid var(--game-border);
+    border-radius: var(--game-radius-sm);
+    padding: 7px 16px;
     text-align: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .game2048-score-label {
     font-size: 0.7rem;
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    color: #eee4da;
+    color: var(--game-text-muted);
     letter-spacing: 1px;
 }
 
@@ -101,34 +102,41 @@
 }
 
 .game2048-btn {
-    background: #8f7a66;
-    border: none;
-    color: #f9f6f2;
-    font-size: 1rem;
-    font-weight: bold;
-    padding: 10px 28px;
-    border-radius: 30px;
+    background: var(--game-card);
+    border: 1px solid var(--game-border);
+    color: #e8eaf6;
+    font-family: inherit;
+    font-size: 0.96rem;
+    font-weight: 700;
+    padding: 10px 26px;
+    border-radius: 999px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.22s ease;
 }
 
 .game2048-btn:hover {
-    background: #9f8a76;
-    transform: scale(1.02);
+    background: var(--game-card-strong);
+    border-color: var(--game-border-strong);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.22);
 }
 
 .game2048-btn-ai {
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    background: var(--game-primary);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(124, 110, 245, 0.32);
 }
 
 .game2048-btn-ai:hover {
-    background: linear-gradient(135deg, #9f6fff, #ff6bb0);
+    background: var(--game-primary-hover);
 }
 
 .game2048-btn-ai.ai-active {
-    background: linear-gradient(135deg, #10b981, #34d399);
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    background: var(--game-ai);
+    color: #0f172a;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.34);
 }
 
 .game2048-btn-ai.ai-active:hover {
@@ -173,14 +181,14 @@
 .game2048-overlay-card p {
     font-size: 1.1rem;
     margin-bottom: 20px;
-    color: #8f7a66;
+    color: #64748b;
 }
 
 .game2048-restart-btn {
-    background: #8f7a66;
+    background: var(--game-primary);
     border: none;
     padding: 8px 24px;
-    border-radius: 30px;
+    border-radius: 999px;
     color: white;
     font-weight: bold;
     font-size: 0.9rem;

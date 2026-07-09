@@ -1,12 +1,12 @@
 /* Tic Tac Toe Container - 井字棋专用容器 */
 .game-container.game-tic-tac-toe {
     position: relative;
-    background: rgba(15, 23, 42, 0.85);
-    border-radius: 24px;
+    background: var(--game-surface);
+    border-radius: var(--game-radius);
     padding: 25px;
-    border: 2px solid rgba(139, 92, 246, 0.3);
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px);
+    border: 1px solid var(--game-border);
+    box-shadow: var(--game-shadow), var(--game-glow);
+    backdrop-filter: blur(14px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -17,14 +17,14 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    max-width: 320px;
+    max-width: 540px;
     margin-bottom: 20px;
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-title {
     font-size: 1.8rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    background: var(--game-title-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -36,19 +36,20 @@
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-score-box {
-    background: rgba(139, 92, 246, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 12px;
+    background: var(--game-card-strong);
+    border: 1px solid var(--game-border);
+    border-radius: var(--game-radius-sm);
     padding: 8px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     min-width: 60px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-score-label {
     font-size: 0.7rem;
-    color: #94a3b8;
+    color: var(--game-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -129,61 +130,65 @@
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn {
     padding: 12px 28px;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
+    border-radius: var(--game-radius-sm);
+    font-size: 0.96rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
-    border: none;
+    transition: all 0.25s ease;
+    border: 1px solid transparent;
     letter-spacing: 0.02em;
+    font-family: inherit;
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn-primary {
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    background: var(--game-primary);
     color: white;
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 6px 18px rgba(124, 110, 245, 0.32);
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn-primary:hover {
+    background: var(--game-primary-hover);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 9px 24px rgba(78, 205, 196, 0.28);
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn-secondary {
-    background: rgba(139, 92, 246, 0.15);
-    color: #a78bfa;
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: var(--game-card);
+    color: #c4b5fd;
+    border-color: var(--game-border);
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn-secondary:hover {
-    background: rgba(139, 92, 246, 0.25);
-    border-color: rgba(139, 92, 246, 0.5);
+    background: var(--game-card-strong);
+    border-color: var(--game-border-strong);
+    color: #fff;
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn-ai {
-    background: rgba(34, 197, 94, 0.15);
+    background: rgba(34, 197, 94, 0.12);
     color: #4ade80;
     border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn-ai:hover {
-    background: rgba(34, 197, 94, 0.25);
-    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(34, 197, 94, 0.20);
+    border-color: rgba(74, 222, 128, 0.55);
+    color: #fff;
 }
 
 .game-container.game-tic-tac-toe .tic-tac-toe-btn-ai.ai-active {
-    background: linear-gradient(135deg, #10b981, #34d399);
+    background: var(--game-ai);
     color: #0f172a;
-    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+    box-shadow: 0 6px 18px rgba(34, 197, 94, 0.34);
 }
 
 .game-container.game-tic-tac-toe .game-instructions {
     text-align: center;
-    color: #94a3b8;
-    font-size: 0.8rem;
-    max-width: 320px;
-    line-height: 1.5;
+    color: var(--game-text-muted);
+    font-size: 0.82rem;
+    max-width: 540px;
+    line-height: 1.55;
     margin-top: 12px;
     padding-top: 12px;
-    border-top: 1px solid rgba(139, 92, 246, 0.15);
+    border-top: 1px solid rgba(139, 92, 246, 0.16);
 }
