@@ -85,7 +85,7 @@
         }
         .tabs-hint i { font-size: 0.85rem; }
 
-        /* track: 真 tab + 副本 tab, JS 用 transform translateY 移动 */
+        /* track: JS 自动复制多组 tab，再用 transform translateY 做无限轮播 */
         .tabs-track {
             display: flex;
             flex-direction: column;
@@ -93,7 +93,7 @@
             will-change: transform;
         }
 
-        /* 副本: 跟真 tab 完全一致 (可交互, 可高亮), 唯一区别是 DOM 多一份用来做 carousel 无缝循环 */
+        /* 副本: 跟真实 tab 完全一致；active 只落在中间真实 tab 上 */
 
         .game-stage {
             flex: 1;
@@ -585,30 +585,7 @@
                     <div class="games-layout">
                     <nav class="tabs-sidebar">
                         <div class="tabs-track">
-                            <!-- 7 个上方副本站上方 (snake 的前方元素, 形成环形): -->
-                            <!-- snake前: flappy → 2048 → tetris → tic-tac-toe → plane → snake → flappy -->
-                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
-                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="snake">
-                                <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
-                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="2048">
-                                <i class="fas fa-square"></i><span>2048</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="tetris">
-                                <i class="fas fa-square-full"></i><span>俄罗斯方块</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="tic-tac-toe">
-                                <i class="fas fa-square-plus"></i><span>井字棋</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="plane">
-                                <i class="fas fa-plane"></i><span>打飞机</span>
-                            </button>
-                            <!-- 6 真 tab -->
+                            <!-- 真实 tab 列表；JS 会按当前数量自动生成无限轮播副本 -->
                             <button class="game-tab active" data-game="snake">
                                 <i class="fas fa-gamepad"></i>
                                 <span>贪吃蛇</span>
@@ -632,29 +609,6 @@
                             <button class="game-tab" data-game="plane">
                                 <i class="fas fa-plane"></i>
                                 <span>打飞机</span>
-                            </button>
-                            <!-- 7 个下方副本站下方 (plane 的后方元素, 形成环形): -->
-                            <!-- plane后: snake → flappy → 2048 → tetris → tic-tac-toe → plane → snake -->
-                            <button class="game-tab clone" aria-hidden="true" data-game="snake">
-                                <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="flappy">
-                                <i class="fas fa-feather"></i><span>Flappy Bird</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="2048">
-                                <i class="fas fa-square"></i><span>2048</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="tetris">
-                                <i class="fas fa-square-full"></i><span>俄罗斯方块</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="tic-tac-toe">
-                                <i class="fas fa-square-plus"></i><span>井字棋</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="plane">
-                                <i class="fas fa-plane"></i><span>打飞机</span>
-                            </button>
-                            <button class="game-tab clone" aria-hidden="true" data-game="snake">
-                                <i class="fas fa-gamepad"></i><span>贪吃蛇</span>
                             </button>
                         </div>
                     </nav>
@@ -1358,12 +1312,77 @@
 
     console.log('🌟 Sky Star Portfolio loaded!');
     
-    // ─── GAME TAB CAROUSEL (CarPlay 风格: 物理距离 fade + 无缝循环) ───
+    // ─── GAME TAB CAROUSEL (无限轮播图式: 自动复制多组 + 中间组归位) ───
     const tabsSidebar = document.querySelector('.tabs-sidebar');
     const tabsTrack   = document.querySelector('.tabs-track');
-    const allTrackTabs = tabsTrack ? Array.from(tabsTrack.querySelectorAll('.game-tab')) : [];
-    const realTabs    = allTrackTabs.filter(t => !t.classList.contains('clone'));
+    const realTabs    = tabsTrack ? Array.from(tabsTrack.querySelectorAll('.game-tab')) : [];
     const N           = realTabs.length;
+    const GAMES       = realTabs.map(t => t.dataset.game);
+    const gameTabFor  = (game) => realTabs.find(t => t.dataset.game === game);
+
+    let allTrackTabs  = realTabs.slice();
+    let trackOffset   = 0;
+    let targetOffset  = 0;
+    let targetIndex   = 0;
+    let sideGroupCount = 2;
+    let middleGroupIndex = 2;
+    let totalGroupCount = 5;
+
+    function resetTabVisual(tab) {
+        tab.classList.remove('active', 'is-center');
+        tab.style.removeProperty('--v');
+        tab.style.removeProperty('--s');
+    }
+
+    function makeClone(realTab) {
+        const btn = realTab.cloneNode(true);
+        resetTabVisual(btn);
+        btn.dataset.clone = 'true';
+        btn.dataset.game = realTab.dataset.game;
+        return btn;
+    }
+
+    function getTrackGap() {
+        if (!tabsTrack) return 0;
+        const style = getComputedStyle(tabsTrack);
+        return parseFloat(style.rowGap || style.gap) || 0;
+    }
+
+    function estimateCycleHeight() {
+        if (!realTabs.length) return 0;
+        const itemH = realTabs[0].offsetHeight || 50;
+        return N * (itemH + getTrackGap());
+    }
+
+    function middleStartIndex() {
+        return middleGroupIndex * N;
+    }
+
+    function positiveMod(num, mod) {
+        return ((num % mod) + mod) % mod;
+    }
+
+    function buildInfiniteTrack() {
+        if (!tabsTrack || !realTabs.length) return;
+
+        const cycleH = estimateCycleHeight();
+        sideGroupCount = cycleH > 0 ? Math.max(2, Math.ceil(tabsSidebar.clientHeight / cycleH) + 1) : 2;
+        middleGroupIndex = sideGroupCount;
+        totalGroupCount = sideGroupCount * 2 + 1;
+
+        tabsTrack.textContent = '';
+        for (let group = 0; group < totalGroupCount; group++) {
+            realTabs.forEach(tab => {
+                const node = group === middleGroupIndex ? tab : makeClone(tab);
+                resetTabVisual(node);
+                if (group === middleGroupIndex) node.removeAttribute('data-clone');
+                tabsTrack.appendChild(node);
+            });
+        }
+
+        allTrackTabs = Array.from(tabsTrack.querySelectorAll('.game-tab'));
+        targetIndex = middleStartIndex();
+    }
 
     // 计算容器内除目标元素外，其他非绝对定位子元素占用的总高度
     function calcOtherHeight(container, exclude) {
@@ -1523,7 +1542,7 @@
         });
     }
 
-    // 切换 active (按 game 名, 只对真 tab 同步 active, 副本不加 active class)
+    // 切换 active (active 只落在中间真实 tab 上；副本只负责视觉和点击)
     function setActiveByGame(gameName, opts) {
         const force = opts && opts.force;
         let changed = force;
@@ -1548,6 +1567,54 @@
         setActiveByGame(gameName);
     }
 
+    function getOffsetForIndex(index) {
+        const tab = allTrackTabs[index];
+        if (!tab || !tabsSidebar) return targetOffset;
+        const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
+        return tabsSidebar.clientHeight / 2 - tabCenterY;
+    }
+
+    function setTargetIndex(index) {
+        if (!allTrackTabs.length) return;
+        targetIndex = Math.max(0, Math.min(index, allTrackTabs.length - 1));
+        targetOffset = getOffsetForIndex(targetIndex);
+    }
+
+    function jumpToEquivalentIndex(newIndex) {
+        if (!allTrackTabs[targetIndex] || !allTrackTabs[newIndex]) return;
+        const oldOffset = getOffsetForIndex(targetIndex);
+        const newOffset = getOffsetForIndex(newIndex);
+        const delta = newOffset - oldOffset;
+        targetIndex = newIndex;
+        targetOffset = newOffset;
+        trackOffset += delta;
+        applyTransform();
+    }
+
+    // 到副本区后，瞬间归位到中间组的同名 tab；内容一样，所以视觉上无感
+    function normalizeTargetToMiddle() {
+        if (!N) return false;
+        const middleStart = middleStartIndex();
+        const middleEnd = middleStart + N;
+        if (targetIndex >= middleStart && targetIndex < middleEnd) return false;
+
+        const normalizedIndex = middleStart + positiveMod(targetIndex, N);
+        jumpToEquivalentIndex(normalizedIndex);
+        return true;
+    }
+
+    function moveBy(step) {
+        if (!N || !allTrackTabs.length || step === 0) return;
+
+        const safeMin = N;
+        const safeMax = (totalGroupCount - 1) * N - 1;
+        if (targetIndex + step < safeMin || targetIndex + step > safeMax) {
+            normalizeTargetToMiddle();
+        }
+
+        setTargetIndex(targetIndex + step);
+    }
+
     // 检测 viewport 中心最近的 tab → 加 .is-center 高亮 + 切游戏 + 物理距离 fade
     function detectCenterTab() {
         if (!tabsSidebar.clientHeight) return;
@@ -1555,106 +1622,99 @@
         const maxDist = tabsSidebar.clientHeight / 2;
         let bestIdx = -1, minDist = Infinity;
 
-        // 遍历所有 tab: 计算物理距离、设置 opacity/scale、找最近的
         allTrackTabs.forEach((tab, i) => {
             const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
             const d = Math.abs(tabCenterY - viewportCenterY);
-            // CarPlay fade: 距离越远越淡、越小
             const t = Math.min(d / maxDist, 1);
-            tab.style.setProperty('--v', (1 - t * 0.85).toFixed(3));   // 最远 ~15% opacity
-            tab.style.setProperty('--s', (1 - t * 0.20).toFixed(3));  // 最远 ~80% scale
+            tab.style.setProperty('--v', (1 - t * 0.55).toFixed(3));
+            tab.style.setProperty('--s', (1 - t * 0.08).toFixed(3));
             if (d < minDist) { minDist = d; bestIdx = i; }
         });
 
         if (bestIdx < 0) return;
         const best = allTrackTabs[bestIdx];
-        // 高亮: 移除所有 .is-center, 只给最近的加
         allTrackTabs.forEach(t => t.classList.remove('is-center'));
         best.classList.add('is-center');
-        // 强制中心 tab 满 opacity/scale (覆盖 fade)
         best.style.setProperty('--v', '1');
         best.style.setProperty('--s', '1');
-        // 切游戏 (走真 tab .active, setActiveByGame 只改真 tab)
-        if (!best.classList.contains('active')) {
+
+        const activeRealTab = gameTabFor(best.dataset.game);
+        if (!activeRealTab || !activeRealTab.classList.contains('active')) {
             switchTo(best.dataset.game);
         }
     }
-
-    let trackOffset = 0;
-    let targetOffset = 0;
 
     function applyTransform() {
         if (tabsTrack) tabsTrack.style.transform = `translateY(${trackOffset}px)`;
     }
 
-    // rAF loop: 平滑跟踪 targetOffset, 超出范围时 wrap, 同时检测中心
+    // rAF loop: 平滑追赶目标；停稳在副本区时归位到中间组
     function rafLoop() {
         if (!realTabs.length) return;
-        const itemH = realTabs[0].offsetHeight + 6;  // 含 gap
-        const cycle = N * itemH;
-        const diff  = targetOffset - trackOffset;
-
+        const diff = targetOffset - trackOffset;
         if (Math.abs(diff) > 0.1) {
             trackOffset += diff * 0.28;
-            // wrap: 对称 cycle*0.5 阈值
-            // 12上副+6真+8下副=26项, 向上方向12个副本能撑满sidebar不需要wrap
-            const half = cycle * 0.5;
-            if (trackOffset > half) {
-                trackOffset -= cycle; targetOffset -= cycle;
-            } else if (trackOffset < -half) {
-                trackOffset += cycle; targetOffset += cycle;
-            }
             applyTransform();
             detectCenterTab();
+        } else {
+            if (trackOffset !== targetOffset) {
+                trackOffset = targetOffset;
+                applyTransform();
+            }
+            if (normalizeTargetToMiddle()) detectCenterTab();
         }
         requestAnimationFrame(rafLoop);
     }
 
     if (tabsSidebar && tabsTrack && realTabs.length) {
-        // 鼠标滚轮: 量化到 itemH 步进, 每次 wheel 最多移动一个 tab 高度 (避免跳两个)
         tabsSidebar.addEventListener('wheel', (e) => {
             e.preventDefault();
-            if (!realTabs.length) return;
-            const itemH = realTabs[0].offsetHeight + 6;  // 含 gap
-            if (e.deltaY > 0)      targetOffset -= itemH;   // 向下滚 → tab 上移 → 下一个
-            else if (e.deltaY < 0) targetOffset += itemH;   // 向上滚 → tab 下移 → 上一个
+            if (e.deltaY > 0)      moveBy(1);
+            else if (e.deltaY < 0) moveBy(-1);
         }, { passive: false });
 
-        // 触摸拖动
-        let touchStartY = 0, touchStartOffset = 0;
+        let touchStartY = 0;
         tabsSidebar.addEventListener('touchstart', (e) => {
             touchStartY = e.touches[0].clientY;
-            touchStartOffset = targetOffset;
         }, { passive: true });
         tabsSidebar.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            const dy = e.touches[0].clientY - touchStartY;
-            targetOffset = touchStartOffset + dy;
         }, { passive: false });
+        tabsSidebar.addEventListener('touchend', (e) => {
+            const endY = e.changedTouches[0].clientY;
+            const dy = endY - touchStartY;
+            if (Math.abs(dy) < 28) return;
+            moveBy(dy < 0 ? 1 : -1);
+        }, { passive: true });
 
-        // click 真+副本 tab → 滚到中心 (副本可独立点击, 视觉一致)
-        allTrackTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => {
-                e.preventDefault();
-                const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
-                // 让 tabCenterY 落在 viewport 中心: tabCenterY + offset = clientHeight/2
-                targetOffset = tabsSidebar.clientHeight / 2 - tabCenterY;
-            });
+        // 委托 click: 点到哪一个可见 tab，就平滑滚到哪一个；副本同样有效
+        tabsTrack.addEventListener('click', (e) => {
+            const btn = e.target.closest('.game-tab');
+            if (!btn) return;
+            e.preventDefault();
+
+            const clickedIndex = allTrackTabs.indexOf(btn);
+            switchTo(btn.dataset.game);
+            if (clickedIndex >= 0) {
+                setTargetIndex(clickedIndex);
+            } else {
+                const gameIndex = GAMES.indexOf(btn.dataset.game);
+                if (gameIndex >= 0) setTargetIndex(middleStartIndex() + gameIndex);
+            }
         });
 
-        // 初始化: snake 居中
         requestAnimationFrame(() => {
-            const snakeTab = realTabs.find(t => t.dataset.game === 'snake');
-            if (snakeTab) {
-                const tabCenterY = snakeTab.offsetTop + snakeTab.offsetHeight / 2;
-                trackOffset = targetOffset = tabsSidebar.clientHeight / 2 - tabCenterY;
-            }
+            buildInfiniteTrack();
+            const initialGame = GAMES[0];
+            setTargetIndex(middleStartIndex());
+            trackOffset = targetOffset;
             applyTransform();
-            setActiveByGame('snake', { force: true });
+            setActiveByGame(initialGame, { force: true });
             detectCenterTab();
             requestAnimationFrame(rafLoop);
         });
     }
+
 
     // 窗口大小变化时，重新适配当前激活的游戏
     let resizeTimeout;
@@ -1669,10 +1729,11 @@
         }, 120);
     });
 
-    // game container 默认激活 (snake)
-    const snakeContainer = document.querySelector('.game-container.game-snake');
-    if (snakeContainer && !snakeContainer.classList.contains('active')) {
-        snakeContainer.classList.add('active');
+    // game container 默认激活第一个 tab 对应游戏
+    const defaultGame = GAMES[0] || 'snake';
+    const defaultContainer = document.querySelector(`.game-container.game-${defaultGame}`);
+    if (defaultContainer && !defaultContainer.classList.contains('active')) {
+        defaultContainer.classList.add('active');
     }
     </script>
     
