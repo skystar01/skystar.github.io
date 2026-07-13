@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sky Star - AI Developer & Innovator</title>
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -1151,25 +1155,19 @@
                 <div class="detail-content">
                     <h2 id="detailTitle">Python</h2>
                     <p class="detail-desc" id="detailDesc"></p>
-                    <h3>技能属性</h3>
-                    <div class="detail-props">
-                        <div class="prop-row">
-                            <span class="prop-label">熟练度</span>
-                            <div class="prop-bar"><div class="prop-fill" id="propFill" style="--fill-width:0%"></div></div>
-                            <span class="prop-value" id="propValue">90%</span>
-                        </div>
-                    </div>
-                    <div class="exp-row">
-                        <span class="prop-label">经验值</span>
-                        <span class="exp-badge" id="expYears">3年</span>
-                    </div>
                     <div class="detail-tags-row" id="detailTagsRow">
                         <span class="detail-tag" id="tag1">数据科学</span>
                         <span class="detail-tag" id="tag2">机器学习</span>
                         <span class="detail-tag" id="tag3">后端开发</span>
                     </div>
+                    <h3>我用这个做过</h3>
+                    <div class="detail-projects" id="detailProjects"></div>
                     <h3>核心能力</h3>
                     <ul class="detail-features-list" id="detailFeatures"></ul>
+                    <div class="detail-exploring" id="detailExploring" hidden>
+                        <span class="exploring-label"><i class="fas fa-telescope"></i> 正在学:</span>
+                        <span class="exploring-tags" id="exploringTags"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1592,16 +1590,125 @@
 
     // ─── SKILL DATA ───
     const skillData = {
-        'Python': { icon:'fab fa-python', description:'主要编程语言。用于数据处理、ML 训练脚本、Flask 推理 API、自动化脚本。', proficiency:88, experience:'3年', level:'熟练', tags:['数据处理','ML 脚本','后端'], features:['pandas / numpy 数据处理','PyTorch 训练脚本','Flask 推理 API','自动化脚本'] },
-        'PyTorch': { icon:'icon-flame', description:'本科毕设与 RL 项目中实际使用。熟悉 DQN 网络实现、训练循环、Reward 设计。', proficiency:80, experience:'1.5年', level:'熟练', tags:['深度学习','RL','训练流程'], features:['Dueling DQN 网络实现','训练循环与 epsilon 衰减','Reward Wrapper 设计','Checkpoint 保存/加载','推理部署'] },
-        '强化学习': { icon:'icon-rl', description:'我最熟悉的方向。本科开悟竞赛 + Flappy Bird 自学项目 + 持续学习中。', proficiency:75, experience:'2年', level:'熟练', tags:['DQN','PPO','奖励设计','调参'], features:['DQN / Target DQN 算法实现','PPO 算法调参与实验','奖励函数设计与 shaping','特征工程','超参数调优'] },
-        'JavaScript': { icon:'fab fa-js-square', description:'网站前端（Canvas 游戏、可交互 UI）主要使用语言。', proficiency:85, experience:'3年', level:'熟练', tags:['前端','Canvas','ES6+'], features:['DOM 操作','Canvas 动画与游戏','ES6+ 语法','异步编程 (Promise/async)'] },
-        'Linux / 命令行': { icon:'fas fa-terminal', description:'训练环境与服务器部署的日常工具。', proficiency:70, experience:'1.5年', level:'了解', tags:['训练环境','服务器','部署'], features:['SSH 远程连接','tmux / screen 后台任务','环境与依赖配置','日志与进程排查'] },
-        'Git': { icon:'fab fa-git-alt', description:'日常版本控制。', proficiency:80, experience:'2年', level:'熟练', tags:['版本控制','GitHub'], features:['分支与合并','commit 规范','PR 工作流','冲突解决'] },
-        'HTML5': { icon:'fab fa-html5', description:'语义化页面结构。', proficiency:88, experience:'3年', level:'熟练', tags:['语义化','Canvas','多媒体'], features:['语义化标签','Canvas 绘图','音视频嵌入','表单与文件上传'] },
-        'CSS3': { icon:'fab fa-css3-alt', description:'样式与动画（本站大量使用玻璃拟态 / 渐变 / 动画）。', proficiency:88, experience:'3年', level:'熟练', tags:['动画','响应式','Grid/Flex'], features:['动画与过渡 (transition/animation)','Grid / Flexbox 布局','响应式适配','毛玻璃 / 渐变效果'] },
-        'SQL': { icon:'fas fa-database', description:'关系型数据库基础查询。', proficiency:70, experience:'1年', level:'了解', tags:['查询','数据建模'], features:['基础 CRUD','多表 JOIN 查询','索引基础','数据建模入门'] },
-        'React': { icon:'fab fa-react', description:'目前工作中接触使用，了解基础组件与 Hooks，未系统深入。', proficiency:55, experience:'工作中半年', level:'了解', tags:['组件','Hooks'], features:['基础组件编写','useState / useEffect','JSX 语法','Props 与组件组合'] }
+        'Python': {
+            icon: 'fab fa-python',
+            description: '主要编程语言,数据处理 / ML 训练 / Flask 推理 / 自动化脚本。',
+            level: '熟练',
+            tags: ['数据处理', 'ML 训练', '后端脚本'],
+            features: ['pandas / numpy 数据处理', 'PyTorch 训练脚本', 'Flask 推理 API', '自动化脚本'],
+            projects: [
+                { name: '开悟 AI 竞赛 RLBrain', desc: 'Dueling DQN 训练 AI 玩游戏', link: '#' },
+                { name: 'Flappy Bird AI', desc: 'DQN 训练 + 浏览器可视化推理', link: '#' },
+                { name: '智能问答系统', desc: '毕设,后端问答服务', link: '#' },
+                { name: '本站', desc: '数据处理 / 自动化脚本', link: '#' }
+            ],
+            exploring: ['异步性能优化', 'asyncio 模式']
+        },
+        'PyTorch': {
+            icon: 'icon-flame',
+            description: 'RL 项目与毕设中使用。熟悉 DQN / Transformer 的训练循环、Reward 设计、Checkpoint 管理。',
+            level: '熟练',
+            tags: ['深度学习', 'RL', '训练流程'],
+            features: ['Dueling DQN 网络实现', '训练循环与 epsilon 衰减', 'Reward Wrapper 设计', 'Checkpoint 保存 / 加载', 'Transformer 预训练脚本'],
+            projects: [
+                { name: '开悟 AI 竞赛 RLBrain', desc: 'Dueling DQN 主训练框架', link: '#' },
+                { name: 'Flappy Bird AI', desc: 'DQN 模型训练 + 推理', link: '#' },
+                { name: '智能问答系统', desc: '毕设,Transformer 微调', link: '#' }
+            ],
+            exploring: ['LoRA 微调', '分布式训练 (DDP)']
+        },
+        '强化学习': {
+            icon: 'icon-rl',
+            description: '我最熟悉的方向。本科开悟竞赛 + Flappy Bird 自学。系统用过 Q-learning / DQN / Target DQN / PPO,核心在奖励函数设计、环境数据处理、特征工程。',
+            level: '熟练',
+            tags: ['DQN', 'PPO', '奖励设计', '调参'],
+            features: ['DQN / Target DQN 算法实现', 'PPO 调参与实验', '奖励函数设计与 shaping', '环境返回数据处理', '特征维度工程', '超参数调优'],
+            projects: [
+                { name: '开悟 AI 竞赛 RLBrain', desc: 'Dueling DQN,川渝地区二等奖 / 全国第 9', link: '#' },
+                { name: 'Flappy Bird AI', desc: 'DQN 训练 + 浏览器可视化推理', link: '#' }
+            ],
+            exploring: ['SAC 算法', '多智能体强化学习']
+        },
+        'JavaScript': {
+            icon: 'fab fa-js-square',
+            description: '智能问答毕设 + 本站(粒子系统 / 弹窗 / 搜索 / 主题切换)主要使用。',
+            level: '熟练',
+            tags: ['前端', 'Canvas', 'ES6+'],
+            features: ['DOM 操作', 'Canvas 动画与游戏', 'ES6+ 语法', '异步编程 (Promise / async)'],
+            projects: [
+                { name: '本站', desc: '粒子系统 / 弹窗 / 搜索 / 主题切换 / Canvas 游戏', link: '#' },
+                { name: '智能问答系统', desc: '毕设,前端交互', link: '#' }
+            ],
+            exploring: ['TypeScript']
+        },
+        'HTML5': {
+            icon: 'fab fa-html5',
+            description: '语义化结构,智能问答毕设 + 本站使用。',
+            level: '熟练',
+            tags: ['语义化', 'Canvas', '表单'],
+            features: ['语义化标签', 'Canvas 绘图', '音视频嵌入', '表单与文件上传'],
+            projects: [
+                { name: '本站', desc: '多 panel 单页布局', link: '#' },
+                { name: '智能问答系统', desc: '毕设前端结构', link: '#' }
+            ],
+            exploring: ['无障碍 (a11y)', '语义化最佳实践']
+        },
+        'CSS3': {
+            icon: 'fab fa-css3-alt',
+            description: '本站大量使用(玻璃拟态 / 渐变 / 动画 / 响应式)。',
+            level: '熟练',
+            tags: ['动画', '响应式', 'Glassmorphism'],
+            features: ['动画与过渡 (transition / animation)', 'Grid / Flexbox 布局', '响应式适配', '毛玻璃 / 渐变效果'],
+            projects: [
+                { name: '本站', desc: '深空主题 / 卡片 / 弹窗 / 粒子 / 7 panel 主题色', link: '#' },
+                { name: '智能问答系统', desc: '毕设样式', link: '#' }
+            ],
+            exploring: ['高级动效', 'CSS Houdini']
+        },
+        'Linux / 命令行': {
+            icon: 'fas fa-terminal',
+            description: '训练环境与本地开发的日常工具。简单命令还记得,复杂的靠搜。',
+            level: '了解',
+            tags: ['训练环境', '开发工具'],
+            features: ['SSH 远程连接', 'WSL 本地开发', '环境与依赖配置', '日志与进程排查'],
+            projects: [
+                { name: '训练环境', desc: 'WSL / 远程服务器日常', link: '#' }
+            ],
+            exploring: ['tmux 进阶', 'shell 脚本']
+        },
+        'Git': {
+            icon: 'fab fa-git-alt',
+            description: '日常版本控制,初始化仓库 + 提交过代码 + 简单的分支合并。',
+            level: '熟练',
+            tags: ['版本控制', 'GitHub'],
+            features: ['仓库初始化', 'commit 规范', '分支与合并', '基本冲突解决'],
+            projects: [
+                { name: '全部项目', desc: '开悟 / Flappy / 智能问答 / 本站', link: '#' }
+            ],
+            exploring: ['rebase 工作流', 'PR 规范']
+        },
+        'SQL': {
+            icon: 'fas fa-database',
+            description: 'MySQL,智能问答毕设用来存用户表 / 问答记录。',
+            level: '了解',
+            tags: ['MySQL', '查询'],
+            features: ['基础 CRUD', '多表 JOIN 查询', '索引基础', '数据建模入门'],
+            projects: [
+                { name: '智能问答系统', desc: '毕设,用户表 / 问答记录表', link: '#' }
+            ],
+            exploring: ['索引优化', '复杂查询性能']
+        },
+        'React': {
+            icon: 'fab fa-react',
+            description: '目前工作中接触使用。基础组件 + Hooks。体验过 React 生态(组件化 / 虚拟 DOM / 状态管理),比原生 HTML 复杂但性能更好。',
+            level: '了解',
+            tags: ['组件', 'Hooks', '工作接触'],
+            features: ['基础组件编写', 'useState / useEffect', 'JSX 语法', 'Props 与组件组合'],
+            projects: [
+                { name: '工作中使用', desc: '业务组件开发', link: '#' }
+            ],
+            exploring: ['Hooks 进阶', '状态管理 (Redux / Zustand)']
+        }
     };
 
     // ─── SKILL MODAL ───
@@ -1623,33 +1730,48 @@
         if (!skill) return;
         const modal = document.getElementById('skillModal');
         const skillKey = skill.icon.replace(/^icon-/, '');
+        const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const escAttr = s => escHtml(s);
         document.getElementById('cardIcon').innerHTML = `<span class="${skill.icon}" aria-label="${skillName}"><svg viewBox="0 0 24 24"><use href="#i-${skillKey}"/></svg></span>`;
         document.getElementById('cardTitle').textContent = skillName;
         document.getElementById('cardLevel').textContent = skill.level;
         document.getElementById('detailTitle').textContent = skillName;
         document.getElementById('detailDesc').textContent = skill.description;
-        document.getElementById('propValue').textContent = skill.proficiency + '%';
-        document.getElementById('expYears').textContent = skill.experience;
         document.getElementById('tag1').textContent = skill.tags[0];
         document.getElementById('tag2').textContent = skill.tags[1];
         const t3 = document.getElementById('tag3');
         t3.textContent = skill.tags[2] || '';
         t3.style.display = skill.tags[2] ? '' : 'none';
+        // 渲染"我用这个做过"项目列表
+        const projectsEl = document.getElementById('detailProjects');
+        if (skill.projects && skill.projects.length) {
+            projectsEl.innerHTML = skill.projects.map(p => `
+                <a class="detail-project" href="${escAttr(p.link || '#')}" ${p.link && p.link !== '#' ? 'target="_blank" rel="noopener"' : ''}>
+                    <div class="detail-project-name">${escHtml(p.name)}</div>
+                    <div class="detail-project-desc">${escHtml(p.desc)}</div>
+                </a>
+            `).join('');
+            projectsEl.style.display = '';
+        } else {
+            projectsEl.style.display = 'none';
+        }
         document.getElementById('detailFeatures').innerHTML = skill.features.map(f =>
-            `<li><span class="feat-icon"><i class="fas fa-check"></i></span> ${f}</li>`).join('');
-        const propFill = document.getElementById('propFill');
+            `<li><span class="feat-icon"><i class="fas fa-check"></i></span> ${escHtml(f)}</li>`).join('');
+        // 渲染"正在学"
+        const exploringWrap = document.getElementById('detailExploring');
+        if (skill.exploring && skill.exploring.length) {
+            document.getElementById('exploringTags').innerHTML = skill.exploring
+                .map(t => `<span class="exploring-tag">${escHtml(t)}</span>`).join('');
+            exploringWrap.hidden = false;
+        } else {
+            exploringWrap.hidden = true;
+        }
         modal.classList.remove('active','closing');
-        propFill.style.transition = 'none';
-        propFill.style.setProperty('--fill-width','0%');
         void modal.offsetWidth;
-        requestAnimationFrame(() => { propFill.style.transition = ''; });
         modal.classList.add('active');
         document.body.style.overflow = 'hidden';
         _modalBusy = true;
-        setTimeout(() => {
-            propFill.style.setProperty('--fill-width', skill.proficiency + '%');
-            _modalBusy = false;
-        }, 800);
+        setTimeout(() => { _modalBusy = false; }, 800);
     }
 
     function closeSkillModal() {
@@ -1660,9 +1782,6 @@
         setTimeout(() => {
             modal.classList.remove('active','closing');
             document.body.style.overflow = '';
-            const pf = document.getElementById('propFill');
-            pf.style.transition = 'none';
-            pf.style.setProperty('--fill-width','0%');
             _modalBusy = false;
         }, 520);
     }
