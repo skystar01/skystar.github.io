@@ -387,11 +387,59 @@
     </style>
 </head>
 <body>
+<!-- SVG 图标 sprite (弹窗里通过 <use href="#i-xxx"> 引用) -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <symbol id="i-rl" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="5" r="2.2"/><circle cx="19" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M7 11 10.2 6.8M13.8 6.8 17 11M17 13 13.8 17.2M10.2 17.2 7 13"/><path d="M8 12h8M12 8v8" opacity=".7"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M13.5 3.5c2 2.2 5.5 5.4 5.5 10.1A7 7 0 0 1 5 13.7c0-3 1.7-5.2 3.6-7"/><path d="M12.2 8.5c1.7 1.7 3.2 3.2 3.2 5.5a3.5 3.5 0 0 1-7 0c0-1.8 1.2-3.2 2.4-4.5"/><path d="M15.7 5.2h.01"/></symbol>
+  <symbol id="i-chess" viewBox="0 0 24 24"><path d="M9 21h8M10 17h6l1 4H9l1-4Z"/><path d="M10.5 17c.2-3 1.4-4.8 4.4-6.3 1.2-.6 1.6-1.6 1.1-2.7-.7-1.6-2.6-1.7-4.2-.6L10 8.7V5.5L13.2 3c2.7-.1 5 1.5 5.6 4 .7 2.8-.8 5.1-3.3 6.2-1.5.7-2.2 1.4-2.4 3.8"/><circle cx="14" cy="7.2" r=".35"/></symbol>
+  <symbol id="i-flappy" viewBox="0 0 24 24"><path d="M4 14c4.5-6.8 9.3-7.6 16-4.5-3.1.8-5.2 2.4-6.6 5.3"/><path d="M5.5 14.2c3.6-1.2 6.5-.5 8.8 2.1-2.8 1.7-6.2 1.5-8.8-2.1Z"/><path d="M15.5 9.2 18 6.5M17.2 10.1l3.1-1"/><circle cx="12.2" cy="10.2" r=".55"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5h16v9.5H9l-5 4v-13.5Z"/><path d="M8 9h8M8 12h5"/><circle cx="16.8" cy="12" r=".55"/></symbol>
+  <symbol id="i-snake" viewBox="0 0 24 24"><path d="M5 16c0 2 1.6 3 3.2 3H15c2 0 3.5-1.5 3.5-3.2S17 12.7 15 12.7H9.2C7.2 12.7 5.5 11.4 5.5 9.5S7.2 6 9.3 6H16"/><path d="M16 6l2.7-2M16 6l2.7 2"/><circle cx="14.8" cy="5.7" r=".4"/></symbol>
+  <symbol id="i-2048" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 12h16M12 4v16"/><path d="M7 8h2v2H7zM15 14h2v2h-2z"/></symbol>
+  <symbol id="i-tetris" viewBox="0 0 24 24"><rect x="5" y="5" width="4" height="4" rx=".8"/><rect x="9" y="5" width="4" height="4" rx=".8"/><rect x="13" y="5" width="4" height="4" rx=".8"/><rect x="9" y="9" width="4" height="4" rx=".8"/><rect x="9" y="13" width="4" height="4" rx=".8"/><rect x="13" y="13" width="4" height="4" rx=".8"/></symbol>
+  <symbol id="i-tictactoe" viewBox="0 0 24 24"><path d="M8 4v16M16 4v16M4 8h16M4 16h16"/><path d="m5.6 5.6 2 2M7.6 5.6l-2 2"/><circle cx="18" cy="18" r="1.4"/><path d="m17 5.7 2 2M19 5.7l-2 2"/></symbol>
+  <symbol id="i-plane" viewBox="0 0 24 24"><path d="M12 3 6.5 20l5.5-3 5.5 3L12 3Z"/><path d="M12 3v14M8.5 14h7"/></symbol>
+  <symbol id="i-code-pipe" viewBox="0 0 24 24"><path d="m8 7-4 5 4 5M16 7l4 5-4 5"/><path d="M11 19 13 5"/><path d="M5 21h14" opacity=".7"/></symbol>
+  <symbol id="i-training" viewBox="0 0 24 24"><path d="M4 18V6M4 18h16"/><path d="M7 15l3-4 3 2 4-6"/><circle cx="10" cy="11" r="1.2"/><circle cx="13" cy="13" r="1.2"/><circle cx="17" cy="7" r="1.2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></symbol>
+  <symbol id="i-robot" viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="2"/><circle cx="9" cy="13.5" r=".9"/><circle cx="15" cy="13.5" r=".9"/><path d="M12 5v3M9 3h6"/><path d="M5 14h-1M19 14h1"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l12-7z" fill="currentColor" stroke="none"/></symbol>
+  <!-- Sky Star 个人 logo:中心五角星(实心) + 4 道贯穿辐射线(被星体覆盖) + 4 个外节点(描边),跟 i-rl 同套"节点+连线"语言 -->
+  <symbol id="i-skystar" viewBox="0 0 24 24">
+    <!-- 辐射线(纵 + 横,贯穿节点内边缘;中段被中心星 fill 覆盖) -->
+    <path d="M12 5.6v12.8M5.6 12h12.8" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+    <!-- 4 个外节点(描边,跟 i-rl 节点同语言) -->
+    <circle cx="12" cy="4" r="1.6" fill="none" stroke-width="1.6"/>
+    <circle cx="20" cy="12" r="1.6" fill="none" stroke-width="1.6"/>
+    <circle cx="12" cy="20" r="1.6" fill="none" stroke-width="1.6"/>
+    <circle cx="4" cy="12" r="1.6" fill="none" stroke-width="1.6"/>
+    <!-- 中心五角星(实心 + 描边,主视觉) -->
+    <path d="M12 8 L12.9 10.8 L15.8 10.8 L13.5 12.5 L14.4 15.2 L12 13.5 L9.6 15.2 L10.5 12.5 L8.2 10.8 L11.1 10.8 Z"
+          fill="currentColor" stroke="currentColor" stroke-width="0.5" stroke-linejoin="round"/>
+    <!-- 星中心白色高光 -->
+    <circle cx="12" cy="11.5" r="0.6" fill="#ffffff" stroke="none" opacity="0.9"/>
+  </symbol>
+</svg>
 
-    <!-- FIXED BACKGROUNDS -->
-    <div class="bg-wrap"></div>
+    <!-- FIXED BACKGROUNDS:6 套主题层 + 1 waypoint 中转层(大色差跳变用) -->
+    <div class="bg-theme theme-home active"></div>
+    <div class="bg-theme theme-news"></div>
+    <div class="bg-theme theme-about"></div>
+    <div class="bg-theme theme-skills"></div>
+    <div class="bg-theme theme-projects"></div>
+    <div class="bg-theme theme-game"></div>
+    <div class="bg-theme theme-contact"></div>
+    <div class="bg-theme theme-waypoint"></div>
     <canvas class="bg-stars" id="starsCanvas"></canvas>
-    <div class="bg-glow"></div>
+    <div class="bg-glow-theme glow-home active"></div>
+    <div class="bg-glow-theme glow-news"></div>
+    <div class="bg-glow-theme glow-about"></div>
+    <div class="bg-glow-theme glow-skills"></div>
+    <div class="bg-glow-theme glow-projects"></div>
+    <div class="bg-glow-theme glow-game"></div>
+    <div class="bg-glow-theme glow-contact"></div>
+    <div class="bg-glow-theme glow-waypoint"></div>
 
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
@@ -400,6 +448,10 @@
             <div class="nav-item active" data-target="home">
                 <i class="fas fa-home"></i>
                 <span class="tip">首页</span>
+            </div>
+            <div class="nav-item" data-target="news">
+                <i class="fas fa-newspaper"></i>
+                <span class="tip">每日资讯</span>
             </div>
             <div class="nav-item" data-target="about">
                 <i class="fas fa-user"></i>
@@ -410,7 +462,7 @@
                 <span class="tip">技能矩阵</span>
             </div>
             <div class="nav-item" data-target="projects">
-                <i class="fas fa-folder-open"></i>
+                <i class="fas fa-diagram-project"></i>
                 <span class="tip">精选项目</span>
             </div>
             <div class="nav-item" data-target="game">
@@ -461,7 +513,7 @@
 
             <!-- floating info card -->
             <div class="hero-card">
-                <div class="card-icon"><i class="fas fa-brain"></i></div>
+                <div class="card-icon"><span class="icon-rl" aria-label="强化学习"><svg viewBox="0 0 24 24"><circle class="rl-node rl-node-1" cx="5" cy="12" r="2.2"/><circle class="rl-node rl-node-2" cx="12" cy="5" r="2.2"/><circle class="rl-node rl-node-3" cx="19" cy="12" r="2.2"/><circle class="rl-node rl-node-4" cx="12" cy="19" r="2.2"/><path d="M7 11 10.2 6.8M13.8 6.8 17 11M17 13 13.8 17.2M10.2 17.2 7 13"/><path class="rl-cross" d="M8 12h8M12 8v8" opacity=".7"/></svg></span></div>
                 <div class="card-label">训练方向</div>
                 <div class="card-sub">
                     RL 智能体<br>
@@ -479,6 +531,72 @@
             </div>
         </section>
 
+        <!-- NEWS PANEL (每日资讯) -->
+        <section class="panel" id="panel-news">
+            <div class="news-wrap">
+                <div class="news-header">
+                    <div class="news-header-left">
+                        <h2 class="news-title"><i class="fas fa-newspaper"></i> 每日资讯</h2>
+                        <p class="news-sub">科技 / AI / 开源 每日精选,由本地后端拉取并总结</p>
+                    </div>
+                    <div class="news-header-right">
+                        <span id="news-updated-at" class="news-updated-at">尚未更新</span>
+                        <button id="news-refresh-btn" class="news-refresh-btn">
+                            <i class="fas fa-rotate"></i> <span>刷新</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="news-loading" class="news-state news-loading hidden">
+                    <div class="news-spinner"></div>
+                    <p id="news-loading-text">抓取资讯中(可能需要 20-40 秒)...</p>
+                </div>
+
+                <div id="news-empty" class="news-state news-empty hidden">
+                    <i class="fas fa-rss"></i>
+                    <p class="news-state-title">还没有今日资讯</p>
+                    <p class="news-state-hint">点右上角"刷新"按钮,启动本地后端拉取</p>
+                </div>
+
+                <div id="news-error" class="news-state news-error hidden">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <p class="news-state-title">刷新失败</p>
+                    <p id="news-error-text" class="news-state-hint">请确认已双击 start-news.bat 启动服务</p>
+                </div>
+
+                <div id="news-content" class="news-content hidden">
+                    <div class="news-filters" id="news-filters">
+                        <button class="news-filter active" data-cat="all">全部</button>
+                        <button class="news-filter" data-cat="AI 论文">AI 论文</button>
+                        <button class="news-filter" data-cat="开源动态">开源动态</button>
+                        <button class="news-filter" data-cat="中文 AI">中文 AI</button>
+                        <button class="news-filter" data-cat="业界新闻">业界新闻</button>
+                    </div>
+                    <div id="news-list" class="news-list"></div>
+                    <p id="news-foot" class="news-foot"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 资讯详情弹窗 -->
+        <div id="news-modal" class="news-modal hidden" aria-hidden="true">
+            <div class="news-modal-backdrop"></div>
+            <div class="news-modal-card" role="dialog" aria-modal="true" aria-labelledby="news-modal-title">
+                <button class="news-modal-close" aria-label="关闭" type="button">
+                    <i class="fas fa-xmark"></i>
+                </button>
+                <div class="news-modal-meta" id="news-modal-meta"></div>
+                <h2 class="news-modal-title" id="news-modal-title"></h2>
+                <p class="news-modal-summary" id="news-modal-summary"></p>
+                <div class="news-modal-foot">
+                    <a id="news-modal-link" href="#" target="_blank" rel="noopener" class="news-modal-link">
+                        <i class="fas fa-arrow-up-right-from-square"></i> 查看原文
+                    </a>
+                    <span class="news-modal-tip">按 ESC 或点击背景关闭</span>
+                </div>
+            </div>
+        </div>
+
         <!-- ABOUT PANEL -->
         <section class="panel" id="panel-about">
             <div class="inner-panel">
@@ -489,18 +607,22 @@
                 </div>
                 <div class="about-grid">
                     <div class="about-avatar-wrap">
-                        <div class="av-ring">⭐</div>
+                        <div class="av-ring">
+                            <svg class="av-mark" viewBox="0 0 24 24" aria-label="Sky Star logo">
+                                <use href="#i-skystar"/>
+                            </svg>
+                        </div>
                         <div class="av-tags">
                             <div class="av-tag">RL 方向</div>
                             <div class="av-tag">算法工程师</div>
-                            <div class="av-tag">目标：训练岗</div>
+                            <div class="av-tag">目标：有一个自己的大模型就好了</div>
                         </div>
                     </div>
                     <div class="about-text">
                         <div class="about-intro-card">
                             <h3>你好，我是小唐 ⭐</h3>
                             <p class="about-lead">成都师范学院 · 智能科学与技术 · 2025 届 | 算法工程师（初级）</p>
-                            <p>我目前在成都做算法工程相关工作，日常偏数据处理、模型评估和业务落地。长期方向更明确：想从落地应用继续往<strong>模型训练 / 强化学习 / 大模型微调</strong>靠近。</p>
+                            <p>我目前在成都做算法工程相关工作，日常偏数据处理、模型训练和业务落地。长期方向更明确：想从落地应用继续往<strong>模型训练 / 强化学习 / 大模型微调</strong>靠近。</p>
                         </div>
 
                         <div class="about-timeline" aria-label="成长路径">
@@ -564,8 +686,8 @@
                             <h3>核心方向</h3>
                         </div>
                         <div class="skills-grid">
-                            <div class="skill-item"><i class="fas fa-robot"></i><span>强化学习</span></div>
-                            <div class="skill-item"><i class="fas fa-brain"></i><span>PyTorch</span></div>
+                            <div class="skill-item"><span class="icon-rl" aria-label="强化学习"><svg viewBox="0 0 24 24"><circle class="rl-node rl-node-1" cx="5" cy="12" r="2.2"/><circle class="rl-node rl-node-2" cx="12" cy="5" r="2.2"/><circle class="rl-node rl-node-3" cx="19" cy="12" r="2.2"/><circle class="rl-node rl-node-4" cx="12" cy="19" r="2.2"/><path d="M7 11 10.2 6.8M13.8 6.8 17 11M17 13 13.8 17.2M10.2 17.2 7 13"/><path class="rl-cross" d="M8 12h8M12 8v8" opacity=".7"/></svg></span><span>强化学习</span></div>
+                            <div class="skill-item"><span class="icon-flame" aria-label="PyTorch"><svg viewBox="0 0 24 24"><path class="flame-outer" d="M13.5 3.5c2 2.2 5.5 5.4 5.5 10.1A7 7 0 0 1 5 13.7c0-3 1.7-5.2 3.6-7"/><path class="flame-inner" d="M12.2 8.5c1.7 1.7 3.2 3.2 3.2 5.5a3.5 3.5 0 0 1-7 0c0-1.8 1.2-3.2 2.4-4.5"/><path d="M15.7 5.2h.01"/></svg></span><span>PyTorch</span></div>
                             <div class="skill-item"><i class="fab fa-python"></i><span>Python</span></div>
                         </div>
                     </section>
@@ -609,7 +731,7 @@
                 <div class="projects-grid">
                     <div class="project-card">
                         <div class="project-card-top">
-                            <i class="fas fa-trophy project-icon"></i>
+                            <span class="icon-chess project-icon" aria-label="智能博弈"><svg viewBox="0 0 24 24"><path d="M9 21h8M10 17h6l1 4H9l1-4Z"/><path d="M10.5 17c.2-3 1.4-4.8 4.4-6.3 1.2-.6 1.6-1.6 1.1-2.7-.7-1.6-2.6-1.7-4.2-.6L10 8.7V5.5L13.2 3c2.7-.1 5 1.5 5.6 4 .7 2.8-.8 5.1-3.3 6.2-1.5.7-2.2 1.4-2.4 3.8"/><circle cx="14" cy="7.2" r=".35"/></svg></span>
                             <span class="project-level">主秀项目</span>
                         </div>
                         <h3>智能博弈算法</h3>
@@ -629,7 +751,7 @@
                     </div>
                     <div class="project-card">
                         <div class="project-card-top">
-                            <i class="fas fa-feather project-icon"></i>
+                            <span class="icon-flappy project-icon" aria-label="Flappy Bird AI"><svg viewBox="0 0 24 24"><path d="M4 14c4.5-6.8 9.3-7.6 16-4.5-3.1.8-5.2 2.4-6.6 5.3"/><path class="wing" d="M5.5 14.2c3.6-1.2 6.5-.5 8.8 2.1-2.8 1.7-6.2 1.5-8.8-2.1Z"/><path d="M15.5 9.2 18 6.5M17.2 10.1l3.1-1"/><circle cx="12.2" cy="10.2" r=".55"/></svg></span>
                             <span class="project-level">端到端 Demo</span>
                         </div>
                         <h3>Flappy Bird AI</h3>
@@ -649,7 +771,7 @@
                     </div>
                     <div class="project-card">
                         <div class="project-card-top">
-                            <i class="fas fa-comments project-icon"></i>
+                            <span class="icon-chat project-icon" aria-label="智能问答"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v9.5H9l-5 4v-13.5Z"/><path d="M8 9h8M8 12h5"/><circle class="dot dot-1" cx="7.2" cy="9" r=".55"/><circle class="dot dot-2" cx="10" cy="9" r=".55"/><circle class="dot dot-3" cx="12.8" cy="9" r=".55"/></svg></span>
                             <span class="project-level">训练流程</span>
                         </div>
                         <h3>智能问答系统</h3>
@@ -694,27 +816,27 @@
                         <div class="tabs-track">
                             <!-- 真实 tab 列表；JS 会按当前数量自动生成无限轮播副本 -->
                             <button class="game-tab active" data-game="snake">
-                                <i class="fas fa-gamepad"></i>
+                                <span class="icon-snake" aria-label="贪吃蛇"><svg viewBox="0 0 24 24"><path class="snake-body" d="M5 16c0 2 1.6 3 3.2 3H15c2 0 3.5-1.5 3.5-3.2S17 12.7 15 12.7H9.2C7.2 12.7 5.5 11.4 5.5 9.5S7.2 6 9.3 6H16"/><path d="M16 6l2.7-2M16 6l2.7 2"/><circle cx="14.8" cy="5.7" r=".4"/></svg></span>
                                 <span>贪吃蛇</span>
                             </button>
                             <button class="game-tab" data-game="flappy">
-                                <i class="fas fa-feather"></i>
+                                <span class="icon-flappy" aria-label="Flappy Bird"><svg viewBox="0 0 24 24"><path d="M4 14c4.5-6.8 9.3-7.6 16-4.5-3.1.8-5.2 2.4-6.6 5.3"/><path class="wing" d="M5.5 14.2c3.6-1.2 6.5-.5 8.8 2.1-2.8 1.7-6.2 1.5-8.8-2.1Z"/><path d="M15.5 9.2 18 6.5M17.2 10.1l3.1-1"/><circle cx="12.2" cy="10.2" r=".55"/></svg></span>
                                 <span>Flappy Bird</span>
                             </button>
                             <button class="game-tab" data-game="2048">
-                                <i class="fas fa-square"></i>
+                                <span class="icon-2048" aria-label="2048"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 12h16M12 4v16"/><rect class="cell cell-1" x="7" y="8" width="2" height="2"/><rect class="cell cell-2" x="15" y="14" width="2" height="2"/></svg></span>
                                 <span>2048</span>
                             </button>
                             <button class="game-tab" data-game="tetris">
-                                <i class="fas fa-square-full"></i>
+                                <span class="icon-tetris" aria-label="俄罗斯方块"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="4" height="4" rx=".8"/><rect x="9" y="5" width="4" height="4" rx=".8"/><rect x="13" y="5" width="4" height="4" rx=".8"/><rect x="9" y="9" width="4" height="4" rx=".8"/><rect x="9" y="13" width="4" height="4" rx=".8"/><rect x="13" y="13" width="4" height="4" rx=".8"/></svg></span>
                                 <span>俄罗斯方块</span>
                             </button>
                             <button class="game-tab" data-game="tic-tac-toe">
-                                <i class="fas fa-square-plus"></i>
+                                <span class="icon-tictactoe" aria-label="井字棋"><svg viewBox="0 0 24 24"><path d="M8 4v16M16 4v16M4 8h16M4 16h16"/><path class="mark mark-x" d="m5.6 5.6 2 2M7.6 5.6l-2 2"/><circle class="mark mark-o" cx="18" cy="18" r="1.4"/><path d="m17 5.7 2 2M19 5.7l-2 2"/></svg></span>
                                 <span>井字棋</span>
                             </button>
                             <button class="game-tab" data-game="plane">
-                                <i class="fas fa-plane"></i>
+                                <span class="icon-plane" aria-label="打飞机"><svg viewBox="0 0 24 24"><path d="M12 3 6.5 20l5.5-3 5.5 3L12 3Z"/><path class="plane-line" d="M12 3v14M8.5 14h7"/></svg></span>
                                 <span>打飞机</span>
                             </button>
                         </div>
@@ -723,14 +845,14 @@
                     <!-- Snake Game Container -->
                     <div class="game-container game-snake active">
                         <div class="game-header">
-                            <span class="game-title">🐍 Snake Game</span>
+                            <span class="game-title"><svg class="ico" viewBox="0 0 24 24"><use href="#i-snake"/></svg> Snake Game</span>
                             <div class="game-score">
                                 <div class="score-box">
                                     <span class="score-label">Score</span>
                                     <span class="score-value" id="gameScore">0</span>
                                 </div>
                                 <div class="game-status status-player" id="gameStatus">
-                                    <i class="fas fa-user"></i> PLAYER
+                                    <svg class="ico" viewBox="0 0 24 24"><use href="#i-user"/></svg> PLAYER
                                 </div>
                             </div>
                         </div>
@@ -757,24 +879,24 @@
                     <!-- Flappy Bird Game Container -->
                     <div class="game-container game-flappy">
                         <div class="game-header">
-                            <span class="game-title">🐦 Flappy Bird · RL Demo</span>
+                            <span class="game-title"><svg class="ico" viewBox="0 0 24 24"><use href="#i-flappy"/></svg> Flappy Bird · RL Demo</span>
                             <div class="game-score">
                                 <div class="score-box">
                                     <span class="score-label">HIGH</span>
                                     <span class="score-value" id="flappyHighScore">0</span>
                                 </div>
                                 <div class="game-status status-ai" id="flappyAIStatus">
-                                    <i class="fas fa-robot"></i> AI
+                                    <svg class="ico" viewBox="0 0 24 24"><use href="#i-robot"/></svg> AI
                                 </div>
                             </div>
                         </div>
                         <canvas id="flappyCanvas"></canvas>
                         <div class="game-controls">
                             <button class="game-btn game-btn-primary" id="flappyAIButton">
-                                <i class="fas fa-robot"></i> 召唤 AI 试玩
+                                <svg class="ico" viewBox="0 0 24 24"><use href="#i-robot"/></svg> 召唤 AI 试玩
                             </button>
                             <button class="game-btn game-btn-secondary" id="flappyRestartButton">
-                                <i class="fas fa-redo"></i> 重新开始
+                                <svg class="ico" viewBox="0 0 24 24"><use href="#i-redo"/></svg> 重新开始
                             </button>
                         </div>
                         <p class="game-instructions">
@@ -805,7 +927,7 @@
                         
                         <div class="game2048-button-row">
                             <button class="game2048-btn" id="newGame2048">✨ 新游戏</button>
-                            <button class="game2048-btn game2048-btn-ai" id="toggleAI2048">🤖 AI 模式</button>
+                            <button class="game2048-btn game2048-btn-ai" id="toggleAI2048"><svg class="ico" viewBox="0 0 24 24"><use href="#i-robot"/></svg> AI 模式</button>
                         </div>
                         
                         <p class="game-instructions">
@@ -856,15 +978,15 @@
                                     <div class="tetris-stat-value" id="tetrisLevel">1</div>
                                 </div>
                                 <div class="tetris-stat-card">
-                                    <div class="tetris-stat-label">🧩 下一块</div>
+                                    <div class="tetris-stat-label"><svg class="ico" viewBox="0 0 24 24"><use href="#i-tetris"/></svg> 下一块</div>
                                     <div class="tetris-next-preview">
                                         <canvas id="tetrisNextCanvas" width="80" height="40"></canvas>
                                     </div>
                                 </div>
                                 <div class="tetris-controls">
-                                    <button class="tetris-btn" id="tetrisStart">🎮 开始游戏</button>
+                                    <button class="tetris-btn" id="tetrisStart"><svg class="ico" viewBox="0 0 24 24"><use href="#i-play"/></svg> 开始游戏</button>
                                     <div class="tetris-ai-row">
-                                        <button class="tetris-btn tetris-btn-ai" id="tetrisAI">🤖 AI 模式</button>
+                                        <button class="tetris-btn tetris-btn-ai" id="tetrisAI"><svg class="ico" viewBox="0 0 24 24"><use href="#i-robot"/></svg> AI 模式</button>
                                         <div class="tetris-speed-selector" id="tetrisSpeedSelector">
                                             <button class="speed-btn" data-speed="500">慢</button>
                                             <button class="speed-btn active" data-speed="300">中</button>
@@ -915,7 +1037,7 @@
                         
                         <div class="tic-tac-toe-controls">
                             <button class="tic-tac-toe-btn tic-tac-toe-btn-primary" id="ticTacToeStart">🔄 新游戏</button>
-                            <button class="tic-tac-toe-btn tic-tac-toe-btn-ai" id="ticTacToeAI">🤖 AI模式</button>
+                            <button class="tic-tac-toe-btn tic-tac-toe-btn-ai" id="ticTacToeAI"><svg class="ico" viewBox="0 0 24 24"><use href="#i-robot"/></svg> AI模式</button>
                         </div>
                         
                         <p class="game-instructions">
@@ -999,7 +1121,7 @@
                     <div class="stacked-proj-card back-2" id="projBackCard2"></div>
                     <div class="stacked-proj-card back-1" id="projBackCard1"></div>
                     <div class="stacked-proj-card main-card" id="projMainCard">
-                        <div class="proj-card-icon" id="projCardIcon"><i class="fas fa-comments"></i></div>
+                        <div class="proj-card-icon" id="projCardIcon"><i class="fas fa-comment-dots"></i></div>
                         <div class="proj-card-name" id="projMainCardName">项目名称</div>
                         <div class="proj-card-badge" id="projCardBadge">高级</div>
                     </div>
@@ -1073,12 +1195,102 @@
     <!-- TOAST -->
     <div class="toast" id="toast"></div>
 
+    <!-- 每日资讯数据(由 news_server.py 自动生成,无后端运行时也能加载) -->
+    <script src="news/news-data.js"></script>
+
     <script>
     // ─── STARS CANVAS ───
     (function() {
         const canvas = document.getElementById('starsCanvas');
         const ctx = canvas.getContext('2d');
         let stars = [];
+        let meteors = [];
+        let mouse = { x: -9999, y: -9999, active: false };
+        const MOUSE_PULL_R = 200;
+        const STAR_LINK_R = 100;
+        const MOUSE_LINK_R = 150;
+        const MOUSE_LINK_R2 = MOUSE_LINK_R * MOUSE_LINK_R;
+        const STAR_LINK_R2 = STAR_LINK_R * STAR_LINK_R;
+
+        // 主题色:每个 panel 配一套粒子色 + 连线色(色相 240°→60° 走一圈,饱和度 70%)
+        const STAR_COLORS = {
+            home:     [180, 200, 255],
+            news:     [195, 175, 255],
+            about:    [210, 170, 255],
+            skills:   [255, 170, 240],
+            projects: [255, 195, 225],
+            game:     [255, 210, 175],
+            contact:  [210, 255, 175],
+            waypoint: [255, 175, 200]
+        };
+        const LINE_COLORS = {
+            home:     [150, 180, 255],
+            news:     [170, 145, 255],
+            about:    [190, 140, 255],
+            skills:   [255, 140, 220],
+            projects: [255, 165, 200],
+            game:     [255, 175, 130],
+            contact:  [175, 255, 130],
+            waypoint: [255, 140, 170]
+        };
+        // 每个 panel 的代表色相(用于大色差跳变时决定要不要走 waypoint)
+        const PANEL_HUES = {
+            home: 240, news: 255, about: 270, skills: 300, projects: 330,
+            game: 20, contact: 60
+        };
+        let currentStar = [...STAR_COLORS.home];
+        let currentLine = [...LINE_COLORS.home];
+        let targetStar = [...currentStar];
+        let targetLine = [...currentLine];
+        let currentHue = 240; // 跟 home 一致
+        let colorAnim = null;
+
+        function setStarTheme(panel, useWaypoint) {
+            const sc = STAR_COLORS[panel];
+            const lc = LINE_COLORS[panel];
+            if (!sc) return;
+            if (colorAnim) cancelAnimationFrame(colorAnim);
+
+            if (useWaypoint) {
+                // Stage 1: current → waypoint(0° 红)
+                targetStar = [...STAR_COLORS.waypoint];
+                targetLine = [...LINE_COLORS.waypoint];
+                animateColors(() => {
+                    // Stage 2: waypoint → target
+                    targetStar = [...sc];
+                    targetLine = [...lc];
+                    animateColors(() => {
+                        currentHue = PANEL_HUES[panel] || 240;
+                    });
+                });
+            } else {
+                targetStar = [...sc];
+                targetLine = [...lc];
+                animateColors(() => {
+                    currentHue = PANEL_HUES[panel] || 240;
+                });
+            }
+        }
+
+        function animateColors(onComplete) {
+            // 单段动画(被 setStarTheme 调 1-2 次,waypoint 时 2 段串行)
+            function step() {
+                for (let i = 0; i < 3; i++) {
+                    currentStar[i] += (targetStar[i] - currentStar[i]) * 0.15;
+                    currentLine[i] += (targetLine[i] - currentLine[i]) * 0.15;
+                }
+                if (Math.abs(currentStar[0] - targetStar[0]) < 0.5 &&
+                    Math.abs(currentStar[1] - targetStar[1]) < 0.5 &&
+                    Math.abs(currentStar[2] - targetStar[2]) < 0.5) {
+                    currentStar = [...targetStar];
+                    currentLine = [...targetLine];
+                    if (onComplete) onComplete();
+                    return;
+                }
+                colorAnim = requestAnimationFrame(step);
+            }
+            colorAnim = requestAnimationFrame(step);
+        }
 
         function resize() {
             canvas.width = window.innerWidth;
@@ -1095,45 +1307,143 @@
                     baseAlpha: Math.random() * 0.5 + 0.2,
                     alphaSpeed: Math.random() * 0.003 + 0.001,
                     phase: Math.random() * Math.PI * 2,
-                    // 布朗运动参数
                     angle: Math.random() * Math.PI * 2,
                     speed: Math.random() * 0.2 + 0.1,
                     angleChangeSpeed: Math.random() * 0.05 + 0.02,
-                    t: Math.random() * 1000
+                    t: Math.random() * 1000,
+                    mouseDist2: Infinity
                 });
             }
         }
 
+        function spawnMeteor() {
+            const fromLeft = Math.random() < 0.5;
+            const startX = fromLeft ? -50 : canvas.width + 50;
+            const startY = Math.random() * canvas.height * 0.55;
+            const angle = (fromLeft ? 1 : -1) * (Math.random() * 0.35 + 0.45);
+            const speed = Math.random() * 6 + 14;
+            meteors.push({
+                x: startX, y: startY,
+                vx: Math.cos(angle) * speed * (fromLeft ? 1 : -1),
+                vy: Math.sin(angle) * speed,
+                life: 0,
+                maxLife: 70,
+                trail: []
+            });
+        }
+
         function drawStars() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            stars.forEach(s => {
-                // 更新闪烁透明度
-                const alpha = s.baseAlpha + Math.sin(s.t * s.alphaSpeed + s.phase) * 0.4;
-                
-                // 布朗运动：随机改变方向
+
+            // 1. 更新粒子位置(布朗运动 + 鼠标引力)
+            const mActive = mouse.active;
+            const mx = mouse.x, my = mouse.y;
+            for (let i = 0; i < stars.length; i++) {
+                const s = stars[i];
+                s.alpha = s.baseAlpha + Math.sin(s.t * s.alphaSpeed + s.phase) * 0.4;
+
+                if (mActive) {
+                    const dx = mx - s.x;
+                    const dy = my - s.y;
+                    const d2 = dx*dx + dy*dy;
+                    s.mouseDist2 = d2;
+                    if (d2 < MOUSE_PULL_R * MOUSE_PULL_R && d2 > 0) {
+                        const d = Math.sqrt(d2);
+                        const f = (1 - d / MOUSE_PULL_R) * 0.012 * 60;
+                        s.x += (dx / d) * f;
+                        s.y += (dy / d) * f;
+                    }
+                } else {
+                    s.mouseDist2 = Infinity;
+                }
+
                 s.angle += (Math.random() - 0.5) * s.angleChangeSpeed;
-                
-                // 计算新位置
                 let nx = s.x + Math.cos(s.angle) * s.speed;
                 let ny = s.y + Math.sin(s.angle) * s.speed;
-                
-                // 边界检测：超出屏幕时从另一边出现并随机新方向
                 if (nx < -10) nx = canvas.width + 10;
                 else if (nx > canvas.width + 10) nx = -10;
                 if (ny < -10) ny = canvas.height + 10;
                 else if (ny > canvas.height + 10) ny = -10;
-                
-                // 更新位置
-                s.x = nx;
-                s.y = ny;
+                s.x = nx; s.y = ny;
                 s.t++;
-                
-                // 绘制星星
+            }
+
+            // 2. 星-星连线(距离平方剪枝)
+            ctx.lineWidth = 0.6;
+            for (let i = 0; i < stars.length; i++) {
+                const a = stars[i];
+                for (let j = i + 1; j < stars.length; j++) {
+                    const b = stars[j];
+                    const dx = a.x - b.x, dy = a.y - b.y;
+                    const d2 = dx*dx + dy*dy;
+                    if (d2 < STAR_LINK_R2) {
+                        const d = Math.sqrt(d2);
+                        const alpha = (1 - d / STAR_LINK_R) * 0.25;
+                        ctx.strokeStyle = `rgba(${currentLine[0]|0}, ${currentLine[1]|0}, ${currentLine[2]|0}, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.moveTo(a.x, a.y);
+                        ctx.lineTo(b.x, b.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // 3. 鼠标-星连线(更亮更粗)
+            if (mActive) {
+                ctx.lineWidth = 0.8;
+                for (let i = 0; i < stars.length; i++) {
+                    const s = stars[i];
+                    if (s.mouseDist2 < MOUSE_LINK_R2) {
+                        const d = Math.sqrt(s.mouseDist2);
+                        const alpha = (1 - d / MOUSE_LINK_R) * 0.5;
+                        ctx.strokeStyle = `rgba(${currentLine[0]|0}, ${currentLine[1]|0}, ${currentLine[2]|0}, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.moveTo(mx, my);
+                        ctx.lineTo(s.x, s.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // 4. 画粒子
+            for (let i = 0; i < stars.length; i++) {
+                const s = stars[i];
                 ctx.beginPath();
                 ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(200, 210, 255, ${alpha})`;
+                ctx.fillStyle = `rgba(${currentStar[0]|0}, ${currentStar[1]|0}, ${currentStar[2]|0}, ${s.alpha})`;
                 ctx.fill();
-            });
+            }
+
+            // 5. 画流星 + 拖尾
+            for (let i = 0; i < meteors.length; i++) {
+                const m = meteors[i];
+                m.life++;
+                m.x += m.vx;
+                m.y += m.vy;
+                m.trail.push({ x: m.x, y: m.y });
+                if (m.trail.length > 14) m.trail.shift();
+
+                const lifeRatio = m.life / m.maxLife;
+                const headAlpha = Math.min(1, m.life / 8) * (1 - lifeRatio);
+
+                for (let k = 0; k < m.trail.length - 1; k++) {
+                    const t = m.trail[k];
+                    const next = m.trail[k + 1];
+                    const a = (k / m.trail.length) * 0.55 * headAlpha;
+                    ctx.strokeStyle = `rgba(${currentLine[0]|0}, ${currentLine[1]|0}, ${currentLine[2]|0}, ${a})`;
+                    ctx.lineWidth = 1.4;
+                    ctx.beginPath();
+                    ctx.moveTo(t.x, t.y);
+                    ctx.lineTo(next.x, next.y);
+                    ctx.stroke();
+                }
+                ctx.fillStyle = `rgba(230, 245, 255, ${headAlpha})`;
+                ctx.beginPath();
+                ctx.arc(m.x, m.y, 1.6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            meteors = meteors.filter(m => m.life < m.maxLife);
+
             requestAnimationFrame(drawStars);
         }
 
@@ -1141,6 +1451,25 @@
         initStars();
         requestAnimationFrame(drawStars);
         window.addEventListener('resize', () => { resize(); initStars(); });
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+        });
+        window.addEventListener('mouseleave', () => { mouse.active = false; });
+        document.addEventListener('mouseout', (e) => {
+            if (!e.relatedTarget && !e.toElement) mouse.active = false;
+        });
+
+        function scheduleMeteor() {
+            spawnMeteor();
+            setTimeout(scheduleMeteor, Math.random() * 3000 + 4000);
+        }
+        setTimeout(scheduleMeteor, 2000);
+
+        // 暴露 setStarTheme + PANEL_HUES + currentHue 给 switchPanel
+        window.setStarTheme = setStarTheme;
+        window.PANEL_HUES = PANEL_HUES;
+        window.currentPanelHue = currentHue;
+        window.activeBgPanel = 'home';
     })();
 
     // ─── SECTION SWITCHING ───
@@ -1151,6 +1480,9 @@
         const oldPanel = document.getElementById('panel-' + currentPanel);
         const newPanel = document.getElementById('panel-' + target);
         if (!newPanel) return;
+
+        // 记录"上一个 active 背景"用(因为 currentPanel 后面会改)
+        const prevBgPanel = window.activeBgPanel || currentPanel;
 
         oldPanel.classList.add('exit');
         setTimeout(() => {
@@ -1164,6 +1496,46 @@
         document.querySelectorAll('.nav-item').forEach(el => {
             el.classList.toggle('active', el.dataset.target === target);
         });
+
+        // 切背景主题 + 切粒子色
+        // 大色差跳变(>90°):走 waypoint 中转(0° 红),2 段过渡
+        // 小色差(≤90°):直接交叉淡入
+        const targetHue = (window.PANEL_HUES && window.PANEL_HUES[target]) || 240;
+        let hueDist = Math.abs(targetHue - window.currentPanelHue);
+        if (hueDist > 180) hueDist = 360 - hueDist;
+        const useWaypoint = hueDist > 90;
+
+        const curBgEl = document.querySelector('.theme-' + prevBgPanel);
+        const curGlowEl = document.querySelector('.glow-' + prevBgPanel);
+        const bgEl = document.querySelector('.theme-' + target);
+        const glowEl = document.querySelector('.glow-' + target);
+        const wpEl = document.querySelector('.theme-waypoint');
+        const wpGlowEl = document.querySelector('.glow-waypoint');
+
+        if (useWaypoint) {
+            // Stage 1 (0-400ms):prev 淡出,waypoint 淡入
+            if (curBgEl) curBgEl.classList.remove('active');
+            if (curGlowEl) curGlowEl.classList.remove('active');
+            if (wpEl) wpEl.classList.add('active');
+            if (wpGlowEl) wpGlowEl.classList.add('active');
+            // Stage 2 (400ms 起):waypoint 淡出,target 淡入
+            setTimeout(() => {
+                if (wpEl) wpEl.classList.remove('active');
+                if (wpGlowEl) wpGlowEl.classList.remove('active');
+                if (bgEl) bgEl.classList.add('active');
+                if (glowEl) glowEl.classList.add('active');
+                window.activeBgPanel = target;
+            }, 400);
+        } else {
+            if (curBgEl) curBgEl.classList.remove('active');
+            if (curGlowEl) curGlowEl.classList.remove('active');
+            if (bgEl) bgEl.classList.add('active');
+            if (glowEl) glowEl.classList.add('active');
+            window.activeBgPanel = target;
+        }
+
+        window.currentPanelHue = targetHue;
+        if (typeof window.setStarTheme === 'function') window.setStarTheme(target, useWaypoint);
     }
 
     // Nav item clicks
@@ -1210,7 +1582,7 @@
     // ─── PROJECT DATA ───
     const projectData = {
         '智能博弈算法': {
-            icon:'fas fa-trophy',
+            icon:'icon-chess',
             description:'2025 腾讯开悟人工智能全球公开赛（智能体决策算法-中级赛道）参赛项目。我作为星之队（成都师范学院）成员，与队友合作基于 DQN / Target DQN / PPO 修改奖励设计、特征处理和超参数调整，两个月时间训练出强化学习智能体。\n\n初赛（自动寻路+道具收集智能体）：川渝地区二等奖（全国总榜第 4 名）\n复赛（智能体对战）：全国第 9 名\n\n证书编号：202501020009（2025 年 12 月颁发）',
             progress:95,
             techStack:'RL,DQN,PPO,PyTorch,竞赛',
@@ -1221,7 +1593,7 @@
             screenshots:['images/award-kaiwu-final-page1.png']
         },
         'Flappy Bird AI': {
-            icon:'fas fa-feather',
+            icon:'icon-flappy',
             description:'从零实现的 Flappy Bird AI 训练与部署项目。算法核心：Dueling DQN（拆分 Value / Advantage 流）+ Prioritized Experience Replay（带 alpha / beta 退火）+ 自定义 Reward Wrapper（过管 +10、死亡 -10、存活 +0.1）。\n\n完整跑通的 pipeline：\n  1) 自定义 Gym 环境\n  2) Dueling DQN 网络（PyTorch）\n  3) Reward Wrapper 与训练循环（含 epsilon 衰减、Huber Loss、Grad Clip、Target Network 同步）\n  4) Checkpoint 保存（best_flappy.pth / final_flappy.pth）\n  5) Flask API 暴露推理接口\n  6) 网站前端 Canvas 直接调用 API\n\n训练好的模型已部署在本站游戏区，按 A 即可召唤 AI 试玩。',
             progress:90,
             techStack:'PyTorch,Flask,DQN,RL',
@@ -1232,7 +1604,7 @@
             screenshots:['🎮','🤖','📊']
         },
         '智能问答系统': {
-            icon:'fas fa-comments',
+            icon:'icon-chat',
             description:'本科毕业设计。基于开源项目 jingyaogong/minimind 实现，从零预训练轻量级中文对话 Transformer 模型。\n\n完整跑通  数据清洗 → tokenizer 配置 → 模型训练 → 推理脚本 → FastAPI 封装 端到端流程。租显卡完成训练，最终模型可进行基础中文多轮对话。\n\n**定位**：重在流程完整，模型效果受限于参数量与训练资源。',
             progress:75,
             techStack:'PyTorch,FastAPI,NLP',
@@ -1247,8 +1619,8 @@
     // ─── SKILL DATA ───
     const skillData = {
         'Python': { icon:'fab fa-python', description:'主要编程语言。用于数据处理、ML 训练脚本、Flask 推理 API、自动化脚本。', proficiency:88, experience:'3年', level:'熟练', tags:['数据处理','ML 脚本','后端'], features:['pandas / numpy 数据处理','PyTorch 训练脚本','Flask 推理 API','自动化脚本'] },
-        'PyTorch': { icon:'fas fa-brain', description:'本科毕设与 RL 项目中实际使用。熟悉 DQN 网络实现、训练循环、Reward 设计。', proficiency:80, experience:'1.5年', level:'熟练', tags:['深度学习','RL','训练流程'], features:['Dueling DQN 网络实现','训练循环与 epsilon 衰减','Reward Wrapper 设计','Checkpoint 保存/加载','推理部署'] },
-        '强化学习': { icon:'fas fa-robot', description:'我最熟悉的方向。本科开悟竞赛 + Flappy Bird 自学项目 + 持续学习中。', proficiency:75, experience:'2年', level:'熟练', tags:['DQN','PPO','奖励设计','调参'], features:['DQN / Target DQN 算法实现','PPO 算法调参与实验','奖励函数设计与 shaping','特征工程','超参数调优'] },
+        'PyTorch': { icon:'icon-flame', description:'本科毕设与 RL 项目中实际使用。熟悉 DQN 网络实现、训练循环、Reward 设计。', proficiency:80, experience:'1.5年', level:'熟练', tags:['深度学习','RL','训练流程'], features:['Dueling DQN 网络实现','训练循环与 epsilon 衰减','Reward Wrapper 设计','Checkpoint 保存/加载','推理部署'] },
+        '强化学习': { icon:'icon-rl', description:'我最熟悉的方向。本科开悟竞赛 + Flappy Bird 自学项目 + 持续学习中。', proficiency:75, experience:'2年', level:'熟练', tags:['DQN','PPO','奖励设计','调参'], features:['DQN / Target DQN 算法实现','PPO 算法调参与实验','奖励函数设计与 shaping','特征工程','超参数调优'] },
         'JavaScript': { icon:'fab fa-js-square', description:'网站前端（Canvas 游戏、可交互 UI）主要使用语言。', proficiency:85, experience:'3年', level:'熟练', tags:['前端','Canvas','ES6+'], features:['DOM 操作','Canvas 动画与游戏','ES6+ 语法','异步编程 (Promise/async)'] },
         'Linux / 命令行': { icon:'fas fa-terminal', description:'训练环境与服务器部署的日常工具。', proficiency:70, experience:'1.5年', level:'了解', tags:['训练环境','服务器','部署'], features:['SSH 远程连接','tmux / screen 后台任务','环境与依赖配置','日志与进程排查'] },
         'Git': { icon:'fab fa-git-alt', description:'日常版本控制。', proficiency:80, experience:'2年', level:'熟练', tags:['版本控制','GitHub'], features:['分支与合并','commit 规范','PR 工作流','冲突解决'] },
@@ -1264,7 +1636,8 @@
     document.querySelectorAll('.skill-item').forEach(item => {
         item.addEventListener('click', () => {
             if (_modalBusy) return;
-            openSkillModal(item.querySelector('span').textContent);
+            const nameEl = item.querySelector('span:not([class])');
+            if (nameEl) openSkillModal(nameEl.textContent);
         });
     });
 
@@ -1275,7 +1648,8 @@
         const skill = skillData[skillName];
         if (!skill) return;
         const modal = document.getElementById('skillModal');
-        document.getElementById('cardIcon').innerHTML = `<i class="${skill.icon}"></i>`;
+        const skillKey = skill.icon.replace(/^icon-/, '');
+        document.getElementById('cardIcon').innerHTML = `<span class="${skill.icon}" aria-label="${skillName}"><svg viewBox="0 0 24 24"><use href="#i-${skillKey}"/></svg></span>`;
         document.getElementById('cardTitle').textContent = skillName;
         document.getElementById('cardLevel').textContent = skill.level;
         document.getElementById('detailTitle').textContent = skillName;
@@ -1368,7 +1742,8 @@
         const project = projectData[projectName];
         if (!project) return;
         const modal = document.getElementById('projectModal');
-        document.getElementById('projCardIcon').innerHTML = `<i class="${project.icon}"></i>`;
+        const projKey = project.icon.replace(/^icon-/, '');
+        document.getElementById('projCardIcon').innerHTML = `<span class="${project.icon}" aria-label="${projectName}"><svg viewBox="0 0 24 24"><use href="#i-${projKey}"/></svg></span>`;
         document.getElementById('projMainCardName').textContent = projectName;
         document.getElementById('projCardBadge').textContent = project.level || '高级';
         document.getElementById('modalProjectTitle').textContent = projectName;
@@ -1839,6 +2214,297 @@
     
     
     
+    <!-- 每日资讯模块 -->
+    <script>
+    (function() {
+        const STORAGE_KEY = 'skystar_news_data';
+        const BACKEND_URL = 'http://localhost:8000';
+
+        const refreshBtn = document.getElementById('news-refresh-btn');
+        const updatedAtEl = document.getElementById('news-updated-at');
+        const loadingEl = document.getElementById('news-loading');
+        const loadingText = document.getElementById('news-loading-text');
+        const emptyEl = document.getElementById('news-empty');
+        const errorEl = document.getElementById('news-error');
+        const errorText = document.getElementById('news-error-text');
+        const contentEl = document.getElementById('news-content');
+        const listEl = document.getElementById('news-list');
+        const footEl = document.getElementById('news-foot');
+        const filterBtns = document.querySelectorAll('#news-filters .news-filter');
+
+        let currentData = null;
+        let currentFilter = 'all';
+
+        function showState(state) {
+            loadingEl.classList.add('hidden');
+            emptyEl.classList.add('hidden');
+            errorEl.classList.add('hidden');
+            contentEl.classList.add('hidden');
+            if (state === 'loading') loadingEl.classList.remove('hidden');
+            else if (state === 'empty') emptyEl.classList.remove('hidden');
+            else if (state === 'error') errorEl.classList.remove('hidden');
+            else if (state === 'content') contentEl.classList.remove('hidden');
+        }
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        function categoryColor(cat) {
+            return {
+                'AI 论文': '#7c6ef5',
+                '开源动态': '#4ecdc4',
+                '中文 AI': '#ff6b9d',
+                '业界新闻': '#ffa94d'
+            }[cat] || '#94a3b8';
+        }
+
+        // 标准化分类字符串:去空格、全/半角统一、小写,用于宽松匹配
+        function normalizeCategory(cat) {
+            if (!cat) return '';
+            return String(cat)
+                .replace(/[\s\u3000]+/g, '')  // 去所有空白(含全角空格)
+                .replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))  // 全角→半角
+                .toLowerCase();
+        }
+
+        // 把 LLM 输出的不规范 category 映射到标准 4 分类
+        const CATEGORY_ALIASES = {
+            'ai论文': 'AI 论文',
+            'ai 论文': 'AI 论文',
+            'ai论': 'AI 论文',
+            '论文': 'AI 论文',
+            'paper': 'AI 论文',
+            '开源动态': '开源动态',
+            '开源': '开源动态',
+            'github': '开源动态',
+            'open source': '开源动态',
+            '中文ai': '中文 AI',
+            '中文 ai': '中文 AI',
+            'chinese ai': '中文 AI',
+            '中文': '中文 AI',
+            '业界新闻': '业界新闻',
+            '业界': '业界新闻',
+            '行业': '业界新闻',
+            'news': '业界新闻'
+        };
+
+        function resolveCategory(rawCat) {
+            const norm = normalizeCategory(rawCat);
+            if (CATEGORY_ALIASES[norm]) return CATEGORY_ALIASES[norm];
+            return rawCat;  // 未知分类原样返回
+        }
+
+        function renderNews(data) {
+            currentData = data;
+            const items = (data && data.items) || [];
+
+            if (data && data.generated_at) {
+                try {
+                    const d = new Date(data.generated_at);
+                    updatedAtEl.textContent = '最后更新:' + d.toLocaleString('zh-CN', { hour12: false });
+                } catch (e) {
+                    updatedAtEl.textContent = '最后更新:' + (data.date || '');
+                }
+            } else {
+                updatedAtEl.textContent = '尚未更新';
+            }
+
+            if (items.length === 0) {
+                listEl.innerHTML = '<p class="news-no-items">今日无资讯</p>';
+                footEl.textContent = '';
+                showState('content');
+                return;
+            }
+
+            const filtered = currentFilter === 'all'
+                ? items
+                : items.filter(it => resolveCategory(it.category) === currentFilter);
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<p class="news-no-items">该分类下暂无资讯</p>';
+            } else {
+                listEl.innerHTML = filtered.map((it, idx) => {
+                    const resolved = resolveCategory(it.category);
+                    const color = categoryColor(resolved);
+                    const preview = (it.summary || '').slice(0, 80).replace(/\s+\S*$/, '') + ((it.summary || '').length > 80 ? '…' : '');
+                    return `
+                    <div class="news-item" data-idx="${idx}" tabindex="0" role="button" aria-label="查看完整内容">
+                        <div class="news-item-meta">
+                            <span class="news-cat-tag" style="background:${color}22;color:${color};border-color:${color}55">${escapeHtml(resolved || '其他')}</span>
+                            <span class="news-source"><i class="fas fa-circle-dot"></i> ${escapeHtml(it.source || '')}</span>
+                            <span class="news-time">${escapeHtml(it.published_at || '')}</span>
+                        </div>
+                        <h3 class="news-item-title">${escapeHtml(it.title)}</h3>
+                        <p class="news-item-summary">${escapeHtml(preview)}</p>
+                        <span class="news-item-more">点击查看完整内容 <i class="fas fa-arrow-right"></i></span>
+                    </div>`;
+                }).join('');
+            }
+
+            const srcs = (data.sources || []).join(' · ');
+            footEl.textContent = `共 ${items.length} 条 · 来源:${srcs || '—'}`;
+
+            showState('content');
+        }
+
+        function loadFromFile() {
+            if (window.NEWS_DATA && window.NEWS_DATA.items && window.NEWS_DATA.items.length > 0) {
+                renderNews(window.NEWS_DATA);
+                return true;
+            }
+            return false;
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const cached = localStorage.getItem(STORAGE_KEY);
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    if (data && data.items) {
+                        renderNews(data);
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.warn('localStorage 读取失败', e);
+            }
+            return false;
+        }
+
+        function saveToLocalStorage(data) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+                console.warn('localStorage 写入失败', e);
+            }
+        }
+
+        async function fetchNews() {
+            refreshBtn.disabled = true;
+            loadingText.textContent = '抓取资讯中(可能需要 20-40 秒)...';
+            showState('loading');
+
+            try {
+                const ctrl = new AbortController();
+                const timeoutId = setTimeout(() => ctrl.abort(), 180000);
+                const r = await fetch(BACKEND_URL + '/api/news/fetch', {
+                    method: 'POST',
+                    signal: ctrl.signal
+                });
+                clearTimeout(timeoutId);
+                if (!r.ok) {
+                    const err = await r.json().catch(() => ({}));
+                    throw new Error(err.detail || ('HTTP ' + r.status));
+                }
+                const data = await r.json();
+                saveToLocalStorage(data);
+                window.NEWS_DATA = data;
+                renderNews(data);
+            } catch (e) {
+                console.error('Fetch failed', e);
+                if (e.name === 'AbortError') {
+                    errorText.textContent = '请求超时(超过 3 分钟),请检查后端';
+                } else if (e.message && e.message.includes('Failed to fetch')) {
+                    errorText.textContent = '后端未启动。请双击 start-news.bat 启动服务后再试';
+                } else {
+                    errorText.textContent = '刷新失败:' + e.message;
+                }
+                showState('error');
+            } finally {
+                refreshBtn.disabled = false;
+            }
+        }
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.cat;
+                if (currentData) renderNews(currentData);
+            });
+        });
+
+        refreshBtn.addEventListener('click', fetchNews);
+
+        // ── 资讯详情弹窗 ──
+        const modal = document.getElementById('news-modal');
+        const modalBackdrop = modal.querySelector('.news-modal-backdrop');
+        const modalCloseBtn = modal.querySelector('.news-modal-close');
+        const modalMeta = document.getElementById('news-modal-meta');
+        const modalTitle = document.getElementById('news-modal-title');
+        const modalSummary = document.getElementById('news-modal-summary');
+        const modalLink = document.getElementById('news-modal-link');
+
+        function openNewsModal(idx) {
+            if (!currentData) return;
+            // 找到对应 item(注意 idx 是 filtered 数组的下标,不是原始 items 的下标)
+            const items = (currentData && currentData.items) || [];
+            const filtered = currentFilter === 'all'
+                ? items
+                : items.filter(it => resolveCategory(it.category) === currentFilter);
+            const it = filtered[idx];
+            if (!it) return;
+
+            const resolved = resolveCategory(it.category);
+            const color = categoryColor(resolved);
+            modalMeta.innerHTML = `
+                <span class="news-cat-tag" style="background:${color}22;color:${color};border-color:${color}55">${escapeHtml(resolved || '其他')}</span>
+                <span class="news-source"><i class="fas fa-circle-dot"></i> ${escapeHtml(it.source || '')}</span>
+                <span class="news-time">${escapeHtml(it.published_at || '')}</span>
+            `;
+            modalTitle.textContent = it.title || '';
+            // 把 summary 里的 \n 转成 <br>,保留段落感
+            modalSummary.innerHTML = escapeHtml(it.summary || '').replace(/\n/g, '<br>');
+            modalLink.href = it.url || '#';
+
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeNewsModal() {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        // 事件绑定
+        listEl.addEventListener('click', (e) => {
+            // 点 "查看原文" 链接不触发弹窗(由链接自己处理,虽然现在卡片里没这链接)
+            const card = e.target.closest('.news-item');
+            if (!card) return;
+            const idx = parseInt(card.dataset.idx, 10);
+            if (!isNaN(idx)) openNewsModal(idx);
+        });
+        // 键盘 Enter / Space 也触发
+        listEl.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const card = e.target.closest('.news-item');
+            if (!card) return;
+            e.preventDefault();
+            const idx = parseInt(card.dataset.idx, 10);
+            if (!isNaN(idx)) openNewsModal(idx);
+        });
+        // 关闭:点 X / 点背景 / 按 ESC
+        modalCloseBtn.addEventListener('click', closeNewsModal);
+        modalBackdrop.addEventListener('click', closeNewsModal);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeNewsModal();
+            }
+        });
+
+        if (!loadFromFile()) {
+            if (!loadFromLocalStorage()) {
+                showState('empty');
+            }
+        }
+    })();
+    </script>
+
     <!-- MediaPipe Hands 核心库 -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>

@@ -43,25 +43,101 @@ html, body {
     background: var(--navy);
 }
 
-/* ─── FIXED BACKGROUND ─── */
-.bg-wrap {
-    position: fixed; inset: 0; z-index: 0;
-    background:
-        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(40,30,120,0.9) 0%, transparent 65%),
-        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(20,15,80,0.8) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(80,40,140,0.6) 0%, transparent 55%),
-        linear-gradient(160deg, #0a0e1f 0%, #0d1535 35%, #121848 60%, #0f1230 100%);
-}
-.bg-stars {
-    position: fixed; inset: 0; z-index: 1;
+/* ─── FIXED BACKGROUND(6 套主题,交叉淡入切换)─── */
+.bg-theme, .bg-glow-theme {
+    position: fixed; inset: 0;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity 800ms ease;
 }
-.bg-glow {
-    position: fixed; inset: 0; z-index: 2; pointer-events: none;
-    background: radial-gradient(ellipse 55% 45% at 65% 38%,
-        rgba(100,80,220,0.18) 0%, transparent 70%);
+.bg-theme { z-index: 0; }
+.bg-glow-theme {
+    z-index: 2;
     animation: glowPulse 8s ease-in-out infinite;
 }
+.bg-theme.active, .bg-glow-theme.active { opacity: 1; }
+.bg-stars { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+
+/* home: 240° 深蓝紫(主品牌,夜空) */
+.theme-home {
+    background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(50,60,200,0.85) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(30,40,160,0.75) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(110,70,220,0.5) 0%, transparent 55%),
+        linear-gradient(160deg, #070a28 0%, #0a1148 35%, #101a58 60%, #0a1240 100%);
+}
+.glow-home { background: radial-gradient(ellipse 55% 45% at 65% 38%, rgba(100,120,255,0.22) 0%, transparent 70%); }
+
+/* news: 255° 蓝紫(介于 home 和 about,信息流) */
+.theme-news {
+    background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(75,55,210,0.85) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(45,35,165,0.75) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(130,80,225,0.5) 0%, transparent 55%),
+        linear-gradient(160deg, #0a0828 0%, #100c48 35%, #181258 60%, #121040 100%);
+}
+.glow-news { background: radial-gradient(ellipse 55% 45% at 65% 38%, rgba(140,110,255,0.22) 0%, transparent 70%); }
+
+/* about: 270° 紫(呼应头像紫色) */
+.theme-about {
+    background:
+        radial-gradient(ellipse 75% 65% at 55% 35%, rgba(100,40,200,0.85) 0%, transparent 65%),
+        radial-gradient(ellipse 65% 75% at 35% 75%, rgba(60,30,160,0.7) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 55% at 75% 80%, rgba(150,50,220,0.5) 0%, transparent 55%),
+        linear-gradient(160deg, #180828 0%, #220c40 35%, #2c1258 60%, #200e44 100%);
+}
+.glow-about { background: radial-gradient(ellipse 55% 45% at 60% 35%, rgba(180,80,255,0.22) 0%, transparent 70%); }
+
+/* skills: 300° 紫红(品红,前沿感) */
+.theme-skills {
+    background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(180,30,180,0.85) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(130,25,150,0.7) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(220,50,200,0.5) 0%, transparent 55%),
+        linear-gradient(160deg, #280728 0%, #380c40 35%, #481258 60%, #340e44 100%);
+}
+.glow-skills { background: radial-gradient(ellipse 55% 45% at 65% 38%, rgba(240,80,220,0.22) 0%, transparent 70%); }
+
+/* projects: 330° 粉红(晚霞) */
+.theme-projects {
+    background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(220,40,150,0.85) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(160,25,120,0.7) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(255,60,170,0.5) 0%, transparent 55%),
+        linear-gradient(160deg, #380728 0%, #480c38 35%, #581248 60%, #440e3c 100%);
+}
+.glow-projects { background: radial-gradient(ellipse 55% 45% at 65% 38%, rgba(255,80,180,0.22) 0%, transparent 70%); }
+
+/* game: 20° 橙红(火焰,娱乐感) */
+.theme-game {
+    background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(220,80,40,0.85) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(160,50,30,0.7) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(255,100,60,0.5) 0%, transparent 55%),
+        linear-gradient(160deg, #381408 0%, #481c0c 35%, #582414 60%, #441810 100%);
+}
+.glow-game { background: radial-gradient(ellipse 55% 45% at 65% 38%, rgba(255,120,60,0.22) 0%, transparent 70%); }
+
+/* contact: 60° 黄绿(晨曦) */
+.theme-contact {
+    background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(80,160,30,0.8) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(50,120,20,0.65) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(110,200,50,0.45) 0%, transparent 55%),
+        linear-gradient(160deg, #0a2808 0%, #0e380c 35%, #144812 60%, #103810 100%);
+}
+.glow-contact { background: radial-gradient(ellipse 55% 45% at 65% 38%, rgba(120,220,60,0.22) 0%, transparent 70%); }
+
+/* waypoint: 0° 深红(大色差跳变的中转色,contact↔home 走这里) */
+.theme-waypoint {
+    background:
+        radial-gradient(ellipse 80% 60% at 60% 40%, rgba(200,30,50,0.85) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 80% at 30% 70%, rgba(140,25,40,0.7) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 80% 80%, rgba(240,50,70,0.5) 0%, transparent 55%),
+        linear-gradient(160deg, #280608 0%, #380c0c 35%, #481214 60%, #340c10 100%);
+}
+.glow-waypoint { background: radial-gradient(ellipse 55% 45% at 65% 38%, rgba(255,60,80,0.22) 0%, transparent 70%); }
+
 @keyframes glowPulse {
     0%,100% { opacity: 0.7; transform: scale(1); }
     50%      { opacity: 1;   transform: scale(1.06); }
@@ -456,6 +532,22 @@ html, body {
     0%,100% { transform: scale(1); opacity: 0.6; }
     50%      { transform: scale(1.06); opacity: 1; }
 }
+/* 个人 logo:羽翼+星的整体呼吸 + 光晕脉动 */
+.av-mark {
+    width: 78%; height: 78%;
+    color: #ffffff;
+    animation: avStarBreathe 3.2s ease-in-out infinite;
+}
+@keyframes avStarBreathe {
+    0%,100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 6px rgba(255,255,255,0.35));
+    }
+    50% {
+        transform: scale(1.06);
+        filter: drop-shadow(0 0 16px rgba(255,255,255,0.7));
+    }
+}
 .av-tags { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .av-tag {
     background: rgba(124,110,245,0.1);
@@ -604,6 +696,15 @@ html, body {
 .skill-item i {
     font-size: 2.1rem; color: var(--accent2);
     display: block; margin-bottom: 12px;
+}
+.skill-item [class^="icon-"] {
+    font-size: 2.1rem; color: var(--accent2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    line-height: 1;
+    height: 2.1rem;
 }
 .skill-item span {
     font-size: 0.9rem; font-weight: 600;
@@ -978,3 +1079,619 @@ html, body {
 @keyframes featureSlideIn { 0%{opacity:0;transform:translateX(-12px)} 100%{opacity:1;transform:translateX(0)} }
 .skill-card-modal.active.closing .detail-features-list li { animation:none !important; opacity:0 !important; }
 .detail-features-list li .feat-icon { width:22px; height:22px; border-radius:50%; background:rgba(139,92,246,0.16); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#a855f7; font-size:0.8rem; }
+/* ==========================================================
+   Sky Star SVG 图标系统动效 (2026-07-09)
+   - 所有图标统一: viewBox 0 0 24 24, stroke=currentColor, fill=none, stroke-width=2
+   - 强化学习大卡(首页)持续脉冲
+   - 其他图标 hover 触发,中等强度(0.4-0.5s)
+   - prefers-reduced-motion 全局关掉
+   ========================================================== */
+
+/* SVG 图标默认样式 - 覆盖 Font Awesome 默认尺寸 */
+.icon-rl, .icon-flame, .icon-flappy, .icon-chat,
+.icon-chess, .icon-2048, .icon-tetris, .icon-tictactoe,
+.icon-plane, .icon-snake, .icon-code-pipe, .icon-training {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 0;
+}
+/* 通用功能性 SVG 图标(按钮 / 状态标签里的 user/robot/redo) - 不挂动效 */
+.ico {
+  width: 1em;
+  height: 1em;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: inline-block;
+  vertical-align: -0.15em;
+}
+/* 在 game-tab 内保持 1.15rem(原 Font Awesome 字号) */
+.game-tab [class^="icon-"] { font-size: 1.15rem; flex-shrink: 0; }
+.icon-rl svg, .icon-flame svg, .icon-flappy svg, .icon-chat svg,
+.icon-chess svg, .icon-2048 svg, .icon-tetris svg, .icon-tictactoe svg,
+.icon-plane svg, .icon-snake svg, .icon-code-pipe svg, .icon-training svg {
+  width: 1em;
+  height: 1em;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+}
+
+/* 通用 hover 基础(轻微缩放 + 颜色发光) */
+.icon-rl, .icon-flame, .icon-flappy, .icon-chat,
+.icon-chess, .icon-2048, .icon-tetris, .icon-tictactoe,
+.icon-plane, .icon-snake, .icon-code-pipe, .icon-training {
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.45s ease;
+}
+
+/* ====== 强化学习:节点呼吸 + 连线流动(持续,首页大卡专用) ====== */
+.hero-card .icon-rl .rl-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: rl-node-pulse 3.2s ease-in-out infinite;
+}
+.hero-card .icon-rl .rl-node-1 { animation-delay: 0s; }
+.hero-card .icon-rl .rl-node-2 { animation-delay: 0.8s; }
+.hero-card .icon-rl .rl-node-3 { animation-delay: 1.6s; }
+.hero-card .icon-rl .rl-node-4 { animation-delay: 2.4s; }
+.hero-card .icon-rl .rl-cross {
+  stroke-dasharray: 4 4;
+  animation: rl-line-flow 4s linear infinite;
+}
+@keyframes rl-node-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+@keyframes rl-line-flow {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+/* hover 时整体加速 + 发光(适用于所有 .icon-rl) */
+.icon-rl:hover { transform: scale(1.08); filter: drop-shadow(0 0 6px currentColor); }
+.hero-card .icon-rl:hover .rl-node { animation-duration: 1.6s; }
+.hero-card .icon-rl:hover .rl-cross { animation-duration: 2s; }
+/* 非大卡位置的 .icon-rl(skill-item / 弹窗),hover 时节点短暂闪烁 */
+.skill-item .icon-rl:hover .rl-node,
+.skill-card-modal .icon-rl:hover .rl-node {
+  animation: rl-node-pulse 1.2s ease-in-out 2;
+}
+
+/* ====== PyTorch 火焰:摇曳 ====== */
+.icon-flame .flame-outer {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.icon-flame:hover .flame-outer { animation: flame-flicker 1.2s ease-in-out infinite; }
+.icon-flame:hover .flame-inner { animation: flame-flicker 1.2s ease-in-out 0.2s infinite reverse; transform-box: fill-box; transform-origin: 50% 100%; }
+.icon-flame:hover { filter: drop-shadow(0 0 4px currentColor); }
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1, 1) translateY(0); }
+  33% { transform: scale(1.04, 0.96) translateY(-0.3px); }
+  66% { transform: scale(0.97, 1.03) translateY(0.2px); }
+}
+
+/* ====== Flappy Bird:翅膀拍打 + 浮动 ====== */
+.icon-flappy .wing {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+}
+.icon-flappy:hover { transform: translateY(-2px) scale(1.1); filter: drop-shadow(0 0 4px currentColor); }
+.icon-flappy:hover .wing { animation: wing-flap 0.6s ease-in-out infinite; }
+@keyframes wing-flap {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.7); }
+}
+
+/* ====== 智能问答:三个气泡点轮流跳 ====== */
+.icon-chat .dot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.icon-chat:hover .dot { animation: chat-pop 1.2s ease-in-out infinite; }
+.icon-chat:hover .dot-1 { animation-delay: 0s; }
+.icon-chat:hover .dot-2 { animation-delay: 0.2s; }
+.icon-chat:hover .dot-3 { animation-delay: 0.4s; }
+.icon-chat:hover { filter: drop-shadow(0 0 4px currentColor); }
+@keyframes chat-pop {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+
+/* ====== 智能博弈(骑士):整体微抬 + 微旋 ====== */
+.icon-chess:hover { transform: translateY(-1px) rotate(-3deg); filter: drop-shadow(0 0 4px currentColor); }
+
+/* ====== 2048:两个数字格子交替高亮 ====== */
+.icon-2048 .cell {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.icon-2048:hover .cell-1 { animation: cell-flash 1.5s ease-in-out infinite; }
+.icon-2048:hover .cell-2 { animation: cell-flash 1.5s ease-in-out 0.75s infinite; }
+.icon-2048:hover { filter: drop-shadow(0 0 4px currentColor); }
+@keyframes cell-flash {
+  0%, 100% { transform: scale(1); stroke-opacity: 1; }
+  50% { transform: scale(1.15); stroke-opacity: 0.5; }
+}
+
+/* ====== Tetris:方块依次轻落 ====== */
+.icon-tetris rect {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.icon-tetris:hover rect { animation: tetris-drop 1.8s ease-in-out infinite; }
+.icon-tetris:hover rect:nth-child(1) { animation-delay: 0s; }
+.icon-tetris:hover rect:nth-child(2) { animation-delay: 0.08s; }
+.icon-tetris:hover rect:nth-child(3) { animation-delay: 0.16s; }
+.icon-tetris:hover rect:nth-child(4) { animation-delay: 0.24s; }
+.icon-tetris:hover rect:nth-child(5) { animation-delay: 0.32s; }
+.icon-tetris:hover rect:nth-child(6) { animation-delay: 0.4s; }
+.icon-tetris:hover { filter: drop-shadow(0 0 4px currentColor); }
+@keyframes tetris-drop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(0.6px); }
+}
+
+/* ====== 井字棋:X/O 交替闪烁 ====== */
+.icon-tictactoe .mark {
+  transition: opacity 0.3s ease;
+  opacity: 0.35;
+}
+.icon-tictactoe:hover .mark { opacity: 1; }
+.icon-tictactoe:hover .mark-x { animation: mark-blink 1.2s ease-in-out infinite; }
+.icon-tictactoe:hover .mark-o { animation: mark-blink 1.2s ease-in-out 0.6s infinite; }
+.icon-tictactoe:hover { filter: drop-shadow(0 0 4px currentColor); }
+@keyframes mark-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ====== 飞机大战:整体推进 + 内线脉动 ====== */
+.icon-plane:hover { transform: translateY(-2px); filter: drop-shadow(0 0 4px currentColor); }
+.icon-plane:hover .plane-line { animation: plane-pulse 0.8s ease-in-out infinite alternate; }
+@keyframes plane-pulse {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* ====== 贪吃蛇:整体蠕动 ====== */
+.icon-snake .snake-body {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.icon-snake:hover .snake-body { animation: snake-wave 1.4s ease-in-out infinite; }
+.icon-snake:hover { filter: drop-shadow(0 0 4px currentColor); }
+@keyframes snake-wave {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(0.6px); }
+}
+
+/* ====== 工程 Pipeline & 训练曲线:静态风格,只加整体微缩 ====== */
+.icon-code-pipe:hover { transform: scale(1.08); }
+.icon-training:hover { transform: scale(1.08); }
+
+/* ====== 无障碍:尊重 prefers-reduced-motion ====== */
+@media (prefers-reduced-motion: reduce) {
+  .icon-rl, .icon-flame, .icon-flappy, .icon-chat,
+  .icon-chess, .icon-2048, .icon-tetris, .icon-tictactoe,
+  .icon-plane, .icon-snake, .icon-code-pipe, .icon-training,
+  .icon-rl *, .icon-flame *, .icon-flappy *, .icon-chat *,
+  .icon-2048 *, .icon-tetris *, .icon-tictactoe *,
+  .icon-plane *, .icon-snake * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* =============================================
+   每日资讯 PANEL(panel-news)
+   ============================================= */
+.news-wrap {
+    position: absolute;
+    inset: 0;
+    padding: 60px 70px 40px 90px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.news-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.news-header-left { flex: 1; min-width: 240px; }
+
+.news-title {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a78bfa, #4ecdc4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.news-title i { -webkit-text-fill-color: initial; color: #a78bfa; }
+
+.news-sub {
+    color: var(--muted);
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+}
+
+.news-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.news-updated-at {
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.news-refresh-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: linear-gradient(135deg, #8b5cf6, #4ecdc4);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+}
+.news-refresh-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+}
+.news-refresh-btn:active:not(:disabled) { transform: translateY(0); }
+.news-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: saturate(0.6);
+}
+.news-refresh-btn i { transition: transform 0.6s ease; }
+.news-refresh-btn.loading i { animation: newsSpin 1s linear infinite; }
+
+@keyframes newsSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ── 状态区块(loading/empty/error) ── */
+.news-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
+    color: var(--muted);
+}
+.news-state i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    opacity: 0.55;
+    color: var(--accent);
+}
+.news-state-title {
+    font-size: 1.2rem;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+.news-state-hint { font-size: 0.9rem; }
+
+.news-spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(124, 110, 245, 0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: newsSpin 0.8s linear infinite;
+    margin-bottom: 20px;
+}
+
+.news-error i { color: #ff6b9d; }
+
+/* ── 分类筛选 ── */
+.news-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.news-filter {
+    padding: 7px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+.news-filter:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+}
+.news-filter.active {
+    background: linear-gradient(135deg, rgba(124, 110, 245, 0.25), rgba(78, 205, 196, 0.2));
+    border-color: rgba(124, 110, 245, 0.5);
+    color: #fff;
+}
+
+/* ── 资讯列表 ── */
+.news-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+}
+
+.news-item {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 20px;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+}
+.news-item:hover,
+.news-item:focus-visible {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(124, 110, 245, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.news-item:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124, 110, 245, 0.3);
+}
+
+.news-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.78rem;
+    flex-wrap: wrap;
+}
+
+.news-cat-tag {
+    padding: 3px 10px;
+    border: 1px solid;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+}
+
+.news-source {
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.news-source i { font-size: 0.5rem; opacity: 0.7; }
+
+.news-time {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-family: 'JetBrains Mono', monospace;
+    opacity: 0.7;
+    margin-left: auto;
+}
+
+.news-item-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.45;
+    margin: 2px 0;
+}
+
+.news-item-summary {
+    color: rgba(232, 234, 246, 0.78);
+    font-size: 0.86rem;
+    line-height: 1.6;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.news-item-more {
+    align-self: flex-start;
+    color: var(--accent);
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 0;
+    transition: gap 0.2s ease, color 0.2s ease;
+    font-weight: 500;
+}
+.news-item:hover .news-item-more,
+.news-item:focus-visible .news-item-more {
+    gap: 9px;
+    color: #4ecdc4;
+}
+
+.news-no-items {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+    font-size: 0.95rem;
+}
+
+.news-foot {
+    margin-top: 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.hidden { display: none !important; }
+
+/* ── 响应式 ── */
+@media (max-width: 900px) {
+    .news-wrap { padding: 50px 20px 30px 20px; }
+    .news-header { flex-direction: column; align-items: flex-start; }
+    .news-header-right { align-items: flex-start; width: 100%; }
+    .news-list { grid-template-columns: 1fr; }
+    .news-item-meta { font-size: 0.72rem; }
+}
+
+/* ── 资讯详情弹窗 ── */
+.news-modal {
+    position: fixed; inset: 0;
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    animation: newsModalIn 0.22s ease;
+}
+.news-modal-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(5, 8, 20, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.news-modal-card {
+    position: relative;
+    max-width: 640px;
+    width: 100%;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: linear-gradient(160deg, rgba(20, 24, 50, 0.96), rgba(12, 15, 35, 0.98));
+    border: 1px solid rgba(124, 110, 245, 0.35);
+    border-radius: 20px;
+    padding: 32px 36px 28px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    animation: newsModalCardIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.news-modal-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 32px; height: 32px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+.news-modal-close:hover {
+    background: rgba(255, 107, 157, 0.15);
+    color: #ff6b9d;
+    border-color: rgba(255, 107, 157, 0.4);
+}
+
+.news-modal-meta {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 16px;
+    font-size: 0.8rem;
+    padding-right: 50px;  /* 给右上角 X 按钮让位 */
+}
+
+.news-modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 20px;
+    padding-right: 50px;  /* 给右上角 X 按钮让位(标题可能 2 行,也要让) */
+}
+
+.news-modal-summary {
+    color: rgba(232, 234, 246, 0.88);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 28px;
+}
+
+.news-modal-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+.news-modal-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #8b5cf6, #4ecdc4);
+    color: #fff !important;
+    text-decoration: none !important;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+}
+.news-modal-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+}
+.news-modal-tip {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+@keyframes newsModalIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes newsModalCardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 600px) {
+    .news-modal-card { padding: 24px 22px 22px; }
+    .news-modal-title { font-size: 1.25rem; }
+    .news-modal-summary { font-size: 0.9rem; }
+    .news-modal-foot { flex-direction: column-reverse; align-items: stretch; }
+    .news-modal-link { justify-content: center; }
+}
