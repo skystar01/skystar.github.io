@@ -1185,7 +1185,7 @@ html, body {
 /* 在 game-tab 内保持 1.15rem(原 Font Awesome 字号) */
 .game-tab [class^="icon-"] { font-size: 1.15rem; flex-shrink: 0; }
 .icon-rl svg, .icon-flame svg, .icon-flappy svg, .icon-chat svg,
-.icon-chess svg, .icon-2048 svg, .icon-tetris svg, .icon-tictactoe svg,
+.icon-chess svg, .icon-2048 svg, .icon-tetris svg, .icon-tictactoe svg, .icon-gomoku svg, .icon-memory svg,
 .icon-plane svg, .icon-snake svg, .icon-code-pipe svg, .icon-training svg {
   width: 1em;
   height: 1em;
@@ -1199,7 +1199,7 @@ html, body {
 
 /* 通用 hover 基础(轻微缩放 + 颜色发光) */
 .icon-rl, .icon-flame, .icon-flappy, .icon-chat,
-.icon-chess, .icon-2048, .icon-tetris, .icon-tictactoe,
+.icon-chess, .icon-2048, .icon-tetris, .icon-tictactoe, .icon-gomoku, .icon-memory,
 .icon-plane, .icon-snake, .icon-code-pipe, .icon-training {
   transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.45s ease;
 }

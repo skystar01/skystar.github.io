@@ -13,6 +13,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="styles/game-tic-tac-toe.css">
+    <link rel="stylesheet" href="styles/game-gomoku.css">
+    <link rel="stylesheet" href="styles/game-memory.css">
     <link rel="stylesheet" href="styles/game-plane.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/game-2048.css">
@@ -179,6 +181,8 @@
         .game-container.game-2048,
         .game-container.game-tetris,
         .game-container.game-tic-tac-toe,
+        .game-container.game-gomoku,
+        .game-container.game-memory,
         .game-container.game-plane {
             background: var(--game-surface);
             border-radius: var(--game-radius);
@@ -871,6 +875,14 @@
                                 <span class="icon-tictactoe" aria-label="井字棋"><svg viewBox="0 0 24 24"><path d="M8 4v16M16 4v16M4 8h16M4 16h16"/><path class="mark mark-x" d="m5.6 5.6 2 2M7.6 5.6l-2 2"/><circle class="mark mark-o" cx="18" cy="18" r="1.4"/><path d="m17 5.7 2 2M19 5.7l-2 2"/></svg></span>
                                 <span>井字棋</span>
                             </button>
+                            <button class="game-tab" data-game="gomoku">
+                                <span class="icon-gomoku" aria-label="五子棋"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="8.67" y1="4" x2="8.67" y2="20" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><line x1="13.33" y1="4" x2="13.33" y2="20" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><line x1="4" y1="8.67" x2="20" y2="8.67" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><line x1="4" y1="13.33" x2="20" y2="13.33" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><circle cx="8.67" cy="8.67" r="2.2" fill="currentColor"/><circle cx="13.33" cy="13.33" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="13.33" cy="8.67" r="2.2" fill="currentColor"/><circle cx="8.67" cy="13.33" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                                <span>五子棋</span>
+                            </button>
+                            <button class="game-tab" data-game="memory">
+                                <span class="icon-memory" aria-label="记忆翻牌"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="8" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="13" y="6" width="8" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/><path d="M5 10h4M5 12h4M5 14h4" stroke="currentColor" stroke-width="0.7" stroke-linecap="round" opacity="0.6"/><circle cx="17" cy="10" r="1.8" fill="currentColor" opacity="0.8"/></svg></span>
+                                <span>记忆翻牌</span>
+                            </button>
                             <button class="game-tab" data-game="plane">
                                 <span class="icon-plane" aria-label="打飞机"><svg viewBox="0 0 24 24"><path d="M12 3 6.5 20l5.5-3 5.5 3L12 3Z"/><path class="plane-line" d="M12 3v14M8.5 14h7"/></svg></span>
                                 <span>打飞机</span>
@@ -1091,7 +1103,110 @@
                             <strong>操作说明：</strong> 点击格子下棋 | 三个连成一线获胜 | 点击「AI模式」与AI对战
                         </p>
                     </div>
-                    
+
+                    <!-- Gomoku (五子棋) Game Container -->
+                    <div class="game-container game-gomoku">
+                        <div class="gomoku-header">
+                            <span class="gomoku-title">⚫⚪ 五子棋</span>
+                            <div class="gomoku-scores">
+                                <div class="gomoku-score-box">
+                                    <span class="gomoku-stone black"></span>
+                                    <span class="gomoku-score-value" id="gomokuScoreBlack">0</span>
+                                </div>
+                                <div class="gomoku-score-box">
+                                    <span class="gomoku-stone white"></span>
+                                    <span class="gomoku-score-value" id="gomokuScoreWhite">0</span>
+                                </div>
+                                <div class="gomoku-score-box">
+                                    <span class="gomoku-score-value" id="gomokuScoreDraw" style="color:#94a3b8">0</span>
+                                    <span style="font-size:0.7rem;color:#94a3b8">平</span>
+                                </div>
+                            </div>
+                            <div class="gomoku-mode-toggle">
+                                <button class="gomoku-mode-btn active" data-mode="pve">🤖 人机</button>
+                                <button class="gomoku-mode-btn" data-mode="pvp">👥 双人</button>
+                            </div>
+                        </div>
+
+                        <div class="gomoku-board-wrapper">
+                            <div class="gomoku-board" id="gomokuBoard"></div>
+                            <div class="gomoku-board-lines" id="gomokuBoardLines"></div>
+                            <div class="gomoku-star-points" id="gomokuStarPoints"></div>
+                            <div class="gomoku-heatmap" id="gomokuHeatmap"></div>
+                        </div>
+
+                        <div class="gomoku-status" id="gomokuStatus">
+                            <span class="status-icon black"></span> 黑方 回合
+                        </div>
+
+                        <div class="gomoku-controls">
+                            <button class="gomoku-btn gomoku-btn-primary" id="gomokuReset">🔄 新对局</button>
+                            <button class="gomoku-btn" id="gomokuUndo">↩ 悔棋</button>
+                        </div>
+
+                        <p class="gomoku-instructions">
+                            <strong>操作说明：</strong> 点击棋盘落子 | 五子连成一线获胜 | 人机模式下 AI 使用 minimax + alpha-beta + 棋型评估(活四/冲四/活三…)| 思考时显示候选点热力图
+                        </p>
+                    </div>
+
+                    <!-- Memory Game Container -->
+                    <div class="game-container game-memory">
+                        <div class="memory-header">
+                            <div class="memory-title-wrap">
+                                <span class="memory-title-icon">🎴</span>
+                                <span class="memory-title">记忆翻牌</span>
+                            </div>
+                            <div class="memory-scores">
+                                <div class="memory-score-box">
+                                    <span class="memory-score-label">用时</span>
+                                    <span class="memory-score-value" id="memoryTime">0:00</span>
+                                </div>
+                                <div class="memory-score-box">
+                                    <span class="memory-score-label">步数</span>
+                                    <span class="memory-score-value" id="memoryMoves">0</span>
+                                </div>
+                                <div class="memory-score-box">
+                                    <span class="memory-score-label">已配对</span>
+                                    <span class="memory-score-value" id="memoryMatched">0/8</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="memory-meta">
+                            <div class="memory-best">
+                                <i class="fas fa-trophy memory-best-icon"></i>
+                                <span>最佳</span>
+                                <span class="memory-best-value" id="memoryBest">—:—</span>
+                            </div>
+                            <div class="memory-progress">
+                                <div class="memory-progress-bar" id="memoryProgressBar"></div>
+                            </div>
+                        </div>
+
+                        <div class="memory-status" id="memoryStatus">点击 <strong>开始游戏</strong> 启动</div>
+
+                        <div class="memory-board-area">
+                            <div class="memory-board" id="memoryBoard"></div>
+                            <canvas class="memory-particle-canvas" id="memoryParticleCanvas"></canvas>
+                            <div class="memory-preview-mask" id="memoryPreviewMask">
+                                <span class="memory-preview-text">准备…</span>
+                            </div>
+                        </div>
+
+                        <div class="memory-controls">
+                            <button class="memory-btn memory-btn-primary" id="memoryStart">
+                                <i class="fas fa-play"></i> 开始游戏
+                            </button>
+                            <button class="memory-btn" id="memoryReset">
+                                <i class="fas fa-shuffle"></i> 重新洗牌
+                            </button>
+                        </div>
+
+                        <p class="memory-instructions">
+                            <strong>玩法：</strong> 点击卡牌翻开两张，找相同图案配对；全部消除后用时最短者胜。
+                        </p>
+                    </div>
+
                     <!-- Plane Shooter Game Container -->
                     <div class="game-container game-plane">
                         <div class="game-plane-canvas-wrapper">
@@ -2154,6 +2269,12 @@
                 case 'tic-tac-toe':
                     fitTicTacToe(container);
                     break;
+                case 'gomoku':
+                    if (window.fitGomoku) window.fitGomoku(container);
+                    break;
+                case 'memory':
+                    if (window.fitMemory) window.fitMemory(container);
+                    break;
                 case 'plane':
                     fitPlane(container);
                     break;
@@ -2716,6 +2837,8 @@
     <script src="scripts/game-2048.js"></script>
     <script src="scripts/game-tetris.js"></script>
     <script src="scripts/game-tic-tac-toe.js"></script>
+    <script src="scripts/gomoku.js"></script>
+    <script src="scripts/memory-game.js"></script>
     <script src="scripts/game-plane.js"></script>
     </body>
 </html>
