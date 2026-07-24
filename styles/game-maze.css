@@ -1,0 +1,289 @@
+/* ─── AI 迷宫逃生 (Maze Escape) ─── */
+
+.game-container.game-maze {
+    background: var(--game-surface);
+    border-radius: var(--game-radius);
+    border: 1px solid var(--game-border);
+    box-shadow: var(--game-shadow), var(--game-glow);
+    backdrop-filter: blur(14px);
+    position: relative; /* 让险情 overlay 能相对容器定位 */
+}
+
+#mazeCanvas {
+    display: block;
+    margin: 12px auto 0;
+    border-radius: 8px;
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.15);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* 顶部信息条: 关卡 / 计时 / 状态 */
+.maze-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 4px 2px 8px;
+}
+.maze-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+.maze-stats {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.maze-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 64px;
+}
+.maze-stat .stat-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 500;
+}
+.maze-stat .stat-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent, #8b5cf6);
+    font-variant-numeric: tabular-nums;
+}
+.maze-stat .stat-value.best { color: #fbbf24; }
+
+.maze-status {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+.maze-status.status-go {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+.maze-status.status-pause {
+    background: rgba(250, 204, 21, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.3);
+}
+.maze-status.status-clear {
+    background: rgba(74, 222, 128, 0.18);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.4);
+}
+.maze-status.status-caught {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.maze-instructions {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin: 8px 2px 4px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(139, 92, 246, 0.12);
+}
+.maze-instructions strong { color: #cbd5e1; }
+
+.maze-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.maze-path-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    cursor: pointer;
+    user-select: none;
+    margin-left: auto;
+}
+.maze-path-toggle input { cursor: pointer; accent-color: #8b5cf6; }
+
+/* ===== 道具栏 (Canvas 下方 4 个槽位) ===== */
+.maze-item-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.maze-item-slot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--game-card-strong, rgba(30, 41, 59, 0.6));
+    border: 1px solid var(--game-border, rgba(139, 92, 246, 0.2));
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    position: relative;
+    min-width: 130px;
+}
+.maze-item-slot.empty {
+    opacity: 0.4;
+    filter: grayscale(0.6);
+}
+.maze-item-slot:not(.empty) {
+    border-color: rgba(250, 204, 21, 0.5);
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.15);
+}
+.maze-item-slot .item-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: rgba(139, 92, 246, 0.3);
+    color: #ddd6fe;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.maze-item-slot .item-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+/* 每种道具图标用主题色, 跟 Canvas 上的拾取点视觉统一 */
+.maze-item-slot .item-icon.icon-sprint { color: #a855f7; }
+.maze-item-slot .item-icon.icon-vision { color: #22d3ee; }
+.maze-item-slot .item-icon.icon-freeze { color: #7dd3fc; }
+.maze-item-slot .item-icon.icon-decoy  { color: #fb923c; }
+.maze-item-slot .item-name {
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    font-weight: 500;
+}
+.maze-item-slot .item-count {
+    margin-left: auto;
+    min-width: 22px;
+    text-align: center;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.2);
+    color: #facc15;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.maze-item-slot.empty .item-count {
+    background: rgba(100, 116, 139, 0.2);
+    color: #64748b;
+}
+
+@media (max-width: 600px) {
+    .maze-header { justify-content: center; gap: 8px; }
+    .maze-stats { gap: 10px; }
+    .maze-stat { min-width: 52px; }
+    .maze-stat .stat-value { font-size: 1rem; }
+    .maze-controls { justify-content: center; }
+    .maze-path-toggle { margin-left: 0; }
+    .maze-item-slot { min-width: 110px; padding: 6px 10px; }
+    .maze-item-slot .item-name { font-size: 0.74rem; }
+}
+
+/* 结算遮罩 (复用 .game-over-overlay 基础样式, 颜色按类型区分) */
+#mazeOverlay.game-over-overlay .game-over-title {
+    font-size: 2.4rem;
+}
+#mazeOverlay[data-type="level-clear"] .game-over-title {
+    color: #4ade80;
+    text-shadow: 0 0 30px rgba(74, 222, 128, 0.5);
+}
+
+/* 险情警示: 画面边缘红色脉冲 (绝对定位, pointer-events:none, 不挡操作) */
+.maze-danger-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 8px;
+    box-shadow: inset 0 0 40px rgba(239, 68, 68, 0);
+    transition: box-shadow 0.2s ease;
+    z-index: 5;
+}
+.maze-danger-overlay.active {
+    animation: maze-danger-pulse 0.8s ease-in-out infinite;
+}
+@keyframes maze-danger-pulse {
+    0%, 100% { box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.25); }
+    50% { box-shadow: inset 0 0 60px rgba(239, 68, 68, 0.6); }
+}
+
+/* 浮动文字 (拾取 +1, 得分等), 从触发位置上浮渐隐 */
+.maze-floating-texts {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 6;
+}
+.maze-float-text {
+    position: absolute;
+    font-size: 0.95rem;
+    font-weight: 700;
+    transform: translate(-50%, 0);
+    animation: maze-float-up 1s ease-out forwards;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+}
+@keyframes maze-float-up {
+    0% { transform: translate(-50%, 0); opacity: 1; }
+    100% { transform: translate(-50%, -36px); opacity: 0; }
+}
+
+/* 小地图 canvas (在 HUD 栏内, 不挡游戏 canvas) */
+.maze-stat-minimap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: auto;
+}
+.maze-stat-minimap canvas {
+    width: 60px;
+    height: 60px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+    background: rgba(15, 23, 42, 0.6);
+}
+
+/* 分数变化高亮 */
+.maze-stat .stat-value.score-flash {
+    animation: maze-score-flash 0.5s ease;
+}
+@keyframes maze-score-flash {
+    0% { color: #facc15; transform: scale(1.3); }
+    100% { color: inherit; transform: scale(1); }
+}
+
+/* 生命值显示: 低血量时红色脉冲警示 */
+.maze-stat .stat-value.lives {
+    font-size: 1rem;
+    letter-spacing: 1px;
+    color: #f87171;
+}
+.maze-stat .stat-value.lives.low {
+    animation: maze-lives-danger 0.8s ease-in-out infinite;
+}
+@keyframes maze-lives-danger {
+    0%, 100% { color: #f87171; transform: scale(1); }
+    50% { color: #ef4444; transform: scale(1.15); }
+}

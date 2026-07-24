@@ -6,17 +6,18 @@ class MemoryGame {
     constructor() {
         // 8 对卡牌: 图片名 + 图案名
         this.CARD_PAIRS = [
-            { id: 'star',      label: '星光水晶',   src: 'assets/card-star.png' },
-            { id: 'moon',     label: '明月',       src: 'assets/card-moon.png' },
-            { id: 'lightning',label: '闪电',       src: 'assets/card-lightning.png' },
-            { id: 'sun',      label: '烈阳',       src: 'assets/card-sun.png' },
-            { id: 'flower',   label: '莲花',       src: 'assets/card-flower.png' },
-            { id: 'flame',    label: '烈焰',       src: 'assets/card-flame.png' },
-            { id: 'potion',   label: '魔药',       src: 'assets/card-potion.png' },
-            { id: 'waterfall',label: '瀑布',       src: 'assets/card-waterfall.png' },
+            { id: 'star',      label: '星光水晶',   src: 'assets/card-star.webp' },
+            { id: 'moon',     label: '明月',       src: 'assets/card-moon.webp' },
+            { id: 'lightning',label: '闪电',       src: 'assets/card-lightning.webp' },
+            { id: 'sun',      label: '烈阳',       src: 'assets/card-sun.webp' },
+            { id: 'flower',   label: '莲花',       src: 'assets/card-flower.webp' },
+            { id: 'flame',    label: '烈焰',       src: 'assets/card-flame.webp' },
+            { id: 'potion',   label: '魔药',       src: 'assets/card-potion.webp' },
+            { id: 'waterfall',label: '瀑布',       src: 'assets/card-waterfall.webp' },
         ];
 
-        this.STORAGE_KEY = 'memory_best_time';
+        this.STORAGE_KEY = 'skystar:v1:memory:bestTime';
+        this.LEGACY_KEY = 'memory_best_time';
         this.FLIP_MS = 550;     // CSS transition 时长 (要等翻完再触发抖动/匹配)
         this.PREVIEW_MS = 1200; // 开局预览时长
 
@@ -114,20 +115,16 @@ class MemoryGame {
         if (resetBtn) resetBtn.addEventListener('click', () => this.shuffleGame());
     }
 
-    // ─── 最佳成绩 (localStorage) ───
+    // ─── 最佳成绩 (localStorage, 隐私模式/配额满自动降级) ───
     loadBest() {
-        try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            this.bestTime = stored ? parseInt(stored, 10) : null;
-        } catch (e) {
-            this.bestTime = null;
-        }
+        SkyStorage.migrate(this.LEGACY_KEY, this.STORAGE_KEY);
+        const stored = SkyStorage.get(this.STORAGE_KEY);
+        this.bestTime = stored !== null ? parseInt(stored, 10) : null;
+        if (isNaN(this.bestTime)) this.bestTime = null;
     }
 
     saveBest() {
-        try {
-            localStorage.setItem(this.STORAGE_KEY, String(this.bestTime));
-        } catch (e) { /* ignore */ }
+        SkyStorage.setInt(this.STORAGE_KEY, this.bestTime);
     }
 
     // ─── 启动：先预览再开始 ───

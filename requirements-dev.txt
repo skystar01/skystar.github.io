@@ -1,0 +1,15 @@
+# 训练 / 测试侧依赖
+# 用法: pip install -r requirements-dev.txt
+#
+# 适用文件:
+#   train_flappy.py        → gymnasium, flappy_bird_gymnasium, torch, matplotlib
+#   test_flappy.py         → gymnasium, flappy_bird_gymnasium, torch
+#   scripts/_prep_awards.py → pypdfium2
+
+gymnasium>=0.29.0
+flappy_bird_gymnasium>=0.1.0
+torch>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+pygame>=2.5.0
+pypdfium2>=4.0.0

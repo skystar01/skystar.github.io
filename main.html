@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -19,429 +19,9 @@
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/game-2048.css">
     <link rel="stylesheet" href="styles/game-tetris.css">
-    <style>
-        /* ─── GAME MODULE ─── */
-        /* games-layout: 左侧可滚动 tab list + 右侧 game-stage (占满右上) */
-        .games-layout {
-            display: flex;
-            gap: 24px;
-            align-items: flex-start;
-        }
+    <link rel="stylesheet" href="styles/game-maze.css">
+    <link rel="stylesheet" href="styles/game-center.css">
 
-        /* tabs sidebar: carousel 容器 (overflow:hidden, 由 track 的 transform 移动实现循环) */
-        .tabs-sidebar {
-            position: sticky;
-            top: 24px;
-            flex: 0 0 220px;
-            height: 620px;          /* 跟 game-stage min-height 对齐 */
-            overflow: hidden;
-        }
-
-        /* 顶部 games-header: panel-heading 风格 (横排, 跟其他 panel 统一)
-           max-width: 1100 + margin auto 居中, 跟其他 panel-heading 视觉协调;
-           下面 games-layout 撑满整个 inner-panel content 宽度 */
-        .games-header {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 16px;
-            width: 100%;
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 0 4px 16px;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.18);
-        }
-        .tabs-title {
-            margin: 0;
-            padding: 0;
-            background: none;
-            backdrop-filter: none;
-        }
-        .tabs-title .eyebrow {
-            font-size: 0.75rem;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-        .tabs-title h2 {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 2rem;
-            color: #fff;
-            line-height: 1;
-            margin: 0;
-            letter-spacing: 0.04em;
-        }
-        .tabs-title .underline {
-            width: 36px;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), var(--accent2));
-            border-radius: 2px;
-            margin-top: 10px;
-        }
-        .tabs-hint {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.78rem;
-            color: #94a3b8;
-            opacity: 0.75;
-            padding-bottom: 8px;
-        }
-        .tabs-hint i { font-size: 0.85rem; }
-
-        /* track: JS 自动复制多组 tab，再用 transform translateY 做无限轮播 */
-        .tabs-track {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            will-change: transform;
-        }
-
-        /* 副本: 跟真实 tab 完全一致；active 只落在中间真实 tab 上 */
-
-        .game-stage {
-            flex: 1;
-            min-width: 0;
-            display: block;         /* 改 flex 为 block, 让 game-container width: 100% 直接撑满 (避免 flex 居中缩水) */
-            height: 720px;          /* 固定高度, 切游戏时容器完全不跳变 */
-        }
-
-        /* 每个 tab: 透明底去边框; 字号统一; 虚化由 JS 按物理距离计算 */
-        .game-tab {
-            scroll-snap-align: center;
-            scroll-snap-stop: always;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 14px 16px;
-            background: transparent;
-            border: none;
-            border-radius: 14px;
-            color: #94a3b8;
-            font-size: 0.95rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            cursor: pointer;
-            opacity: var(--v, 1);
-            transform: scale(var(--s, 1));
-            transform-origin: center center;
-            transition: background 0.25s ease, color 0.25s ease;
-            position: relative;
-            width: 100%;
-        }
-        .game-tab i {
-            font-size: 1.15rem;                            /* 统一图标字号 */
-            flex-shrink: 0;
-        }
-        .game-tab:hover {
-            background: rgba(139, 92, 246, 0.10);
-            color: #d8c8ff;
-        }
-/* 高亮: 用 .is-center class (位于 sidebar 视觉中心的 tab 才有高亮)
-           副本可独立高亮, 跟 .active (控制游戏区) 完全解耦 */
-        .game-tab.is-center {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(78, 205, 196, 0.14));
-            color: #fff;
-            border: 1px solid rgba(139, 92, 246, 0.40);
-            opacity: 1;
-            z-index: 1;
-        }
-        .game-tab.is-center::before {
-            content: '';
-            position: absolute;
-            left: -1px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 28px;
-            border-radius: 0 3px 3px 0;
-            background: linear-gradient(180deg, #8b5cf6, #4ecdc4);
-            box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
-        }
-
-        /* game-container: 占满 game-stage 固定大小, 所有游戏 fit 到这个容器内, 切换不跳变 */
-        .game-container {
-            position: relative;
-            width: 100%;             /* 占满 game-stage 宽度 (game-stage 固定 720) */
-            height: 100%;            /* 占满 game-stage 高度 */
-            overflow-y: auto;         /* 内容超出可滚动，不被裁切 */
-            background: var(--game-surface);
-            border-radius: var(--game-radius);
-            padding: 20px;
-            border: 1px solid var(--game-border);
-            box-shadow: var(--game-shadow), var(--game-glow);
-            backdrop-filter: blur(14px);
-        }
-
-        .game-container.game-snake,
-        .game-container.game-flappy,
-        .game-container.game-2048,
-        .game-container.game-tetris,
-        .game-container.game-tic-tac-toe,
-        .game-container.game-gomoku,
-        .game-container.game-memory,
-        .game-container.game-plane {
-            background: var(--game-surface);
-            border-radius: var(--game-radius);
-            border: 1px solid var(--game-border);
-            box-shadow: var(--game-shadow), var(--game-glow);
-            backdrop-filter: blur(14px);
-        }
-
-        /* canvas 在固定容器内 fit (CSS max-size 兜底, JS fitGameCanvas 主动算精确尺寸) */
-        .game-container canvas {
-            display: block;
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        #gameCanvas {
-            border-radius: 16px;
-            background: #0f172a;
-            border: 2px solid rgba(0, 215, 195, 0.3);
-            box-shadow: 0 0 40px rgba(0, 215, 195, 0.15);
-        }
-
-        /* Flappy Bird Canvas */
-        #flappyCanvas {
-            border-radius: 16px;
-            box-shadow: 0 0 40px rgba(113, 197, 207, 0.3);
-        }
-
-        /* Game Container Switching */
-        .game-container {
-            display: none !important;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            max-width: 100%;
-        }
-
-        .game-container.active {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;        /* 子元素水平居中 */
-            justify-content: center;    /* 整体内容垂直居中 */
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .game-container.game-flappy {
-            padding: 10px;
-        }
-
-        .game-instructions {
-            text-align: center;
-            color: var(--game-text-muted);
-            font-size: 0.86rem;
-            max-width: 620px;
-            line-height: 1.6;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid rgba(139, 92, 246, 0.18);
-        }
-
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            max-width: 620px;
-            margin-bottom: 15px;
-        }
-
-        .game-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            background: var(--game-title-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .game-score {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .score-box {
-            background: var(--game-card-strong);
-            border: 1px solid var(--game-border);
-            border-radius: var(--game-radius-sm);
-            padding: 10px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-        }
-
-        .score-label {
-            font-size: 0.75rem;
-            color: var(--game-text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .score-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #fbbf24;
-        }
-
-        .game-controls {
-            display: flex;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .game-btn {
-            padding: 12px 28px;
-            border-radius: var(--game-radius-sm);
-            font-family: 'Noto Sans SC', sans-serif;
-            font-size: 0.96rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            border: 1px solid transparent;
-            letter-spacing: 0.02em;
-        }
-
-        .game-btn-primary {
-            background: var(--game-primary);
-            color: white;
-            box-shadow: 0 6px 18px rgba(124, 110, 245, 0.32);
-        }
-
-        .game-btn-primary:hover {
-            background: var(--game-primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 9px 24px rgba(78, 205, 196, 0.28);
-        }
-
-        .game-btn-secondary {
-            background: var(--game-card);
-            color: #c4b5fd;
-            border-color: var(--game-border);
-        }
-
-        .game-btn-secondary:hover {
-            background: var(--game-card-strong);
-            border-color: var(--game-border-strong);
-            color: #fff;
-        }
-
-        .game-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 999px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .status-player {
-            background: rgba(249, 115, 22, 0.15);
-            color: #fb923c;
-            border: 1px solid rgba(249, 115, 22, 0.3);
-        }
-
-        .status-ai {
-            background: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-        }
-
-        .game-over-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(15, 23, 42, 0.95);
-            border-radius: 24px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 25px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        .game-over-overlay.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .game-over-title {
-            font-size: 3rem;
-            font-weight: 700;
-            color: #ef4444;
-            text-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
-        }
-
-        .game-over-score {
-            font-size: 1.5rem;
-            color: #fbbf24;
-            font-weight: 600;
-        }
-
-        /* ===== Snake 模式切换 (经典 / 双蛇对战) ===== */
-        .game-mode-toggle {
-            display: inline-flex;
-            background: var(--game-card-strong);
-            border: 1px solid var(--game-border);
-            border-radius: 999px;
-            padding: 4px;
-            gap: 4px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
-        }
-
-        .mode-btn {
-            padding: 7px 18px;
-            border-radius: 999px;
-            font-family: 'Noto Sans SC', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--game-text-muted);
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            letter-spacing: 0.02em;
-        }
-
-        .mode-btn:hover {
-            color: #fff;
-        }
-
-        .mode-btn.active {
-            background: linear-gradient(135deg, var(--game-primary), #4ecdc4);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(124, 110, 245, 0.3);
-        }
-
-        .score-box.score-ai .score-label {
-            color: #60a5fa;
-        }
-
-        .score-box.score-ai .score-value {
-            color: #60a5fa;
-        }
-
-        .game-status.status-versus {
-            background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(96, 165, 250, 0.18));
-            color: #e2e8f0;
-            border: 1px solid rgba(139, 92, 246, 0.35);
-        }
-
-    </style>
 </head>
 <body>
 <!-- SVG 图标 sprite (弹窗里通过 <use href="#i-xxx"> 引用) -->
@@ -477,7 +57,7 @@
 
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
-        <img class="sidebar-logo-img" src="assets/logo.png" alt="SKY STAR" />
+        <img class="sidebar-logo-img" src="assets/logo.webp" alt="SKY STAR" />
         <div class="sidebar-logo">SKY STAR</div>
         <nav class="sidebar-nav">
             <div class="nav-item active" data-target="home">
@@ -546,14 +126,171 @@
                 </a>
             </div>
 
-            <!-- floating info card -->
-            <div class="hero-card">
-                <div class="card-icon"><span class="icon-rl" aria-label="强化学习"><svg viewBox="0 0 24 24"><circle class="rl-node rl-node-1" cx="5" cy="12" r="2.2"/><circle class="rl-node rl-node-2" cx="12" cy="5" r="2.2"/><circle class="rl-node rl-node-3" cx="19" cy="12" r="2.2"/><circle class="rl-node rl-node-4" cx="12" cy="19" r="2.2"/><path d="M7 11 10.2 6.8M13.8 6.8 17 11M17 13 13.8 17.2M10.2 17.2 7 13"/><path class="rl-cross" d="M8 12h8M12 8v8" opacity=".7"/></svg></span></div>
-                <div class="card-label">训练方向</div>
-                <div class="card-sub">
-                    RL 智能体<br>
-                    LoRA · 分布式训练
+            <!-- RL neural network visualization (signature moment) -->
+            <div class="hero-visual" aria-hidden="true">
+                <svg class="rl-network" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <radialGradient id="nodeIn" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#9ef5ee"/>
+                            <stop offset="60%" stop-color="#4ecdc4"/>
+                            <stop offset="100%" stop-color="#1f6e6a"/>
+                        </radialGradient>
+                        <radialGradient id="nodeMid" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#cfc4ff"/>
+                            <stop offset="60%" stop-color="#7c6ef5"/>
+                            <stop offset="100%" stop-color="#2a1f7a"/>
+                        </radialGradient>
+                        <radialGradient id="nodeOut" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#fccfe0"/>
+                            <stop offset="60%" stop-color="#ec4899"/>
+                            <stop offset="100%" stop-color="#6e1f48"/>
+                        </radialGradient>
+                        <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="rgba(78,205,196,0)"/>
+                            <stop offset="50%" stop-color="rgba(78,205,196,0.9)"/>
+                            <stop offset="100%" stop-color="rgba(124,110,245,0)"/>
+                        </linearGradient>
+                        <filter id="nodeGlow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="3.5" result="blur"/>
+                            <feMerge>
+                                <feMergeNode in="blur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+
+                    <!-- 静态连线层(按层拆成两个子组,方便 forward pass 动画分段触发) -->
+                    <g class="rl-edges" stroke="rgba(124,110,245,0.16)" stroke-width="1" fill="none">
+                        <!-- Layer1 → Layer2 (State → Policy, 4×5=20) -->
+                        <g class="rl-edges-l1l2">
+                            <line x1="80" y1="90" x2="320" y2="80"/>
+                            <line x1="80" y1="90" x2="320" y2="160"/>
+                            <line x1="80" y1="90" x2="320" y2="240"/>
+                            <line x1="80" y1="90" x2="320" y2="320"/>
+                            <line x1="80" y1="90" x2="320" y2="400"/>
+                            <line x1="80" y1="180" x2="320" y2="80"/>
+                            <line x1="80" y1="180" x2="320" y2="160"/>
+                            <line x1="80" y1="180" x2="320" y2="240"/>
+                            <line x1="80" y1="180" x2="320" y2="320"/>
+                            <line x1="80" y1="180" x2="320" y2="400"/>
+                            <line x1="80" y1="270" x2="320" y2="80"/>
+                            <line x1="80" y1="270" x2="320" y2="160"/>
+                            <line x1="80" y1="270" x2="320" y2="240"/>
+                            <line x1="80" y1="270" x2="320" y2="320"/>
+                            <line x1="80" y1="270" x2="320" y2="400"/>
+                            <line x1="80" y1="360" x2="320" y2="80"/>
+                            <line x1="80" y1="360" x2="320" y2="160"/>
+                            <line x1="80" y1="360" x2="320" y2="240"/>
+                            <line x1="80" y1="360" x2="320" y2="320"/>
+                            <line x1="80" y1="360" x2="320" y2="400"/>
+                        </g>
+                        <!-- Layer2 → Layer3 (Policy → Action, 5×3=15) -->
+                        <g class="rl-edges-l2l3">
+                            <line x1="320" y1="80"  x2="560" y2="160"/>
+                            <line x1="320" y1="80"  x2="560" y2="240"/>
+                            <line x1="320" y1="80"  x2="560" y2="320"/>
+                            <line x1="320" y1="160" x2="560" y2="160"/>
+                            <line x1="320" y1="160" x2="560" y2="240"/>
+                            <line x1="320" y1="160" x2="560" y2="320"/>
+                            <line x1="320" y1="240" x2="560" y2="160"/>
+                            <line x1="320" y1="240" x2="560" y2="240"/>
+                            <line x1="320" y1="240" x2="560" y2="320"/>
+                            <line x1="320" y1="320" x2="560" y2="160"/>
+                            <line x1="320" y1="320" x2="560" y2="240"/>
+                            <line x1="320" y1="320" x2="560" y2="320"/>
+                            <line x1="320" y1="400" x2="560" y2="160"/>
+                            <line x1="320" y1="400" x2="560" y2="240"/>
+                            <line x1="320" y1="400" x2="560" y2="320"/>
+                        </g>
+                    </g>
+
+                    <!-- 流光线层 (8 条做流光信号) -->
+                    <g class="rl-flow" stroke="url(#flowGrad)" stroke-width="1.6" fill="none" stroke-linecap="round">
+                        <line class="flow-line" x1="80"  y1="90"  x2="320" y2="160" stroke-dasharray="8 240" stroke-dashoffset="0"/>
+                        <line class="flow-line" x1="80"  y1="180" x2="320" y2="240" stroke-dasharray="8 240" stroke-dashoffset="-80" style="animation-delay:-0.8s"/>
+                        <line class="flow-line" x1="80"  y1="270" x2="320" y2="80"  stroke-dasharray="8 240" stroke-dashoffset="-160" style="animation-delay:-1.6s"/>
+                        <line class="flow-line" x1="80"  y1="360" x2="320" y2="320" stroke-dasharray="8 240" stroke-dashoffset="-240" style="animation-delay:-2.4s"/>
+                        <line class="flow-line" x1="320" y1="80"  x2="560" y2="240" stroke-dasharray="8 280" style="animation-delay:-1.2s"/>
+                        <line class="flow-line" x1="320" y1="160" x2="560" y2="160" stroke-dasharray="8 280" stroke-dashoffset="-100" style="animation-delay:-2.0s"/>
+                        <line class="flow-line" x1="320" y1="240" x2="560" y2="320" stroke-dasharray="8 280" stroke-dashoffset="-180" style="animation-delay:-2.8s"/>
+                        <line class="flow-line" x1="320" y1="400" x2="560" y2="240" stroke-dasharray="8 280" stroke-dashoffset="-60" style="animation-delay:-3.4s"/>
+                    </g>
+
+                    <!-- 节点层 -->
+                    <g class="rl-nodes">
+                        <!-- Layer 1: State -->
+                        <g class="rl-node rl-node-in" transform="translate(80,90)"  style="animation-delay:0s">
+                            <circle class="node-glow" r="14" fill="url(#nodeIn)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeIn)"/>
+                        </g>
+                        <g class="rl-node rl-node-in" transform="translate(80,180)" style="animation-delay:-0.4s">
+                            <circle class="node-glow" r="14" fill="url(#nodeIn)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeIn)"/>
+                        </g>
+                        <g class="rl-node rl-node-in" transform="translate(80,270)" style="animation-delay:-0.8s">
+                            <circle class="node-glow" r="14" fill="url(#nodeIn)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeIn)"/>
+                        </g>
+                        <g class="rl-node rl-node-in" transform="translate(80,360)" style="animation-delay:-1.2s">
+                            <circle class="node-glow" r="14" fill="url(#nodeIn)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeIn)"/>
+                        </g>
+
+                        <!-- Layer 2: Policy Network -->
+                        <g class="rl-node rl-node-mid" transform="translate(320,80)"  style="animation-delay:-0.2s">
+                            <circle class="node-glow" r="14" fill="url(#nodeMid)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeMid)"/>
+                        </g>
+                        <g class="rl-node rl-node-mid" transform="translate(320,160)" style="animation-delay:-0.6s">
+                            <circle class="node-glow" r="14" fill="url(#nodeMid)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeMid)"/>
+                        </g>
+                        <g class="rl-node rl-node-mid" transform="translate(320,240)" style="animation-delay:-1.0s">
+                            <circle class="node-glow" r="14" fill="url(#nodeMid)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeMid)"/>
+                        </g>
+                        <g class="rl-node rl-node-mid" transform="translate(320,320)" style="animation-delay:-1.4s">
+                            <circle class="node-glow" r="14" fill="url(#nodeMid)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeMid)"/>
+                        </g>
+                        <g class="rl-node rl-node-mid" transform="translate(320,400)" style="animation-delay:-1.8s">
+                            <circle class="node-glow" r="14" fill="url(#nodeMid)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeMid)"/>
+                        </g>
+
+                        <!-- Layer 3: Action (可点击触发 forward pass 演示) -->
+                        <g class="rl-node rl-node-out rl-node-action" transform="translate(560,160)" style="animation-delay:-0.3s" role="button" tabindex="0" aria-label="动作 Q(flap)">
+                            <circle class="node-glow" r="14" fill="url(#nodeOut)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeOut)"/>
+                        </g>
+                        <g class="rl-node rl-node-out rl-node-action" transform="translate(560,240)" style="animation-delay:-0.9s" role="button" tabindex="0" aria-label="动作 Q(融合)">
+                            <circle class="node-glow" r="14" fill="url(#nodeOut)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeOut)"/>
+                        </g>
+                        <g class="rl-node rl-node-out rl-node-action" transform="translate(560,320)" style="animation-delay:-1.5s" role="button" tabindex="0" aria-label="动作 argmax">
+                            <circle class="node-glow" r="14" fill="url(#nodeOut)" opacity="0.35" filter="url(#nodeGlow)"/>
+                            <circle class="node-core" r="7" fill="url(#nodeOut)"/>
+                        </g>
+                    </g>
+
+                    <!-- 层标签 -->
+                    <g class="rl-labels" font-family="'Space Mono', monospace" font-size="11" letter-spacing="3" fill="rgba(200,210,240,0.55)">
+                        <text x="80"  y="448" text-anchor="middle">STATE</text>
+                        <text x="320" y="448" text-anchor="middle">POLICY NET</text>
+                        <text x="560" y="448" text-anchor="middle">ACTION</text>
+                    </g>
+                    <g class="rl-sublabels" font-family="'Noto Sans SC', sans-serif" font-size="10" fill="rgba(200,210,240,0.4)">
+                        <text x="80"  y="465" text-anchor="middle">观测输入</text>
+                        <text x="320" y="465" text-anchor="middle">策略网络</text>
+                        <text x="560" y="465" text-anchor="middle">动作输出</text>
+                    </g>
+                </svg>
+                <div class="hero-visual-caption">
+                    <span class="caption-dot"></span>
+                    Policy Gradient · Actor-Critic · PPO
                 </div>
+                <!-- 节点 hover tooltip (Layer 1 tooltip 数据) -->
+                <div class="rl-tooltip" id="rlTooltip" role="tooltip" aria-hidden="true"></div>
             </div>
 
             <!-- bottom quick links -->
@@ -650,7 +387,7 @@
                 <div class="about-grid">
                     <div class="about-avatar-wrap">
                         <div class="av-ring">
-                            <img class="av-mark" src="assets/logo.png" alt="SKY STAR" />
+                            <img class="av-mark" src="assets/logo.webp" alt="SKY STAR" />
                         </div>
                         <div class="av-tags">
                             <div class="av-tag">RL 方向</div>
@@ -886,6 +623,10 @@
                             <button class="game-tab" data-game="plane">
                                 <span class="icon-plane" aria-label="打飞机"><svg viewBox="0 0 24 24"><path d="M12 3 6.5 20l5.5-3 5.5 3L12 3Z"/><path class="plane-line" d="M12 3v14M8.5 14h7"/></svg></span>
                                 <span>打飞机</span>
+                            </button>
+                            <button class="game-tab" data-game="maze">
+                                <span class="icon-maze" aria-label="AI迷宫逃生"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1.5"/><path class="maze-path" d="M3 8h5M12 8h9M8 8v5M8 16h5M16 8v8M16 12h5"/><circle class="maze-start" cx="5.5" cy="5.5" r="1"/><circle class="maze-exit" cx="18.5" cy="18.5" r="1"/></svg></span>
+                                <span>AI迷宫逃生</span>
                             </button>
                         </div>
                     </nav>
@@ -1228,6 +969,94 @@
                             <button class="plane-restart-btn" id="planeRestartButton">🔄 重新起飞</button>
                     </div>
                     </div>
+
+                    <!-- AI Maze Escape Game Container -->
+                    <div class="game-container game-maze">
+                        <div class="maze-header">
+                            <span class="maze-title"><svg class="ico" viewBox="0 0 24 24" width="20" height="20"><path d="M4 4h16v16H4z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 8h6M14 8h6M8 8v4M16 8v8M8 16h6M4 14h4" fill="none" stroke="currentColor" stroke-width="1.2"/></svg> AI 迷宫逃生</span>
+                            <div class="maze-stats">
+                                <div class="maze-stat">
+                                    <span class="stat-label">LEVEL</span>
+                                    <span class="stat-value" id="mazeLevel">1</span>
+                                </div>
+                                <div class="maze-stat">
+                                    <span class="stat-label">LIVES</span>
+                                    <span class="stat-value lives" id="mazeLives">❤❤❤</span>
+                                </div>
+                                <div class="maze-stat">
+                                    <span class="stat-label">TIME</span>
+                                    <span class="stat-value" id="mazeTimer">0.0s</span>
+                                </div>
+                                <div class="maze-stat">
+                                    <span class="stat-label">BEST LV</span>
+                                    <span class="stat-value best" id="mazeBestLevel">0</span>
+                                </div>
+                                <div class="maze-stat">
+                                    <span class="stat-label">BEST TIME</span>
+                                    <span class="stat-value best" id="mazeBestTime">--</span>
+                                </div>
+                                <div class="maze-stat">
+                                    <span class="stat-label">SCORE</span>
+                                    <span class="stat-value" id="mazeScore">0</span>
+                                </div>
+                                <div class="maze-stat maze-stat-minimap">
+                                    <span class="stat-label">MAP</span>
+                                    <canvas id="mazeMinimap" width="80" height="80"></canvas>
+                                </div>
+                                <div class="maze-status status-go" id="mazeStatus">READY</div>
+                            </div>
+                        </div>
+
+                        <canvas id="mazeCanvas"></canvas>
+                        <div class="maze-danger-overlay" id="mazeDangerOverlay"></div>
+                        <div class="maze-floating-texts" id="mazeFloatingTexts"></div>
+
+                        <p class="maze-instructions">
+                            <strong>操作说明：</strong> WASD 或 方向键 移动 | 空格键 暂停/继续 | R 键 重开本关 | <strong>数字键 1-4 使用道具</strong> | 收集钥匙解锁出口逃生 | <span style="color:#ef4444">被怪物撞到扣 1 生命，3 命用完游戏结束</span> | <span style="color:#a855f7">紫色漩涡是传送门</span>
+                        </p>
+
+                        <div class="maze-item-bar">
+                            <div class="maze-item-slot empty" id="mazeSlot0">
+                                <span class="item-key">1</span>
+                                <span class="item-icon icon-sprint" title="闪现">⚡</span>
+                                <span class="item-name">闪现</span>
+                                <span class="item-count">0</span>
+                            </div>
+                            <div class="maze-item-slot empty" id="mazeSlot1">
+                                <span class="item-key">2</span>
+                                <span class="item-icon icon-vision" title="视野">👁</span>
+                                <span class="item-name">视野</span>
+                                <span class="item-count">0</span>
+                            </div>
+                            <div class="maze-item-slot empty" id="mazeSlot2">
+                                <span class="item-key">3</span>
+                                <span class="item-icon icon-freeze" title="冻结">❄</span>
+                                <span class="item-name">冻结</span>
+                                <span class="item-count">0</span>
+                            </div>
+                            <div class="maze-item-slot empty" id="mazeSlot3">
+                                <span class="item-key">4</span>
+                                <span class="item-icon icon-decoy" title="诱饵">◎</span>
+                                <span class="item-name">诱饵</span>
+                                <span class="item-count">0</span>
+                            </div>
+                        </div>
+
+                        <div class="maze-controls">
+                            <button class="game-btn game-btn-primary" id="mazeStart">开始游戏</button>
+                            <button class="game-btn game-btn-secondary" id="mazePause">暂停</button>
+                            <button class="game-btn game-btn-secondary" id="mazeRestart">重开本关</button>
+                            <label class="maze-path-toggle">
+                                <input type="checkbox" id="mazePathToggle"> 显示 AI 寻路路径
+                            </label>
+                        </div>
+
+                        <div class="game-over-overlay" id="mazeOverlay">
+                            <div class="game-over-title" id="mazeOverlayTitle">Game Over</div>
+                            <div class="game-over-score" id="mazeOverlayMsg">Final Score: 0</div>
+                            <button class="game-btn game-btn-primary" id="mazeOverlayBtn">重新开始</button>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -1274,10 +1103,10 @@
     </div><!-- /panels-wrap -->
 
     <!-- PROJECT MODAL -->
-    <div class="project-card-modal" id="projectModal">
+    <div class="project-card-modal" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="modalProjectTitle" aria-hidden="true">
         <div class="modal-overlay" id="projectOverlay"></div>
         <div class="project-modal-layout">
-            <div class="close-modal-btn" id="projectModalClose"><i class="fas fa-times"></i></div>
+            <div class="close-modal-btn" id="projectModalClose" role="button" tabindex="0" aria-label="关闭项目详情弹窗"><i class="fas fa-times"></i></div>
             <div class="left-card-stack">
                 <div class="proj-card-stack-3d">
                     <div class="stacked-proj-card back-2" id="projBackCard2"></div>
@@ -1313,7 +1142,7 @@
     </div>
 
     <!-- SKILL MODAL -->
-    <div class="skill-card-modal" id="skillModal">
+    <div class="skill-card-modal" id="skillModal" role="dialog" aria-modal="true" aria-labelledby="detailTitle" aria-hidden="true">
         <div class="card-overlay" id="modalOverlay"></div>
         <div class="card-expand-container">
             <div class="card-stack-3d">
@@ -1326,7 +1155,7 @@
                 </div>
             </div>
             <div class="skill-detail-panel" id="skillDetailPanel">
-                <button class="detail-close" id="modalClose"><i class="fas fa-times"></i></button>
+                <button class="detail-close" id="modalClose" aria-label="关闭技能详情弹窗"><i class="fas fa-times"></i></button>
                 <div class="detail-content">
                     <h2 id="detailTitle">Python</h2>
                     <p class="detail-desc" id="detailDesc"></p>
@@ -1352,1136 +1181,13 @@
     <div class="toast" id="toast"></div>
 
     <!-- 每日资讯数据(由 news_server.py 自动生成,无后端运行时也能加载) -->
-    <script src="news/news-data.js"></script>
-
-    <script>
-    // ─── STARS CANVAS ───
-    (function() {
-        const canvas = document.getElementById('starsCanvas');
-        const ctx = canvas.getContext('2d');
-        let stars = [];
-        let meteors = [];
-        let mouse = { x: -9999, y: -9999, active: false };
-        const MOUSE_PULL_R = 200;
-        const STAR_LINK_R = 100;
-        const MOUSE_LINK_R = 150;
-        const MOUSE_LINK_R2 = MOUSE_LINK_R * MOUSE_LINK_R;
-        const STAR_LINK_R2 = STAR_LINK_R * STAR_LINK_R;
-
-        // 主题色:每个 panel 配一套粒子色 + 连线色(色相 240°→60° 走一圈,饱和度 70%)
-        const STAR_COLORS = {
-            home:     [180, 200, 255],
-            news:     [195, 175, 255],
-            about:    [210, 170, 255],
-            skills:   [255, 170, 240],
-            projects: [255, 195, 225],
-            game:     [255, 210, 175],
-            contact:  [210, 255, 175],
-            waypoint: [255, 175, 200]
-        };
-        const LINE_COLORS = {
-            home:     [150, 180, 255],
-            news:     [170, 145, 255],
-            about:    [190, 140, 255],
-            skills:   [255, 140, 220],
-            projects: [255, 165, 200],
-            game:     [255, 175, 130],
-            contact:  [175, 255, 130],
-            waypoint: [255, 140, 170]
-        };
-        // 每个 panel 的代表色相(用于大色差跳变时决定要不要走 waypoint)
-        const PANEL_HUES = {
-            home: 240, news: 255, about: 270, skills: 300, projects: 330,
-            game: 20, contact: 60
-        };
-        let currentStar = [...STAR_COLORS.home];
-        let currentLine = [...LINE_COLORS.home];
-        let targetStar = [...currentStar];
-        let targetLine = [...currentLine];
-        let currentHue = 240; // 跟 home 一致
-        let colorAnim = null;
-
-        function setStarTheme(panel, useWaypoint) {
-            const sc = STAR_COLORS[panel];
-            const lc = LINE_COLORS[panel];
-            if (!sc) return;
-            if (colorAnim) cancelAnimationFrame(colorAnim);
-
-            if (useWaypoint) {
-                // Stage 1: current → waypoint(0° 红)
-                targetStar = [...STAR_COLORS.waypoint];
-                targetLine = [...LINE_COLORS.waypoint];
-                animateColors(() => {
-                    // Stage 2: waypoint → target
-                    targetStar = [...sc];
-                    targetLine = [...lc];
-                    animateColors(() => {
-                        currentHue = PANEL_HUES[panel] || 240;
-                    });
-                });
-            } else {
-                targetStar = [...sc];
-                targetLine = [...lc];
-                animateColors(() => {
-                    currentHue = PANEL_HUES[panel] || 240;
-                });
-            }
-        }
-
-        function animateColors(onComplete) {
-            // 单段动画(被 setStarTheme 调 1-2 次,waypoint 时 2 段串行)
-            function step() {
-                for (let i = 0; i < 3; i++) {
-                    currentStar[i] += (targetStar[i] - currentStar[i]) * 0.15;
-                    currentLine[i] += (targetLine[i] - currentLine[i]) * 0.15;
-                }
-                if (Math.abs(currentStar[0] - targetStar[0]) < 0.5 &&
-                    Math.abs(currentStar[1] - targetStar[1]) < 0.5 &&
-                    Math.abs(currentStar[2] - targetStar[2]) < 0.5) {
-                    currentStar = [...targetStar];
-                    currentLine = [...targetLine];
-                    if (onComplete) onComplete();
-                    return;
-                }
-                colorAnim = requestAnimationFrame(step);
-            }
-            colorAnim = requestAnimationFrame(step);
-        }
-
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-
-        function initStars() {
-            stars = [];
-            for (let i = 0; i < 350; i++) {
-                stars.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    r: Math.random() * 2 + 0.3,
-                    baseAlpha: Math.random() * 0.5 + 0.2,
-                    alphaSpeed: Math.random() * 0.003 + 0.001,
-                    phase: Math.random() * Math.PI * 2,
-                    angle: Math.random() * Math.PI * 2,
-                    speed: Math.random() * 0.2 + 0.1,
-                    angleChangeSpeed: Math.random() * 0.05 + 0.02,
-                    t: Math.random() * 1000,
-                    mouseDist2: Infinity
-                });
-            }
-        }
-
-        function spawnMeteor() {
-            const fromLeft = Math.random() < 0.5;
-            const startX = fromLeft ? -50 : canvas.width + 50;
-            const startY = Math.random() * canvas.height * 0.55;
-            const angle = (fromLeft ? 1 : -1) * (Math.random() * 0.35 + 0.45);
-            const speed = Math.random() * 6 + 14;
-            meteors.push({
-                x: startX, y: startY,
-                vx: Math.cos(angle) * speed * (fromLeft ? 1 : -1),
-                vy: Math.sin(angle) * speed,
-                life: 0,
-                maxLife: 70,
-                trail: []
-            });
-        }
-
-        function drawStars() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 1. 更新粒子位置(布朗运动 + 鼠标引力)
-            const mActive = mouse.active;
-            const mx = mouse.x, my = mouse.y;
-            for (let i = 0; i < stars.length; i++) {
-                const s = stars[i];
-                s.alpha = s.baseAlpha + Math.sin(s.t * s.alphaSpeed + s.phase) * 0.4;
-
-                if (mActive) {
-                    const dx = mx - s.x;
-                    const dy = my - s.y;
-                    const d2 = dx*dx + dy*dy;
-                    s.mouseDist2 = d2;
-                    if (d2 < MOUSE_PULL_R * MOUSE_PULL_R && d2 > 0) {
-                        const d = Math.sqrt(d2);
-                        const f = (1 - d / MOUSE_PULL_R) * 0.012 * 60;
-                        s.x += (dx / d) * f;
-                        s.y += (dy / d) * f;
-                    }
-                } else {
-                    s.mouseDist2 = Infinity;
-                }
-
-                s.angle += (Math.random() - 0.5) * s.angleChangeSpeed;
-                let nx = s.x + Math.cos(s.angle) * s.speed;
-                let ny = s.y + Math.sin(s.angle) * s.speed;
-                if (nx < -10) nx = canvas.width + 10;
-                else if (nx > canvas.width + 10) nx = -10;
-                if (ny < -10) ny = canvas.height + 10;
-                else if (ny > canvas.height + 10) ny = -10;
-                s.x = nx; s.y = ny;
-                s.t++;
-            }
-
-            // 2. 星-星连线(距离平方剪枝)
-            ctx.lineWidth = 0.6;
-            for (let i = 0; i < stars.length; i++) {
-                const a = stars[i];
-                for (let j = i + 1; j < stars.length; j++) {
-                    const b = stars[j];
-                    const dx = a.x - b.x, dy = a.y - b.y;
-                    const d2 = dx*dx + dy*dy;
-                    if (d2 < STAR_LINK_R2) {
-                        const d = Math.sqrt(d2);
-                        const alpha = (1 - d / STAR_LINK_R) * 0.25;
-                        ctx.strokeStyle = `rgba(${currentLine[0]|0}, ${currentLine[1]|0}, ${currentLine[2]|0}, ${alpha})`;
-                        ctx.beginPath();
-                        ctx.moveTo(a.x, a.y);
-                        ctx.lineTo(b.x, b.y);
-                        ctx.stroke();
-                    }
-                }
-            }
-
-            // 3. 鼠标-星连线(更亮更粗)
-            if (mActive) {
-                ctx.lineWidth = 0.8;
-                for (let i = 0; i < stars.length; i++) {
-                    const s = stars[i];
-                    if (s.mouseDist2 < MOUSE_LINK_R2) {
-                        const d = Math.sqrt(s.mouseDist2);
-                        const alpha = (1 - d / MOUSE_LINK_R) * 0.5;
-                        ctx.strokeStyle = `rgba(${currentLine[0]|0}, ${currentLine[1]|0}, ${currentLine[2]|0}, ${alpha})`;
-                        ctx.beginPath();
-                        ctx.moveTo(mx, my);
-                        ctx.lineTo(s.x, s.y);
-                        ctx.stroke();
-                    }
-                }
-            }
-
-            // 4. 画粒子
-            for (let i = 0; i < stars.length; i++) {
-                const s = stars[i];
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${currentStar[0]|0}, ${currentStar[1]|0}, ${currentStar[2]|0}, ${s.alpha})`;
-                ctx.fill();
-            }
-
-            // 5. 画流星 + 拖尾
-            for (let i = 0; i < meteors.length; i++) {
-                const m = meteors[i];
-                m.life++;
-                m.x += m.vx;
-                m.y += m.vy;
-                m.trail.push({ x: m.x, y: m.y });
-                if (m.trail.length > 14) m.trail.shift();
-
-                const lifeRatio = m.life / m.maxLife;
-                const headAlpha = Math.min(1, m.life / 8) * (1 - lifeRatio);
-
-                for (let k = 0; k < m.trail.length - 1; k++) {
-                    const t = m.trail[k];
-                    const next = m.trail[k + 1];
-                    const a = (k / m.trail.length) * 0.55 * headAlpha;
-                    ctx.strokeStyle = `rgba(${currentLine[0]|0}, ${currentLine[1]|0}, ${currentLine[2]|0}, ${a})`;
-                    ctx.lineWidth = 1.4;
-                    ctx.beginPath();
-                    ctx.moveTo(t.x, t.y);
-                    ctx.lineTo(next.x, next.y);
-                    ctx.stroke();
-                }
-                ctx.fillStyle = `rgba(230, 245, 255, ${headAlpha})`;
-                ctx.beginPath();
-                ctx.arc(m.x, m.y, 1.6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            meteors = meteors.filter(m => m.life < m.maxLife);
-
-            requestAnimationFrame(drawStars);
-        }
-
-        resize();
-        initStars();
-        requestAnimationFrame(drawStars);
-        window.addEventListener('resize', () => { resize(); initStars(); });
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
-        });
-        window.addEventListener('mouseleave', () => { mouse.active = false; });
-        document.addEventListener('mouseout', (e) => {
-            if (!e.relatedTarget && !e.toElement) mouse.active = false;
-        });
-
-        function scheduleMeteor() {
-            spawnMeteor();
-            setTimeout(scheduleMeteor, Math.random() * 3000 + 4000);
-        }
-        setTimeout(scheduleMeteor, 2000);
-
-        // 暴露 setStarTheme + PANEL_HUES + currentHue 给 switchPanel
-        window.setStarTheme = setStarTheme;
-        window.PANEL_HUES = PANEL_HUES;
-        window.currentPanelHue = currentHue;
-        window.activeBgPanel = 'home';
-    })();
-
-    // ─── SECTION SWITCHING ───
-    let currentPanel = 'home';
-
-    function switchPanel(target) {
-        if (target === currentPanel) return;
-        const oldPanel = document.getElementById('panel-' + currentPanel);
-        const newPanel = document.getElementById('panel-' + target);
-        if (!newPanel) return;
-
-        // 记录"上一个 active 背景"用(因为 currentPanel 后面会改)
-        const prevBgPanel = window.activeBgPanel || currentPanel;
-
-        oldPanel.classList.add('exit');
-        setTimeout(() => {
-            oldPanel.classList.remove('active', 'exit');
-        }, 300);
-
-        newPanel.classList.add('active');
-        currentPanel = target;
-
-        // Update nav items
-        document.querySelectorAll('.nav-item').forEach(el => {
-            el.classList.toggle('active', el.dataset.target === target);
-        });
-
-        // 切背景主题 + 切粒子色
-        // 大色差跳变(>90°):走 waypoint 中转(0° 红),2 段过渡
-        // 小色差(≤90°):直接交叉淡入
-        const targetHue = (window.PANEL_HUES && window.PANEL_HUES[target]) || 240;
-        let hueDist = Math.abs(targetHue - window.currentPanelHue);
-        if (hueDist > 180) hueDist = 360 - hueDist;
-        const useWaypoint = hueDist > 90;
-
-        const curBgEl = document.querySelector('.theme-' + prevBgPanel);
-        const bgEl = document.querySelector('.theme-' + target);
-        const wpEl = document.querySelector('.theme-waypoint');
-
-        if (useWaypoint) {
-            // Stage 1 (0-400ms):prev 淡出,waypoint 淡入
-            if (curBgEl) curBgEl.classList.remove('active');
-            if (wpEl) wpEl.classList.add('active');
-            // Stage 2 (400ms 起):waypoint 淡出,target 淡入
-            setTimeout(() => {
-                if (wpEl) wpEl.classList.remove('active');
-                if (bgEl) bgEl.classList.add('active');
-                window.activeBgPanel = target;
-            }, 400);
-        } else {
-            if (curBgEl) curBgEl.classList.remove('active');
-            if (bgEl) bgEl.classList.add('active');
-            window.activeBgPanel = target;
-        }
-
-        window.currentPanelHue = targetHue;
-        if (typeof window.setStarTheme === 'function') window.setStarTheme(target, useWaypoint);
-    }
-
-    // Nav item clicks
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', () => switchPanel(item.dataset.target));
-    });
-
-    // CTA / any [data-target] links
-    document.querySelectorAll('[data-target]').forEach(el => {
-        if (el.classList.contains('nav-item')) return;
-        el.addEventListener('click', e => {
-            e.preventDefault();
-            switchPanel(el.dataset.target);
-        });
-    });
-
-    // ─── TOAST ───
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
-    }
-
-    // ─── CONTACT COPY ───
-    document.querySelectorAll('.contact-item').forEach(item => {
-        const txt = item.querySelector('p').textContent;
-        if (txt.includes('+86') || txt === 'tjqflydream') {
-            item.style.cursor = 'pointer';
-            item.addEventListener('click', () => {
-                navigator.clipboard.writeText(txt).catch(() => {
-                    const ta = document.createElement('textarea');
-                    ta.value = txt;
-                    document.body.appendChild(ta);
-                    ta.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(ta);
-                });
-                showToast('已复制到剪贴板');
-            });
-        }
-    });
-
-    // ─── PROJECT DATA ───
-    const projectData = {
-        '智能博弈算法': {
-            icon:'icon-chess',
-            description:'2025 腾讯开悟人工智能全球公开赛（智能体决策算法-中级赛道）参赛项目。我作为星之队（成都师范学院）成员，与队友合作基于 DQN / Target DQN / PPO 修改奖励设计、特征处理和超参数调整，两个月时间训练出强化学习智能体。\n\n初赛（自动寻路+道具收集智能体）：川渝地区二等奖（全国总榜第 4 名）\n复赛（智能体对战）：全国第 9 名\n\n证书编号：202501020009（2025 年 12 月颁发）',
-            progress:95,
-            techStack:'RL,DQN,PPO,PyTorch,竞赛',
-            level:'主秀',
-            tags:['强化学习','DQN','PPO','竞赛获奖'],
-            features:['DQN / Target DQN 算法实现','PPO 算法调参与实验','奖励函数设计 (reward shaping)','特征工程与状态表示','超参数调优','团队协作'],
-            link:'https://github.com/skystar01/my-created',
-            screenshots:['images/award-kaiwu-final-page1.png']
-        },
-        'Flappy Bird AI': {
-            icon:'icon-flappy',
-            description:'从零实现的 Flappy Bird AI 训练与部署项目。算法核心：Dueling DQN（拆分 Value / Advantage 流）+ Prioritized Experience Replay（带 alpha / beta 退火）+ 自定义 Reward Wrapper（过管 +10、死亡 -10、存活 +0.1）。\n\n完整跑通的 pipeline：\n  1) 自定义 Gym 环境\n  2) Dueling DQN 网络（PyTorch）\n  3) Reward Wrapper 与训练循环（含 epsilon 衰减、Huber Loss、Grad Clip、Target Network 同步）\n  4) Checkpoint 保存（best_flappy.pth / final_flappy.pth）\n  5) Flask API 暴露推理接口\n  6) 网站前端 Canvas 直接调用 API\n\n训练好的模型已部署在本站游戏区，按 A 即可召唤 AI 试玩。',
-            progress:90,
-            techStack:'PyTorch,Flask,DQN,RL',
-            level:'主秀',
-            tags:['Dueling DQN','PER','Reward Shaping','端到端','部署'],
-            features:['Dueling DQN 网络结构','Prioritized Experience Replay','自定义 Reward Wrapper','Huber Loss + Gradient Clipping','Target Network 定期同步','Flask API 推理服务','端到端 pipeline'],
-            link:'https://github.com/skystar01/skystar.github.io',
-            screenshots:['🎮','🤖','📊']
-        },
-        '智能问答系统': {
-            icon:'icon-chat',
-            description:'本科毕业设计。基于开源项目 jingyaogong/minimind 实现，从零预训练轻量级中文对话 Transformer 模型。\n\n完整跑通  数据清洗 → tokenizer 配置 → 模型训练 → 推理脚本 → FastAPI 封装 端到端流程。租显卡完成训练，最终模型可进行基础中文多轮对话。\n\n**定位**：重在流程完整，模型效果受限于参数量与训练资源。',
-            progress:75,
-            techStack:'PyTorch,FastAPI,NLP',
-            level:'副秀',
-            tags:['NLP','Transformer','端到端'],
-            features:['参考开源项目 minimind','中文对话数据集处理','轻量级 Transformer 训练','数据处理 pipeline','基础多轮对话生成'],
-            link:'https://github.com/skystar01/my-created',
-            screenshots:['🤖','💬','📚']
-        }
-    };
-
-    // ─── SKILL DATA ───
-    const skillData = {
-        'Python': {
-            icon: 'fab fa-python',
-            description: '主要编程语言,数据处理 / ML 训练 / Flask 推理 / 自动化脚本。',
-            level: '熟练',
-            tags: ['数据处理', 'ML 训练', '后端脚本'],
-            features: ['pandas / numpy 数据处理', 'PyTorch 训练脚本', 'Flask 推理 API', '自动化脚本'],
-            projects: [
-                { name: '开悟 AI 竞赛 RLBrain', desc: 'Dueling DQN 训练 AI 玩游戏', link: '#' },
-                { name: 'Flappy Bird AI', desc: 'DQN 训练 + 浏览器可视化推理', link: '#' },
-                { name: '智能问答系统', desc: '毕设,后端问答服务', link: '#' },
-                { name: '本站', desc: '数据处理 / 自动化脚本', link: '#' }
-            ],
-            exploring: ['异步性能优化', 'asyncio 模式']
-        },
-        'PyTorch': {
-            icon: 'icon-flame',
-            description: 'RL 项目与毕设中使用。熟悉 DQN / Transformer 的训练循环、Reward 设计、Checkpoint 管理。',
-            level: '熟练',
-            tags: ['深度学习', 'RL', '训练流程'],
-            features: ['Dueling DQN 网络实现', '训练循环与 epsilon 衰减', 'Reward Wrapper 设计', 'Checkpoint 保存 / 加载', 'Transformer 预训练脚本'],
-            projects: [
-                { name: '开悟 AI 竞赛 RLBrain', desc: 'Dueling DQN 主训练框架', link: '#' },
-                { name: 'Flappy Bird AI', desc: 'DQN 模型训练 + 推理', link: '#' },
-                { name: '智能问答系统', desc: '毕设,Transformer 微调', link: '#' }
-            ],
-            exploring: ['LoRA 微调', '分布式训练 (DDP)']
-        },
-        '强化学习': {
-            icon: 'icon-rl',
-            description: '我最熟悉的方向。本科开悟竞赛 + Flappy Bird 自学。系统用过 Q-learning / DQN / Target DQN / PPO,核心在奖励函数设计、环境数据处理、特征工程。',
-            level: '熟练',
-            tags: ['DQN', 'PPO', '奖励设计', '调参'],
-            features: ['DQN / Target DQN 算法实现', 'PPO 调参与实验', '奖励函数设计与 shaping', '环境返回数据处理', '特征维度工程', '超参数调优'],
-            projects: [
-                { name: '开悟 AI 竞赛 RLBrain', desc: 'Dueling DQN,川渝地区二等奖 / 全国第 9', link: '#' },
-                { name: 'Flappy Bird AI', desc: 'DQN 训练 + 浏览器可视化推理', link: '#' }
-            ],
-            exploring: ['SAC 算法', '多智能体强化学习']
-        },
-        'JavaScript': {
-            icon: 'fab fa-js-square',
-            description: '智能问答毕设 + 本站(粒子系统 / 弹窗 / 搜索 / 主题切换)主要使用。',
-            level: '熟练',
-            tags: ['前端', 'Canvas', 'ES6+'],
-            features: ['DOM 操作', 'Canvas 动画与游戏', 'ES6+ 语法', '异步编程 (Promise / async)'],
-            projects: [
-                { name: '本站', desc: '粒子系统 / 弹窗 / 搜索 / 主题切换 / Canvas 游戏', link: '#' },
-                { name: '智能问答系统', desc: '毕设,前端交互', link: '#' }
-            ],
-            exploring: ['TypeScript']
-        },
-        'HTML5': {
-            icon: 'fab fa-html5',
-            description: '语义化结构,智能问答毕设 + 本站使用。',
-            level: '熟练',
-            tags: ['语义化', 'Canvas', '表单'],
-            features: ['语义化标签', 'Canvas 绘图', '音视频嵌入', '表单与文件上传'],
-            projects: [
-                { name: '本站', desc: '多 panel 单页布局', link: '#' },
-                { name: '智能问答系统', desc: '毕设前端结构', link: '#' }
-            ],
-            exploring: ['无障碍 (a11y)', '语义化最佳实践']
-        },
-        'CSS3': {
-            icon: 'fab fa-css3-alt',
-            description: '本站大量使用(玻璃拟态 / 渐变 / 动画 / 响应式)。',
-            level: '熟练',
-            tags: ['动画', '响应式', 'Glassmorphism'],
-            features: ['动画与过渡 (transition / animation)', 'Grid / Flexbox 布局', '响应式适配', '毛玻璃 / 渐变效果'],
-            projects: [
-                { name: '本站', desc: '深空主题 / 卡片 / 弹窗 / 粒子 / 7 panel 主题色', link: '#' },
-                { name: '智能问答系统', desc: '毕设样式', link: '#' }
-            ],
-            exploring: ['高级动效', 'CSS Houdini']
-        },
-        'Linux / 命令行': {
-            icon: 'fas fa-terminal',
-            description: '训练环境与本地开发的日常工具。简单命令还记得,复杂的靠搜。',
-            level: '了解',
-            tags: ['训练环境', '开发工具'],
-            features: ['SSH 远程连接', 'WSL 本地开发', '环境与依赖配置', '日志与进程排查'],
-            projects: [
-                { name: '训练环境', desc: 'WSL / 远程服务器日常', link: '#' }
-            ],
-            exploring: ['tmux 进阶', 'shell 脚本']
-        },
-        'Git': {
-            icon: 'fab fa-git-alt',
-            description: '日常版本控制,初始化仓库 + 提交过代码 + 简单的分支合并。',
-            level: '熟练',
-            tags: ['版本控制', 'GitHub'],
-            features: ['仓库初始化', 'commit 规范', '分支与合并', '基本冲突解决'],
-            projects: [
-                { name: '全部项目', desc: '开悟 / Flappy / 智能问答 / 本站', link: '#' }
-            ],
-            exploring: ['rebase 工作流', 'PR 规范']
-        },
-        'SQL': {
-            icon: 'fas fa-database',
-            description: 'MySQL,智能问答毕设用来存用户表 / 问答记录。',
-            level: '了解',
-            tags: ['MySQL', '查询'],
-            features: ['基础 CRUD', '多表 JOIN 查询', '索引基础', '数据建模入门'],
-            projects: [
-                { name: '智能问答系统', desc: '毕设,用户表 / 问答记录表', link: '#' }
-            ],
-            exploring: ['索引优化', '复杂查询性能']
-        },
-        'React': {
-            icon: 'fab fa-react',
-            description: '目前工作中接触使用。基础组件 + Hooks。体验过 React 生态(组件化 / 虚拟 DOM / 状态管理),比原生 HTML 复杂但性能更好。',
-            level: '了解',
-            tags: ['组件', 'Hooks', '工作接触'],
-            features: ['基础组件编写', 'useState / useEffect', 'JSX 语法', 'Props 与组件组合'],
-            projects: [
-                { name: '工作中使用', desc: '业务组件开发', link: '#' }
-            ],
-            exploring: ['Hooks 进阶', '状态管理 (Redux / Zustand)']
-        }
-    };
-
-    // ─── SKILL MODAL ───
-    let _modalBusy = false;
-
-    document.querySelectorAll('.skill-item').forEach(item => {
-        item.addEventListener('click', () => {
-            if (_modalBusy) return;
-            const nameEl = item.querySelector('span:not([class])');
-            if (nameEl) openSkillModal(nameEl.textContent);
-        });
-    });
-
-    document.getElementById('modalClose').addEventListener('click', closeSkillModal);
-    document.getElementById('modalOverlay').addEventListener('click', closeSkillModal);
-
-    function openSkillModal(skillName) {
-        const skill = skillData[skillName];
-        if (!skill) return;
-        const modal = document.getElementById('skillModal');
-        const skillKey = skill.icon.replace(/^icon-/, '');
-        const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        const escAttr = s => escHtml(s);
-        document.getElementById('cardIcon').innerHTML = `<span class="${skill.icon}" aria-label="${skillName}"><svg viewBox="0 0 24 24"><use href="#i-${skillKey}"/></svg></span>`;
-        document.getElementById('cardTitle').textContent = skillName;
-        document.getElementById('cardLevel').textContent = skill.level;
-        document.getElementById('detailTitle').textContent = skillName;
-        document.getElementById('detailDesc').textContent = skill.description;
-        document.getElementById('tag1').textContent = skill.tags[0];
-        document.getElementById('tag2').textContent = skill.tags[1];
-        const t3 = document.getElementById('tag3');
-        t3.textContent = skill.tags[2] || '';
-        t3.style.display = skill.tags[2] ? '' : 'none';
-        // 渲染"我用这个做过"项目列表
-        const projectsEl = document.getElementById('detailProjects');
-        if (skill.projects && skill.projects.length) {
-            projectsEl.innerHTML = skill.projects.map(p => `
-                <a class="detail-project" href="${escAttr(p.link || '#')}" ${p.link && p.link !== '#' ? 'target="_blank" rel="noopener"' : ''}>
-                    <div class="detail-project-name">${escHtml(p.name)}</div>
-                    <div class="detail-project-desc">${escHtml(p.desc)}</div>
-                </a>
-            `).join('');
-            projectsEl.style.display = '';
-        } else {
-            projectsEl.style.display = 'none';
-        }
-        document.getElementById('detailFeatures').innerHTML = skill.features.map(f =>
-            `<li><span class="feat-icon"><i class="fas fa-check"></i></span> ${escHtml(f)}</li>`).join('');
-        // 渲染"正在学"
-        const exploringWrap = document.getElementById('detailExploring');
-        if (skill.exploring && skill.exploring.length) {
-            document.getElementById('exploringTags').innerHTML = skill.exploring
-                .map(t => `<span class="exploring-tag">${escHtml(t)}</span>`).join('');
-            exploringWrap.hidden = false;
-        } else {
-            exploringWrap.hidden = true;
-        }
-        modal.classList.remove('active','closing');
-        void modal.offsetWidth;
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        _modalBusy = true;
-        setTimeout(() => { _modalBusy = false; }, 800);
-    }
-
-    function closeSkillModal() {
-        const modal = document.getElementById('skillModal');
-        if (!modal.classList.contains('active') || modal.classList.contains('closing')) return;
-        _modalBusy = true;
-        modal.classList.add('closing');
-        setTimeout(() => {
-            modal.classList.remove('active','closing');
-            document.body.style.overflow = '';
-            _modalBusy = false;
-        }, 520);
-    }
-
-    // ─── PROJECT MODAL ───
-    let currentCarouselIndex = 0;
-    let currentProjectScreenshots = [];
-
-    function renderCarousel(screenshots) {
-        const slides = document.getElementById('carouselSlides');
-        const dots = document.getElementById('carouselDots');
-        slides.innerHTML = ''; dots.innerHTML = '';
-        if (!screenshots || !screenshots.length) screenshots = ['🌟','🚀','💡'];
-        currentProjectScreenshots = screenshots;
-        screenshots.forEach((item, i) => {
-            const div = document.createElement('div');
-            div.className = 'carousel-slide';
-            if (typeof item === 'string' && (item.startsWith('http') || item.includes('.png') || item.includes('.jpg'))) {
-                const img = document.createElement('img'); img.src = item; div.appendChild(img);
-            } else {
-                div.innerHTML = `<i class="fas fa-image" style="font-size:2.5rem"></i><span style="margin-left:8px">${item}</span>`;
-            }
-            slides.appendChild(div);
-            const dot = document.createElement('div');
-            dot.className = 'dot' + (i === 0 ? ' active' : '');
-            dot.addEventListener('click', () => goToSlide(i));
-            dots.appendChild(dot);
-        });
-        goToSlide(0);
-    }
-    function goToSlide(i) {
-        if (!currentProjectScreenshots.length) return;
-        i = Math.max(0, Math.min(i, currentProjectScreenshots.length - 1));
-        currentCarouselIndex = i;
-        document.getElementById('carouselSlides').style.transform = `translateX(-${i * 100}%)`;
-        document.querySelectorAll('#carouselDots .dot').forEach((d, j) => d.classList.toggle('active', j === i));
-    }
-
-    document.querySelectorAll('.project-card').forEach(card => {
-        card.addEventListener('click', () => openProjectModal(card.querySelector('h3').textContent));
-    });
-    document.querySelectorAll('.project-link').forEach(link => {
-        link.addEventListener('click', e => e.stopPropagation());
-    });
-    document.getElementById('projectModalClose').addEventListener('click', closeProjectModal);
-    document.getElementById('projectOverlay').addEventListener('click', closeProjectModal);
-    document.getElementById('carouselPrev').addEventListener('click', () => goToSlide(currentCarouselIndex - 1));
-    document.getElementById('carouselNext').addEventListener('click', () => goToSlide(currentCarouselIndex + 1));
-
-    function openProjectModal(projectName) {
-        const project = projectData[projectName];
-        if (!project) return;
-        const modal = document.getElementById('projectModal');
-        const projKey = project.icon.replace(/^icon-/, '');
-        document.getElementById('projCardIcon').innerHTML = `<span class="${project.icon}" aria-label="${projectName}"><svg viewBox="0 0 24 24"><use href="#i-${projKey}"/></svg></span>`;
-        document.getElementById('projMainCardName').textContent = projectName;
-        document.getElementById('projCardBadge').textContent = project.level || '高级';
-        document.getElementById('modalProjectTitle').textContent = projectName;
-        document.getElementById('modalProjectDesc').textContent = project.description;
-        document.getElementById('modalProgressValue').textContent = project.progress + '%';
-        const pf = document.getElementById('modalProgressFill');
-        pf.style.transition = 'none'; pf.style.width = '0%';
-        const tc = document.getElementById('modalTechTags'); tc.innerHTML = '';
-        const techs = project.techStack ? project.techStack.split(',').map(t => t.trim()) : (project.tags || ['创新']);
-        techs.forEach(t => { const b = document.createElement('span'); b.className = 'tech-badge'; b.textContent = t; tc.appendChild(b); });
-        renderCarousel(project.screenshots || ['✨','⚙️','📊']);
-        modal.classList.remove('active','closing');
-        void modal.offsetWidth;
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        setTimeout(() => { pf.style.transition = ''; pf.style.width = project.progress + '%'; }, 900);
-    }
-
-    function closeProjectModal() {
-        const modal = document.getElementById('projectModal');
-        if (!modal.classList.contains('active') || modal.classList.contains('closing')) return;
-        modal.classList.add('closing');
-        setTimeout(() => {
-            modal.classList.remove('active','closing');
-            document.body.style.overflow = '';
-            const pf = document.getElementById('modalProgressFill');
-            if (pf) { pf.style.transition = 'none'; pf.style.width = '0%'; }
-        }, 480);
-    }
-
-    // Escape key closes modals
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            if (document.getElementById('skillModal').classList.contains('active')) closeSkillModal();
-            if (document.getElementById('projectModal').classList.contains('active')) closeProjectModal();
-        }
-    });
-
-    console.log('🌟 Sky Star Portfolio loaded!');
-    
-    // ─── GAME TAB CAROUSEL (无限轮播图式: 自动复制多组 + 中间组归位) ───
-    const tabsSidebar = document.querySelector('.tabs-sidebar');
-    const tabsTrack   = document.querySelector('.tabs-track');
-    const realTabs    = tabsTrack ? Array.from(tabsTrack.querySelectorAll('.game-tab')) : [];
-    const N           = realTabs.length;
-    const GAMES       = realTabs.map(t => t.dataset.game);
-    const gameTabFor  = (game) => realTabs.find(t => t.dataset.game === game);
-
-    let allTrackTabs  = realTabs.slice();
-    let trackOffset   = 0;
-    let targetOffset  = 0;
-    let targetIndex   = 0;
-    let sideGroupCount = 2;
-    let middleGroupIndex = 2;
-    let totalGroupCount = 5;
-
-    function resetTabVisual(tab) {
-        tab.classList.remove('active', 'is-center');
-        tab.style.removeProperty('--v');
-        tab.style.removeProperty('--s');
-    }
-
-    function makeClone(realTab) {
-        const btn = realTab.cloneNode(true);
-        resetTabVisual(btn);
-        btn.dataset.clone = 'true';
-        btn.dataset.game = realTab.dataset.game;
-        return btn;
-    }
-
-    function getTrackGap() {
-        if (!tabsTrack) return 0;
-        const style = getComputedStyle(tabsTrack);
-        return parseFloat(style.rowGap || style.gap) || 0;
-    }
-
-    function estimateCycleHeight() {
-        if (!realTabs.length) return 0;
-        const itemH = realTabs[0].offsetHeight || 50;
-        return N * (itemH + getTrackGap());
-    }
-
-    function middleStartIndex() {
-        return middleGroupIndex * N;
-    }
-
-    function positiveMod(num, mod) {
-        return ((num % mod) + mod) % mod;
-    }
-
-    function buildInfiniteTrack() {
-        if (!tabsTrack || !realTabs.length) return;
-
-        const cycleH = estimateCycleHeight();
-        sideGroupCount = cycleH > 0 ? Math.max(2, Math.ceil(tabsSidebar.clientHeight / cycleH) + 1) : 2;
-        middleGroupIndex = sideGroupCount;
-        totalGroupCount = sideGroupCount * 2 + 1;
-
-        tabsTrack.textContent = '';
-        for (let group = 0; group < totalGroupCount; group++) {
-            realTabs.forEach(tab => {
-                const node = group === middleGroupIndex ? tab : makeClone(tab);
-                resetTabVisual(node);
-                if (group === middleGroupIndex) node.removeAttribute('data-clone');
-                tabsTrack.appendChild(node);
-            });
-        }
-
-        allTrackTabs = Array.from(tabsTrack.querySelectorAll('.game-tab'));
-        targetIndex = middleStartIndex();
-    }
-
-    // 计算容器内除目标元素外，其他非绝对定位子元素占用的总高度
-    function calcOtherHeight(container, exclude) {
-        let h = 0;
-        Array.from(container.children).forEach(el => {
-            if (!el || el === exclude) return;
-            const style = getComputedStyle(el);
-            if (style.display === 'none') return;
-            if (style.position === 'absolute' || style.position === 'fixed') return;
-            h += el.offsetHeight;
-            h += (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0);
-        });
-        return h;
-    }
-
-    // 通用 canvas 适配：在可用空间内按原始宽高比缩放，不超过原始尺寸
-    function fitCanvasToContainer(canvas, container, opts) {
-        opts = opts || {};
-        const cs = getComputedStyle(container);
-        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-        const cw = container.clientWidth - padX;
-        const ch = container.clientHeight - padY;
-        const otherH = calcOtherHeight(container, canvas);
-        const availH = ch - otherH;
-        if (cw <= 0 || availH <= 0) return;
-
-        const aspect = canvas.width / canvas.height;
-        let w = cw;
-        let h = w / aspect;
-        if (h > availH) { h = availH; w = h * aspect; }
-
-        // 不放大超过原始尺寸，避免模糊
-        if (w > canvas.width) { w = canvas.width; h = w / aspect; }
-        if (h > canvas.height) { h = canvas.height; w = h * aspect; }
-
-        // 可选最大宽度限制
-        if (opts.maxWidth && w > opts.maxWidth) { w = opts.maxWidth; h = w / aspect; }
-
-        canvas.style.width = Math.floor(w) + 'px';
-        canvas.style.height = Math.floor(h) + 'px';
-    }
-
-    function fit2048(container) {
-        const grid = container.querySelector('.game2048-grid-container');
-        if (!grid) return;
-        const cs = getComputedStyle(container);
-        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-        const cw = container.clientWidth - padX;
-        const ch = container.clientHeight - padY;
-        const otherH = calcOtherHeight(container, grid);
-        const size = Math.max(240, Math.min(cw, ch - otherH, 540));
-        grid.style.maxWidth = size + 'px';
-        // 同步调整数字大小，避免格子大了数字太小
-        const cells = grid.querySelectorAll('.cell-2048');
-        const fontRem = Math.max(0.9, Math.min(1.8, size / 300));
-        cells.forEach(cell => { cell.style.fontSize = fontRem + 'rem'; });
-    }
-
-    function fitTicTacToe(container) {
-        const board = container.querySelector('.tic-tac-toe-board');
-        if (!board) return;
-        const cs = getComputedStyle(container);
-        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-        const cw = container.clientWidth - padX;
-        const ch = container.clientHeight - padY;
-        const otherH = calcOtherHeight(container, board);
-        const size = Math.max(240, Math.min(cw, ch - otherH, 540));
-        board.style.maxWidth = size + 'px';
-        // 同步调整棋子大小
-        const cells = board.querySelectorAll('.tic-tac-toe-cell');
-        const fontRem = Math.max(1.4, Math.min(2.8, size / 200));
-        cells.forEach(cell => { cell.style.fontSize = fontRem + 'rem'; });
-    }
-
-    function fitTetris(container) {
-        const canvas = document.getElementById('tetrisCanvas');
-        if (!canvas) return;
-        const cs = getComputedStyle(container);
-        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-        const cw = container.clientWidth - padX;
-        const ch = container.clientHeight - padY;
-        // 横向布局，主 canvas 高度尽量撑满，宽度不超过容器的 48%
-        const availH = ch - 20;
-        const aspect = canvas.width / canvas.height;
-        let h = availH;
-        let w = h * aspect;
-        const maxW = cw * 0.48;
-        if (w > maxW) { w = maxW; h = w / aspect; }
-        // 限制最大放大倍数
-        const maxScale = 2.2;
-        if (h > canvas.height * maxScale) { h = canvas.height * maxScale; w = h * aspect; }
-        canvas.style.width = Math.floor(w) + 'px';
-        canvas.style.height = Math.floor(h) + 'px';
-
-        // 让两侧卡片面板与画布同高，并允许内容超出时滚动
-        const sidePanel = container.querySelector('.tetris-side-panel');
-        const infoPanel = container.querySelector('.tetris-info-panel');
-        const panelH = Math.floor(h) + 'px';
-        if (sidePanel) { sidePanel.style.height = panelH; sidePanel.style.overflowY = 'auto'; }
-        if (infoPanel) { infoPanel.style.height = panelH; infoPanel.style.overflowY = 'auto'; }
-    }
-
-    function fitPlane(container) {
-        const canvas = document.getElementById('planeCanvas');
-        if (!canvas) return;
-        const cs = getComputedStyle(container);
-        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
-        const cw = container.clientWidth - padX;
-        const ch = container.clientHeight - padY;
-        const hud = container.querySelector('.plane-hud');
-        const hudH = hud ? hud.offsetHeight + (parseFloat(getComputedStyle(hud).marginTop) || 0) + (parseFloat(getComputedStyle(hud).marginBottom) || 0) : 0;
-        const availH = ch - hudH;
-        if (cw <= 0 || availH <= 0) return;
-
-        const aspect = canvas.width / canvas.height;
-        let w = Math.min(cw, 1000);
-        let h = w / aspect;
-        if (h > availH) { h = availH; w = h * aspect; }
-        if (w > canvas.width) { w = canvas.width; h = w / aspect; }
-
-        canvas.style.width = Math.floor(w) + 'px';
-        canvas.style.height = Math.floor(h) + 'px';
-    }
-
-    // 按游戏类型分别适配固定容器
-    function fitGame(gameName, container) {
-        if (!container) return;
-        requestAnimationFrame(() => {
-            switch (gameName) {
-                case 'snake':
-                    if (window.snakeGame && window.snakeGame.fitSnake) window.snakeGame.fitSnake();
-                    break;
-                case '2048':
-                    fit2048(container);
-                    break;
-                case 'tetris':
-                    fitTetris(container);
-                    break;
-                case 'tic-tac-toe':
-                    fitTicTacToe(container);
-                    break;
-                case 'gomoku':
-                    if (window.fitGomoku) window.fitGomoku(container);
-                    break;
-                case 'memory':
-                    if (window.fitMemory) window.fitMemory(container);
-                    break;
-                case 'plane':
-                    fitPlane(container);
-                    break;
-                case 'flappy':
-                default: {
-                    const canvas = container.querySelector('canvas');
-                    if (canvas) fitCanvasToContainer(canvas, container);
-                    break;
-                }
-            }
-        });
-    }
-
-    // 切换 active (active 只落在中间真实 tab 上；副本只负责视觉和点击)
-    function setActiveByGame(gameName, opts) {
-        const force = opts && opts.force;
-        let changed = force;
-        realTabs.forEach(t => {
-            const want = t.dataset.game === gameName;
-            const has  = t.classList.contains('active');
-            if (want && !has) { t.classList.add('active'); changed = true; }
-            else if (!want && has) { t.classList.remove('active'); changed = true; }
-        });
-        if (!changed) return;
-
-        document.querySelectorAll('.game-container').forEach(gc => gc.classList.remove('active'));
-        const targetGc = document.querySelector(`.game-container.game-${gameName}`);
-        if (targetGc) {
-            targetGc.classList.add('active');
-            fitGame(gameName, targetGc);
-        }
-        if (gameName === 'plane' && window.startPlaneGame) window.startPlaneGame();
-    }
-
-    function switchTo(gameName) {
-        setActiveByGame(gameName);
-    }
-
-    function getOffsetForIndex(index) {
-        const tab = allTrackTabs[index];
-        if (!tab || !tabsSidebar) return targetOffset;
-        const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
-        return tabsSidebar.clientHeight / 2 - tabCenterY;
-    }
-
-    function setTargetIndex(index) {
-        if (!allTrackTabs.length) return;
-        targetIndex = Math.max(0, Math.min(index, allTrackTabs.length - 1));
-        targetOffset = getOffsetForIndex(targetIndex);
-    }
-
-    function jumpToEquivalentIndex(newIndex) {
-        if (!allTrackTabs[targetIndex] || !allTrackTabs[newIndex]) return;
-        const oldOffset = getOffsetForIndex(targetIndex);
-        const newOffset = getOffsetForIndex(newIndex);
-        const delta = newOffset - oldOffset;
-        targetIndex = newIndex;
-        targetOffset = newOffset;
-        trackOffset += delta;
-        applyTransform();
-    }
-
-    // 到副本区后，瞬间归位到中间组的同名 tab；内容一样，所以视觉上无感
-    function normalizeTargetToMiddle() {
-        if (!N) return false;
-        const middleStart = middleStartIndex();
-        const middleEnd = middleStart + N;
-        if (targetIndex >= middleStart && targetIndex < middleEnd) return false;
-
-        const normalizedIndex = middleStart + positiveMod(targetIndex, N);
-        jumpToEquivalentIndex(normalizedIndex);
-        return true;
-    }
-
-    function moveBy(step) {
-        if (!N || !allTrackTabs.length || step === 0) return;
-
-        const safeMin = N;
-        const safeMax = (totalGroupCount - 1) * N - 1;
-        if (targetIndex + step < safeMin || targetIndex + step > safeMax) {
-            normalizeTargetToMiddle();
-        }
-
-        setTargetIndex(targetIndex + step);
-    }
-
-    // 检测 viewport 中心最近的 tab → 加 .is-center 高亮 + 切游戏 + 物理距离 fade
-    function detectCenterTab() {
-        if (!tabsSidebar.clientHeight) return;
-        const viewportCenterY = -trackOffset + tabsSidebar.clientHeight / 2;
-        const maxDist = tabsSidebar.clientHeight / 2;
-        let bestIdx = -1, minDist = Infinity;
-
-        allTrackTabs.forEach((tab, i) => {
-            const tabCenterY = tab.offsetTop + tab.offsetHeight / 2;
-            const d = Math.abs(tabCenterY - viewportCenterY);
-            const t = Math.min(d / maxDist, 1);
-            tab.style.setProperty('--v', (1 - t * 0.55).toFixed(3));
-            tab.style.setProperty('--s', (1 - t * 0.08).toFixed(3));
-            if (d < minDist) { minDist = d; bestIdx = i; }
-        });
-
-        if (bestIdx < 0) return;
-        const best = allTrackTabs[bestIdx];
-        allTrackTabs.forEach(t => t.classList.remove('is-center'));
-        best.classList.add('is-center');
-        best.style.setProperty('--v', '1');
-        best.style.setProperty('--s', '1');
-
-        const activeRealTab = gameTabFor(best.dataset.game);
-        if (!activeRealTab || !activeRealTab.classList.contains('active')) {
-            switchTo(best.dataset.game);
-        }
-    }
-
-    function applyTransform() {
-        if (tabsTrack) tabsTrack.style.transform = `translateY(${trackOffset}px)`;
-    }
-
-    // rAF loop: 平滑追赶目标；停稳在副本区时归位到中间组
-    function rafLoop() {
-        if (!realTabs.length) return;
-        const diff = targetOffset - trackOffset;
-        if (Math.abs(diff) > 0.1) {
-            trackOffset += diff * 0.28;
-            applyTransform();
-            detectCenterTab();
-        } else {
-            if (trackOffset !== targetOffset) {
-                trackOffset = targetOffset;
-                applyTransform();
-            }
-            if (normalizeTargetToMiddle()) detectCenterTab();
-        }
-        requestAnimationFrame(rafLoop);
-    }
-
-    if (tabsSidebar && tabsTrack && realTabs.length) {
-        tabsSidebar.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            if (e.deltaY > 0)      moveBy(1);
-            else if (e.deltaY < 0) moveBy(-1);
-        }, { passive: false });
-
-        let touchStartY = 0;
-        tabsSidebar.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-        tabsSidebar.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-        }, { passive: false });
-        tabsSidebar.addEventListener('touchend', (e) => {
-            const endY = e.changedTouches[0].clientY;
-            const dy = endY - touchStartY;
-            if (Math.abs(dy) < 28) return;
-            moveBy(dy < 0 ? 1 : -1);
-        }, { passive: true });
-
-        // 委托 click: 点到哪一个可见 tab，就平滑滚到哪一个；副本同样有效
-        tabsTrack.addEventListener('click', (e) => {
-            const btn = e.target.closest('.game-tab');
-            if (!btn) return;
-            e.preventDefault();
-
-            const clickedIndex = allTrackTabs.indexOf(btn);
-            switchTo(btn.dataset.game);
-            if (clickedIndex >= 0) {
-                setTargetIndex(clickedIndex);
-            } else {
-                const gameIndex = GAMES.indexOf(btn.dataset.game);
-                if (gameIndex >= 0) setTargetIndex(middleStartIndex() + gameIndex);
-            }
-        });
-
-        requestAnimationFrame(() => {
-            buildInfiniteTrack();
-            const initialGame = GAMES[0];
-            setTargetIndex(middleStartIndex());
-            trackOffset = targetOffset;
-            applyTransform();
-            setActiveByGame(initialGame, { force: true });
-            detectCenterTab();
-            requestAnimationFrame(rafLoop);
-        });
-    }
-
-
-    // 窗口大小变化时，重新适配当前激活的游戏
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            const activeTab = document.querySelector('.game-tab.active');
-            const activeContainer = document.querySelector('.game-container.active');
-            if (activeTab && activeContainer) {
-                fitGame(activeTab.dataset.game, activeContainer);
-            }
-        }, 120);
-    });
-
-    // game container 默认激活第一个 tab 对应游戏
-    const defaultGame = GAMES[0] || 'snake';
-    const defaultContainer = document.querySelector(`.game-container.game-${defaultGame}`);
-    if (defaultContainer && !defaultContainer.classList.contains('active')) {
-        defaultContainer.classList.add('active');
-    }
-    </script>
+    <script src="news/news-data.js" defer></script>
+
+    <!-- 星空粒子背景(全屏 canvas) -->
+    <script src="scripts/stars-bg.js" defer></script>
+    <script src="scripts/ui.js" defer></script>
+    <script src="scripts/game-shell.js" defer></script>
+    <script src="scripts/storage.js" defer></script>
     
     
     
@@ -2489,356 +1195,17 @@
     
     
     <!-- 每日资讯模块 -->
-    <script>
-    (function() {
-        const STORAGE_KEY = 'skystar_news_data';
-        const BACKEND_URL = 'http://localhost:8000';
-
-        const refreshBtn = document.getElementById('news-refresh-btn');
-        const updatedAtEl = document.getElementById('news-updated-at');
-        const loadingEl = document.getElementById('news-loading');
-        const loadingText = document.getElementById('news-loading-text');
-        const emptyEl = document.getElementById('news-empty');
-        const errorEl = document.getElementById('news-error');
-        const errorText = document.getElementById('news-error-text');
-        const contentEl = document.getElementById('news-content');
-        const listEl = document.getElementById('news-list');
-        const footEl = document.getElementById('news-foot');
-        const filterBtns = document.querySelectorAll('#news-filters .news-filter');
-
-        let currentData = null;
-        let currentFilter = 'all';
-        let currentKeyword = '';
-
-        function showState(state) {
-            loadingEl.classList.add('hidden');
-            emptyEl.classList.add('hidden');
-            errorEl.classList.add('hidden');
-            contentEl.classList.add('hidden');
-            if (state === 'loading') loadingEl.classList.remove('hidden');
-            else if (state === 'empty') emptyEl.classList.remove('hidden');
-            else if (state === 'error') errorEl.classList.remove('hidden');
-            else if (state === 'content') contentEl.classList.remove('hidden');
-        }
-
-        function escapeHtml(s) {
-            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            }[c]));
-        }
-
-        function categoryColor(cat) {
-            return {
-                'AI 论文': '#7c6ef5',
-                '开源动态': '#4ecdc4',
-                '中文 AI': '#ff6b9d',
-                '业界新闻': '#ffa94d'
-            }[cat] || '#94a3b8';
-        }
-
-        // 标准化分类字符串:去空格、全/半角统一、小写,用于宽松匹配
-        function normalizeCategory(cat) {
-            if (!cat) return '';
-            return String(cat)
-                .replace(/[\s\u3000]+/g, '')  // 去所有空白(含全角空格)
-                .replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))  // 全角→半角
-                .toLowerCase();
-        }
-
-        // 把 LLM 输出的不规范 category 映射到标准 4 分类
-        const CATEGORY_ALIASES = {
-            'ai论文': 'AI 论文',
-            'ai 论文': 'AI 论文',
-            'ai论': 'AI 论文',
-            '论文': 'AI 论文',
-            'paper': 'AI 论文',
-            '开源动态': '开源动态',
-            '开源': '开源动态',
-            'github': '开源动态',
-            'open source': '开源动态',
-            '中文ai': '中文 AI',
-            '中文 ai': '中文 AI',
-            'chinese ai': '中文 AI',
-            '中文': '中文 AI',
-            '业界新闻': '业界新闻',
-            '业界': '业界新闻',
-            '行业': '业界新闻',
-            'news': '业界新闻'
-        };
-
-        function resolveCategory(rawCat) {
-            const norm = normalizeCategory(rawCat);
-            if (CATEGORY_ALIASES[norm]) return CATEGORY_ALIASES[norm];
-            return rawCat;  // 未知分类原样返回
-        }
-
-        function renderNews(data) {
-            currentData = data;
-            const items = (data && data.items) || [];
-
-            if (data && data.generated_at) {
-                try {
-                    const d = new Date(data.generated_at);
-                    updatedAtEl.textContent = '最后更新:' + d.toLocaleString('zh-CN', { hour12: false });
-                } catch (e) {
-                    updatedAtEl.textContent = '最后更新:' + (data.date || '');
-                }
-            } else {
-                updatedAtEl.textContent = '尚未更新';
-            }
-
-            if (items.length === 0) {
-                listEl.innerHTML = '<p class="news-no-items">今日无资讯</p>';
-                footEl.textContent = '';
-                showState('content');
-                return;
-            }
-
-            const filtered = items.filter(it => {
-                const catOk = currentFilter === 'all' || resolveCategory(it.category) === currentFilter;
-                if (!catOk) return false;
-                if (!currentKeyword) return true;
-                const t = (it.title || '').toLowerCase();
-                const s = (it.summary || '').toLowerCase();
-                return t.includes(currentKeyword) || s.includes(currentKeyword);
-            });
-
-            if (filtered.length === 0) {
-                let msg = '暂无资讯';
-                if (currentKeyword && currentFilter !== 'all') {
-                    msg = `分类「${currentFilter}」下没匹配「${currentKeyword}」的资讯`;
-                } else if (currentKeyword) {
-                    msg = `没匹配「${currentKeyword}」的资讯`;
-                } else if (currentFilter !== 'all') {
-                    msg = '该分类下暂无资讯';
-                }
-                listEl.innerHTML = `<p class="news-no-items">${escapeHtml(msg)}</p>`;
-            } else {
-                listEl.innerHTML = filtered.map((it, idx) => {
-                    const resolved = resolveCategory(it.category);
-                    const color = categoryColor(resolved);
-                    const preview = (it.summary || '').slice(0, 80).replace(/\s+\S*$/, '') + ((it.summary || '').length > 80 ? '…' : '');
-                    return `
-                    <div class="news-item" data-idx="${idx}" tabindex="0" role="button" aria-label="查看完整内容">
-                        <div class="news-item-meta">
-                            <span class="news-cat-tag" style="background:${color}22;color:${color};border-color:${color}55">${escapeHtml(resolved || '其他')}</span>
-                            <span class="news-source"><i class="fas fa-circle-dot"></i> ${escapeHtml(it.source || '')}</span>
-                            <span class="news-time">${escapeHtml(it.published_at || '')}</span>
-                        </div>
-                        <h3 class="news-item-title">${escapeHtml(it.title)}</h3>
-                        <p class="news-item-summary">${escapeHtml(preview)}</p>
-                        <span class="news-item-more">点击查看完整内容 <i class="fas fa-arrow-right"></i></span>
-                    </div>`;
-                }).join('');
-            }
-
-            const srcs = (data.sources || []).join(' · ');
-            let foot = `共 ${items.length} 条 · 来源:${srcs || '—'}`;
-            if (filtered.length !== items.length) {
-                foot += ` · 当前显示 ${filtered.length} 条`;
-            }
-            if (currentKeyword) {
-                foot += ` · 搜索「${currentKeyword}」`;
-            }
-            footEl.textContent = foot;
-
-            showState('content');
-        }
-
-        function loadFromFile() {
-            if (window.NEWS_DATA && window.NEWS_DATA.items && window.NEWS_DATA.items.length > 0) {
-                renderNews(window.NEWS_DATA);
-                return true;
-            }
-            return false;
-        }
-
-        function loadFromLocalStorage() {
-            try {
-                const cached = localStorage.getItem(STORAGE_KEY);
-                if (cached) {
-                    const data = JSON.parse(cached);
-                    if (data && data.items) {
-                        renderNews(data);
-                        return true;
-                    }
-                }
-            } catch (e) {
-                console.warn('localStorage 读取失败', e);
-            }
-            return false;
-        }
-
-        function saveToLocalStorage(data) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            } catch (e) {
-                console.warn('localStorage 写入失败', e);
-            }
-        }
-
-        async function fetchNews() {
-            refreshBtn.disabled = true;
-            loadingText.textContent = '抓取资讯中(可能需要 20-40 秒)...';
-            showState('loading');
-
-            try {
-                const ctrl = new AbortController();
-                const timeoutId = setTimeout(() => ctrl.abort(), 180000);
-                const r = await fetch(BACKEND_URL + '/api/news/fetch', {
-                    method: 'POST',
-                    signal: ctrl.signal
-                });
-                clearTimeout(timeoutId);
-                if (!r.ok) {
-                    const err = await r.json().catch(() => ({}));
-                    throw new Error(err.detail || ('HTTP ' + r.status));
-                }
-                const data = await r.json();
-                saveToLocalStorage(data);
-                window.NEWS_DATA = data;
-                renderNews(data);
-            } catch (e) {
-                console.error('Fetch failed', e);
-                if (e.name === 'AbortError') {
-                    errorText.textContent = '请求超时(超过 3 分钟),请检查后端';
-                } else if (e.message && e.message.includes('Failed to fetch')) {
-                    errorText.textContent = '后端未启动。请双击 start-news.bat 启动服务后再试';
-                } else {
-                    errorText.textContent = '刷新失败:' + e.message;
-                }
-                showState('error');
-            } finally {
-                refreshBtn.disabled = false;
-            }
-        }
-
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                filterBtns.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentFilter = btn.dataset.cat;
-                if (currentData) renderNews(currentData);
-            });
-        });
-
-        // ── 搜索框 ──
-        const searchInput = document.getElementById('news-search');
-        const searchClear = document.getElementById('news-search-clear');
-        const searchWrap = searchInput.closest('.news-search-wrap');
-
-        function setKeyword(kw) {
-            currentKeyword = kw.trim().toLowerCase();
-            searchWrap.classList.toggle('has-text', !!currentKeyword);
-            if (currentData) renderNews(currentData);
-        }
-
-        searchInput.addEventListener('input', (e) => setKeyword(e.target.value));
-        // 中文输入防抖(中文输入法每个拼音都会触发 input,等 200ms 没新输入再过滤)
-        let searchDebounce = null;
-        searchInput.addEventListener('compositionstart', () => {
-            if (searchDebounce) { clearTimeout(searchDebounce); searchDebounce = null; }
-        });
-        searchInput.addEventListener('compositionend', (e) => {
-            searchDebounce = setTimeout(() => setKeyword(e.target.value), 0);
-        });
-        searchClear.addEventListener('click', () => {
-            searchInput.value = '';
-            setKeyword('');
-            searchInput.focus();
-        });
-
-        refreshBtn.addEventListener('click', fetchNews);
-
-        // ── 资讯详情弹窗 ──
-        const modal = document.getElementById('news-modal');
-        const modalBackdrop = modal.querySelector('.news-modal-backdrop');
-        const modalCloseBtn = modal.querySelector('.news-modal-close');
-        const modalMeta = document.getElementById('news-modal-meta');
-        const modalTitle = document.getElementById('news-modal-title');
-        const modalSummary = document.getElementById('news-modal-summary');
-        const modalLink = document.getElementById('news-modal-link');
-
-        function openNewsModal(idx) {
-            if (!currentData) return;
-            // 找到对应 item(注意 idx 是 filtered 数组的下标,不是原始 items 的下标)
-            const items = (currentData && currentData.items) || [];
-            const filtered = currentFilter === 'all'
-                ? items
-                : items.filter(it => resolveCategory(it.category) === currentFilter);
-            const it = filtered[idx];
-            if (!it) return;
-
-            const resolved = resolveCategory(it.category);
-            const color = categoryColor(resolved);
-            modalMeta.innerHTML = `
-                <span class="news-cat-tag" style="background:${color}22;color:${color};border-color:${color}55">${escapeHtml(resolved || '其他')}</span>
-                <span class="news-source"><i class="fas fa-circle-dot"></i> ${escapeHtml(it.source || '')}</span>
-                <span class="news-time">${escapeHtml(it.published_at || '')}</span>
-            `;
-            modalTitle.textContent = it.title || '';
-            // 把 summary 里的 \n 转成 <br>,保留段落感
-            modalSummary.innerHTML = escapeHtml(it.summary || '').replace(/\n/g, '<br>');
-            modalLink.href = it.url || '#';
-
-            modal.classList.remove('hidden');
-            modal.setAttribute('aria-hidden', 'false');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeNewsModal() {
-            modal.classList.add('hidden');
-            modal.setAttribute('aria-hidden', 'true');
-            document.body.style.overflow = '';
-        }
-
-        // 事件绑定
-        listEl.addEventListener('click', (e) => {
-            // 点 "查看原文" 链接不触发弹窗(由链接自己处理,虽然现在卡片里没这链接)
-            const card = e.target.closest('.news-item');
-            if (!card) return;
-            const idx = parseInt(card.dataset.idx, 10);
-            if (!isNaN(idx)) openNewsModal(idx);
-        });
-        // 键盘 Enter / Space 也触发
-        listEl.addEventListener('keydown', (e) => {
-            if (e.key !== 'Enter' && e.key !== ' ') return;
-            const card = e.target.closest('.news-item');
-            if (!card) return;
-            e.preventDefault();
-            const idx = parseInt(card.dataset.idx, 10);
-            if (!isNaN(idx)) openNewsModal(idx);
-        });
-        // 关闭:点 X / 点背景 / 按 ESC
-        modalCloseBtn.addEventListener('click', closeNewsModal);
-        modalBackdrop.addEventListener('click', closeNewsModal);
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                closeNewsModal();
-            }
-        });
-
-        if (!loadFromFile()) {
-            if (!loadFromLocalStorage()) {
-                showState('empty');
-            }
-        }
-    })();
-    </script>
-
-    <!-- MediaPipe Hands 核心库 -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="scripts/news.js" defer></script>
 
     <!-- Game scripts -->
-    <script src="scripts/snake-game.js"></script>
-    <script src="scripts/flappy-bird.js"></script>
-    <script src="scripts/game-2048.js"></script>
-    <script src="scripts/game-tetris.js"></script>
-    <script src="scripts/game-tic-tac-toe.js"></script>
-    <script src="scripts/gomoku.js"></script>
-    <script src="scripts/memory-game.js"></script>
-    <script src="scripts/game-plane.js"></script>
+    <script src="scripts/snake-game.js" defer></script>
+    <script src="scripts/flappy-bird.js" defer></script>
+    <script src="scripts/game-2048.js" defer></script>
+    <script src="scripts/game-tetris.js" defer></script>
+    <script src="scripts/game-tic-tac-toe.js" defer></script>
+    <script src="scripts/gomoku.js" defer></script>
+    <script src="scripts/memory-game.js" defer></script>
+    <script src="scripts/game-maze.js" defer></script>
+    <!-- game-plane.js 按需加载: 切到飞机游戏时由 game-shell.js 动态注入 -->
     </body>
 </html>

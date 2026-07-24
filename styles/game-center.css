@@ -1,0 +1,513 @@
+/* ─── GAME MODULE ─── */
+/* games-layout: 左侧可滚动 tab list + 右侧 game-stage (占满右上) */
+.games-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+/* tabs sidebar: carousel 容器 (overflow:hidden, 由 track 的 transform 移动实现循环) */
+.tabs-sidebar {
+    position: sticky;
+    top: 24px;
+    flex: 0 0 220px;
+    height: 620px;          /* 跟 game-stage min-height 对齐 */
+    overflow: hidden;
+}
+
+/* 顶部 games-header: panel-heading 风格 (横排, 跟其他 panel 统一)
+   max-width: 1100 + margin auto 居中, 跟其他 panel-heading 视觉协调;
+   下面 games-layout 撑满整个 inner-panel content 宽度 */
+.games-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 4px 16px;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+}
+.tabs-title {
+    margin: 0;
+    padding: 0;
+    background: none;
+    backdrop-filter: none;
+}
+.tabs-title .eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+.tabs-title h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: #fff;
+    line-height: 1;
+    margin: 0;
+    letter-spacing: 0.04em;
+}
+.tabs-title .underline {
+    width: 36px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    margin-top: 10px;
+}
+.tabs-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    opacity: 0.75;
+    padding-bottom: 8px;
+}
+.tabs-hint i { font-size: 0.85rem; }
+
+/* track: JS 自动复制多组 tab，再用 transform translateY 做无限轮播 */
+.tabs-track {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    will-change: transform;
+}
+
+/* 副本: 跟真实 tab 完全一致；active 只落在中间真实 tab 上 */
+
+.game-stage {
+    flex: 1;
+    min-width: 0;
+    display: block;         /* 改 flex 为 block, 让 game-container width: 100% 直接撑满 (避免 flex 居中缩水) */
+    height: 720px;          /* 固定高度, 切游戏时容器完全不跳变 */
+}
+
+/* 每个 tab: 透明底去边框; 字号统一; 虚化由 JS 按物理距离计算 */
+.game-tab {
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 14px;
+    color: #94a3b8;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    opacity: var(--v, 1);
+    transform: scale(var(--s, 1));
+    transform-origin: center center;
+    transition: background 0.25s ease, color 0.25s ease;
+    position: relative;
+    width: 100%;
+}
+.game-tab i {
+    font-size: 1.15rem;                            /* 统一图标字号 */
+    flex-shrink: 0;
+}
+.game-tab:hover {
+    background: rgba(139, 92, 246, 0.10);
+    color: #d8c8ff;
+}
+/* 高亮: 用 .is-center class (位于 sidebar 视觉中心的 tab 才有高亮)
+   副本可独立高亮, 跟 .active (控制游戏区) 完全解耦 */
+.game-tab.is-center {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(78, 205, 196, 0.14));
+    color: #fff;
+    border: 1px solid rgba(139, 92, 246, 0.40);
+    opacity: 1;
+    z-index: 1;
+}
+.game-tab.is-center::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 28px;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, #8b5cf6, #4ecdc4);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.6);
+}
+
+/* game-container: 占满 game-stage 固定大小, 所有游戏 fit 到这个容器内, 切换不跳变 */
+.game-container {
+    position: relative;
+    width: 100%;             /* 占满 game-stage 宽度 (game-stage 固定 720) */
+    height: 100%;            /* 占满 game-stage 高度 */
+    overflow-y: auto;         /* 内容超出可滚动，不被裁切 */
+    background: var(--game-surface);
+    border-radius: var(--game-radius);
+    padding: 20px;
+    border: 1px solid var(--game-border);
+    box-shadow: var(--game-shadow), var(--game-glow);
+    backdrop-filter: blur(14px);
+}
+
+.game-container.game-snake,
+.game-container.game-flappy,
+.game-container.game-2048,
+.game-container.game-tetris,
+.game-container.game-tic-tac-toe,
+.game-container.game-gomoku,
+.game-container.game-memory,
+.game-container.game-plane {
+    background: var(--game-surface);
+    border-radius: var(--game-radius);
+    border: 1px solid var(--game-border);
+    box-shadow: var(--game-shadow), var(--game-glow);
+    backdrop-filter: blur(14px);
+}
+
+/* canvas 在固定容器内 fit (CSS max-size 兜底, JS fitGameCanvas 主动算精确尺寸) */
+.game-container canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+#gameCanvas {
+    border-radius: 16px;
+    background: #0f172a;
+    border: 2px solid rgba(0, 215, 195, 0.3);
+    box-shadow: 0 0 40px rgba(0, 215, 195, 0.15);
+}
+
+/* Flappy Bird Canvas */
+#flappyCanvas {
+    border-radius: 16px;
+    box-shadow: 0 0 40px rgba(113, 197, 207, 0.3);
+}
+
+/* Game Container Switching */
+.game-container {
+    display: none !important;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    max-width: 100%;
+}
+
+.game-container.active {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;        /* 子元素水平居中 */
+    justify-content: center;    /* 整体内容垂直居中 */
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.game-container.game-flappy {
+    padding: 10px;
+}
+
+.game-instructions {
+    text-align: center;
+    color: var(--game-text-muted);
+    font-size: 0.86rem;
+    max-width: 620px;
+    line-height: 1.6;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(139, 92, 246, 0.18);
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 620px;
+    margin-bottom: 15px;
+}
+
+.game-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: var(--game-title-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.game-score {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.score-box {
+    background: var(--game-card-strong);
+    border: 1px solid var(--game-border);
+    border-radius: var(--game-radius-sm);
+    padding: 10px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.score-label {
+    font-size: 0.75rem;
+    color: var(--game-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.score-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fbbf24;
+}
+
+.game-controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.game-btn {
+    padding: 12px 28px;
+    border-radius: var(--game-radius-sm);
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 0.96rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    border: 1px solid transparent;
+    letter-spacing: 0.02em;
+}
+
+.game-btn-primary {
+    background: var(--game-primary);
+    color: white;
+    box-shadow: 0 6px 18px rgba(124, 110, 245, 0.32);
+}
+
+.game-btn-primary:hover {
+    background: var(--game-primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 9px 24px rgba(78, 205, 196, 0.28);
+}
+
+.game-btn-secondary {
+    background: var(--game-card);
+    color: #c4b5fd;
+    border-color: var(--game-border);
+}
+
+.game-btn-secondary:hover {
+    background: var(--game-card-strong);
+    border-color: var(--game-border-strong);
+    color: #fff;
+}
+
+.game-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-player {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.status-ai {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.game-over-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.95);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.game-over-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.game-over-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #ef4444;
+    text-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+}
+
+.game-over-score {
+    font-size: 1.5rem;
+    color: #fbbf24;
+    font-weight: 600;
+}
+
+/* ===== Snake 模式切换 (经典 / 双蛇对战) ===== */
+.game-mode-toggle {
+    display: inline-flex;
+    background: var(--game-card-strong);
+    border: 1px solid var(--game-border);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 4px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.mode-btn {
+    padding: 7px 18px;
+    border-radius: 999px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--game-text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+}
+
+.mode-btn:hover {
+    color: #fff;
+}
+
+.mode-btn.active {
+    background: linear-gradient(135deg, var(--game-primary), #4ecdc4);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(124, 110, 245, 0.3);
+}
+
+.score-box.score-ai .score-label {
+    color: #60a5fa;
+}
+
+.score-box.score-ai .score-value {
+    color: #60a5fa;
+}
+
+.game-status.status-versus {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(96, 165, 250, 0.18));
+    color: #e2e8f0;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+/* ─── 移动端适配 ─── */
+@media (max-width: 900px) {
+    .games-layout {
+        flex-direction: column;
+        gap: 14px;
+        align-items: stretch;
+    }
+    .games-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-bottom: 10px;
+    }
+    .tabs-title h2 { font-size: 1.6rem; }
+    .tabs-hint { display: none; }
+
+    /* tabs sidebar → 顶部横向滚动条 */
+    .tabs-sidebar {
+        position: relative;
+        top: auto;
+        flex: none;
+        width: 100%;
+        height: auto;
+        min-height: 52px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+    .tabs-sidebar::-webkit-scrollbar { height: 4px; }
+    .tabs-sidebar::-webkit-scrollbar-thumb {
+        background: rgba(124, 110, 245, 0.35);
+        border-radius: 2px;
+    }
+    .tabs-track {
+        flex-direction: row !important;
+        gap: 8px;
+        transform: none !important;
+        will-change: auto;
+    }
+    .game-tab {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 76px;
+        justify-content: center;
+        padding: 10px 14px;
+        font-size: 0.82rem;
+        border-radius: 12px;
+    }
+    .game-tab i { font-size: 1rem; }
+    /* 移动端不需要无限轮播的 is-center 左侧竖条 */
+    .game-tab.is-center::before { display: none; }
+
+    /* game stage 高度改为响应式 */
+    .game-stage {
+        height: min(520px, 58vh);
+        min-height: 360px;
+    }
+    .game-container {
+        padding: 14px;
+        border-radius: 18px;
+    }
+    .game-header { margin-bottom: 10px; }
+    .game-title { font-size: 1.5rem; }
+    .score-value { font-size: 1.3rem; }
+    .game-btn { padding: 10px 20px; font-size: 0.9rem; }
+    .game-instructions { font-size: 0.78rem; margin-top: 8px; padding-top: 8px; }
+}
+
+@media (max-width: 600px) {
+    .game-stage {
+        height: min(440px, 55vh);
+        min-height: 320px;
+    }
+    .game-tab {
+        min-width: 64px;
+        padding: 8px 10px;
+        font-size: 0.72rem;
+        gap: 4px;
+    }
+    .game-tab i { font-size: 0.9rem; }
+    .game-container { padding: 10px; }
+    .game-header { flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .game-title { font-size: 1.25rem; width: 100%; text-align: center; }
+    .game-score { width: 100%; justify-content: center; }
+    .score-box { padding: 8px 14px; }
+    .score-value { font-size: 1.1rem; }
+    .game-controls { flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px; }
+    .game-btn { padding: 8px 16px; font-size: 0.82rem; }
+    .game-over-title { font-size: 2rem; }
+    .game-over-score { font-size: 1.1rem; }
+}

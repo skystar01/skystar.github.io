@@ -48,6 +48,9 @@ class SnakeGame {
         this.score = 0;
         this.aiMode = false;
 
+        // 最高分持久化(skystar:v1:snake:best)
+        this.bestScore = SkyStorage.getInt('skystar:v1:snake:best', 0);
+
         // 双蛇模式字段
         this.mode = 'classic';   // 'classic' | 'versus'
         this.aiSnake = [];
@@ -812,7 +815,13 @@ class SnakeGame {
         } else {
             titleEl.textContent = 'Game Over';
             titleEl.style.color = '';
-            this.finalScoreEl.textContent = `Final Score: ${this.score}`;
+            if (this.score > this.bestScore) {
+                this.bestScore = this.score;
+                SkyStorage.setInt('skystar:v1:snake:best', this.bestScore);
+                this.finalScoreEl.textContent = `Final Score: ${this.score}  🏆 Best: ${this.bestScore}`;
+            } else {
+                this.finalScoreEl.textContent = `Final Score: ${this.score}  (Best: ${this.bestScore})`;
+            }
         }
         this.overlay.classList.add('visible');
     }
@@ -883,6 +892,8 @@ class SnakeGame {
     }
 
     handleKeyDown(e) {
+        // 仅当贪吃蛇容器处于 active 时才响应键盘
+        if (!document.querySelector('.game-container.game-snake.active')) return;
         if (!this.running) return;
 
         if (e.key === ' ') {

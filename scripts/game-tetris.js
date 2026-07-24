@@ -24,6 +24,8 @@ class TetrisGame {
         this.gameRunning = false;
         this.gameOver = false;
         this.paused = false;
+        this.rafId = null;
+        this.bestScore = SkyStorage.getInt('skystar:v1:tetris:best', 0);
 
         this.dropInterval = 1000;
         this.lastDropTime = 0;
@@ -455,8 +457,13 @@ class TetrisGame {
             this.ctx.font = 'bold 20px Arial';
             this.ctx.fillStyle = '#ffd966';
             this.ctx.shadowColor = '#ffaa00';
-            this.ctx.fillText(`得分: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + 10);
-            
+            const isNewBest = this.score > this.bestScore;
+            if (isNewBest) {
+                this.bestScore = this.score;
+                SkyStorage.setInt('skystar:v1:tetris:best', this.bestScore);
+            }
+            this.ctx.fillText(`得分: ${this.score}${isNewBest ? '  🏆 New Best!' : `  (Best: ${this.bestScore})`}`, this.canvas.width / 2, this.canvas.height / 2 + 10);
+
             this.ctx.font = '16px Arial';
             this.ctx.fillStyle = '#ffffff';
             this.ctx.shadowBlur = 0;
@@ -478,6 +485,11 @@ class TetrisGame {
     }
     
     start() {
+        // 取消已有 RAF, 防止重复启动
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
         this.initBoard();
         this.score = 0;
         this.level = 1;
@@ -499,14 +511,14 @@ class TetrisGame {
         this.drawBoard();
         this.gameLoop();
     }
-    
+
     togglePause() {
         if (!this.gameRunning || this.gameOver) return;
         this.paused = !this.paused;
         if (!this.paused) {
             this.lastDropTime = Date.now();
             this.drawBoard();
-            this.gameLoop();
+            if (!this.rafId) this.gameLoop(); // 仅在 RAF 未运行时重启
         } else {
             this.drawBoard();
         }
@@ -514,20 +526,18 @@ class TetrisGame {
     
     gameLoop() {
         if (!this.gameRunning || this.gameOver || this.paused) {
-            if (this.paused) {
-                requestAnimationFrame(() => this.gameLoop());
-            }
-            return;
+            this.rafId = null; // 清除标记, 让 togglePause/resume 能判断需要重启
+            return; // 暂停/未开始/结束时不调度 RAF, 避免空转
         }
-        
+
         const now = Date.now();
         if (now - this.lastDropTime > this.dropInterval) {
             this.moveDown();
             this.lastDropTime = now;
         }
-        
+
         this.drawBoard();
-        requestAnimationFrame(() => this.gameLoop());
+        this.rafId = requestAnimationFrame(() => this.gameLoop());
     }
     
     // ========== AI 算法 (Pierre Dellacherie 启发式) ==========
@@ -777,6 +787,8 @@ class TetrisGame {
     
     bindEvents() {
         document.addEventListener('keydown', (e) => {
+            // 仅当俄罗斯方块容器处于 active 时才响应键盘
+            if (!document.querySelector('.game-container.game-tetris.active')) return;
             const key = e.code;
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyP', 'Escape', 'KeyC', 'ShiftLeft', 'ShiftRight'].includes(key)) {
                 e.preventDefault();
@@ -819,6 +831,25 @@ class TetrisGame {
             }
         });
     }
+
+    // Shell 生命周期: tab 切走时取消 RAF, 切回时重启
+    pause() {
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+            this._shellPauseStart = Date.now();
+        }
+    }
+
+    resume() {
+        if (!this.rafId && this.gameRunning && !this.gameOver && !this.paused) {
+            if (this._shellPauseStart) {
+                this.lastDropTime += Date.now() - this._shellPauseStart;
+                this._shellPauseStart = 0;
+            }
+            this.gameLoop();
+        }
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -829,6 +860,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'tetrisLines'
     );
     window.tetris = tetris;
+    if (window.registerGame) window.registerGame('tetris', {
+        pause()  { tetris.pause(); },
+        resume() { tetris.resume(); }
+    });
 
     document.getElementById('tetrisStart').addEventListener('click', () => {
         if (tetris.aiPlaying) tetris.stopAI();

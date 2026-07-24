@@ -8,14 +8,10 @@ class PlaneShooterGame {
         this.score = 0;
         this.lives = 3;
 
-        // === 最佳分（localStorage 持久化）===
+        // === 最佳分（localStorage 持久化, 隐私模式/配额满自动降级）===
         this.bestScore = 0;
-        try {
-            const saved = localStorage.getItem('planeShooterBestScore');
-            if (saved) this.bestScore = parseInt(saved, 10) || 0;
-        } catch (e) {
-            // 隐私模式下 localStorage 可能不可用，静默忽略
-        }
+        SkyStorage.migrate('planeShooterBestScore', 'skystar:v1:plane:best');
+        this.bestScore = SkyStorage.getInt('skystar:v1:plane:best', 0);
         this._recordCelebrated = false;
 
         // === 暂停 ===
@@ -249,7 +245,7 @@ class PlaneShooterGame {
         if (this.score > this.bestScore) {
             this.bestScore = this.score;
             try {
-                localStorage.setItem('planeShooterBestScore', String(this.bestScore));
+                SkyStorage.setInt('skystar:v1:plane:best', this.bestScore);
             } catch (e) {
                 // 写入失败不阻断游戏
             }
@@ -3533,6 +3529,8 @@ class PlaneShooterGame {
     // ─────────── 输入处理 ───────────
 
     handleKeyDown(e) {
+        // 仅当飞机游戏容器处于 active 时才响应键盘
+        if (!document.querySelector('.game-container.game-plane.active')) return;
         let code = e.code;
         if (this.keys.hasOwnProperty(code)) {
             this.keys[code] = true;
@@ -3566,9 +3564,25 @@ class PlaneShooterGame {
     resetKeys() {
         for (let k in this.keys) this.keys[k] = false;
     }
+
+    // Shell 生命周期: tab 切走时取消 RAF, 切回时重启
+    pause() {
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+    }
+
+    resume() {
+        if (!this.animationId) {
+            this.lastTime = performance.now() / 1000; // 重置时间基准, 避免 dt 跳变
+            this.gameLoop();
+        }
+    }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// 按需加载: 此脚本被动态插入时 DOM 已 ready,直接初始化即可
+(function() {
     let _planeGameInstance = null;
 
     const startPlaneGame = () => {
@@ -3579,4 +3593,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     window.startPlaneGame = startPlaneGame;
-});
+
+    // 暴露 pause/resume 给 shell 生命周期管理
+    window.planeGame = {
+        pause()  { if (_planeGameInstance) _planeGameInstance.pause(); },
+        resume() { if (_planeGameInstance) _planeGameInstance.resume(); }
+    };
+    if (window.registerGame) window.registerGame('plane', window.planeGame);
+})();

@@ -39,9 +39,20 @@ CST = timezone(timedelta(hours=8))
 
 # ──────────────── App ────────────────
 app = FastAPI(title="每日资讯服务", version="1.0")
+# 仅允许本地开发常用来源访问，避免公网/恶意网页调用 API 白嫖 LLM 额度
+# - localhost/127.0.0.1:5500  → VS Code Live Server 默认端口
+# - localhost/127.0.0.1:8000  → 同源访问
+# - null                       → file:// 双击打开 main.html 时浏览器发的 Origin
+ALLOWED_ORIGINS = [
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "null",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -59,6 +70,7 @@ async def fetch_arxiv() -> list:
         "sortOrder": "descending",
     }
     headers = {"User-Agent": "skystar-news-bot/1.0 (mailto:user@example.com)"}
+    r = None
     for attempt in range(3):
         try:
             async with httpx.AsyncClient(timeout=60, follow_redirects=True) as c:
@@ -72,6 +84,8 @@ async def fetch_arxiv() -> list:
             if attempt == 2:
                 raise
             await asyncio.sleep(2)
+    if r is None:
+        raise RuntimeError("fetch_arxiv: 3 次重试均失败")
     items = []
     for entry in re.findall(r"<entry>(.*?)</entry>", r.text, re.DOTALL)[:20]:
         t = re.search(r"<title>(.*?)</title>", entry, re.DOTALL)
@@ -280,10 +294,30 @@ async def summarize_with_llm(raw_items: list) -> list:
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3,
     }
-    async with httpx.AsyncClient(timeout=180) as c:
-        r = await c.post(f"{LLM_BASE_URL}/chat/completions", headers=headers, json=body)
-        r.raise_for_status()
-        data = r.json()
+    # LLM 调用加重试: 5xx/网络错误做 3 次指数退避(2s/4s/8s), 4xx 立即失败
+    last_err = None
+    data = None
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient(timeout=180) as c:
+                r = await c.post(f"{LLM_BASE_URL}/chat/completions", headers=headers, json=body)
+                if r.status_code >= 500:
+                    last_err = HTTPException(500, f"LLM 服务返回 {r.status_code}")
+                    if attempt < 2:
+                        await asyncio.sleep(2 ** (attempt + 1))
+                        continue
+                    raise last_err
+                r.raise_for_status()
+                data = r.json()
+                break
+        except httpx.HTTPError as e:
+            last_err = e
+            if attempt < 2:
+                await asyncio.sleep(2 ** (attempt + 1))
+                continue
+            raise HTTPException(500, f"LLM 调用网络失败:{e}")
+    if data is None:
+        raise last_err or HTTPException(500, "LLM 调用失败:未知原因")
     content = data["choices"][0]["message"]["content"].strip()
     # 去除 markdown 包裹
     content = re.sub(r"^```(?:json)?\s*\n?", "", content)
@@ -293,7 +327,10 @@ async def summarize_with_llm(raw_items: list) -> list:
     except json.JSONDecodeError:
         m = re.search(r"\[.*\]", content, re.DOTALL)
         if m:
-            result = json.loads(m.group())
+            try:
+                result = json.loads(m.group())
+            except json.JSONDecodeError:
+                raise HTTPException(500, f"LLM 输出无法解析:{content[:300]}")
         else:
             raise HTTPException(500, f"LLM 输出无法解析:{content[:300]}")
     if not isinstance(result, list):

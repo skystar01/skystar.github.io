@@ -21,7 +21,12 @@ class GomokuGame {
         this.mode = 'pve';          // 'pve' | 'pvp'
         this.humanPlayer = this.BLACK;
         this.aiPlayer = this.WHITE;
-        this.scores = { black: 0, white: 0, draw: 0 };
+        this.scores = SkyStorage.getJSON('skystar:v1:gomoku:scores', { black: 0, white: 0, draw: 0 });
+        // 防御: 旧数据可能字段不全
+        if (!this.scores || typeof this.scores !== 'object') this.scores = { black: 0, white: 0, draw: 0 };
+        this.scores.black = this.scores.black || 0;
+        this.scores.white = this.scores.white || 0;
+        this.scores.draw = this.scores.draw || 0;
         this.heatMap = null;        // AI 思考时显示热力图 {key: score}
 
         this.init();
@@ -219,10 +224,7 @@ class GomokuGame {
         this.updateStatus();
         // 异步, 避免阻塞 UI
         setTimeout(() => {
-            const startTime = performance.now();
             const move = this.findBestMove();
-            const elapsed = performance.now() - startTime;
-            console.log(`[Gomoku AI] move=(${move.x},${move.y}) time=${elapsed.toFixed(0)}ms depth=${this.getSearchDepth()}`);
             if (move && this.gameActive) {
                 this.makeMove(move.x, move.y);
             }
@@ -521,6 +523,7 @@ class GomokuGame {
         if (blackEl) blackEl.textContent = this.scores.black;
         if (whiteEl) whiteEl.textContent = this.scores.white;
         if (drawEl) drawEl.textContent = this.scores.draw;
+        SkyStorage.setJSON('skystar:v1:gomoku:scores', this.scores);
     }
 }
 

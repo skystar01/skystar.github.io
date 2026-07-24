@@ -22,7 +22,8 @@ class Game2048 {
             [0, 0, 0, 0]
         ];
         this.score = 0;
-        this.bestScore = localStorage.getItem('2048best') ? parseInt(localStorage.getItem('2048best')) : 0;
+        SkyStorage.migrate('2048best', 'skystar:v1:2048:best');
+        this.bestScore = SkyStorage.getInt('skystar:v1:2048:best', 0);
         this.gameActive = true;
         this.aiTimer = null;          // AI 定时器
         this.aiPlaying = false;       // AI 是否正在运行
@@ -52,7 +53,7 @@ class Game2048 {
         this.scoreSpan.innerText = this.score;
         if (this.score > this.bestScore) {
             this.bestScore = this.score;
-            localStorage.setItem('2048best', this.bestScore);
+            SkyStorage.setInt('skystar:v1:2048:best', this.bestScore);
             this.updateBestUI();
         }
     }

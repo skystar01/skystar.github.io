@@ -231,14 +231,16 @@ class TicTacToeGame {
     }
     
     updateScore(winner = null) {
-        let scoreX = parseInt(localStorage.getItem('ticTacToeScoreX') || '0');
-        let scoreO = parseInt(localStorage.getItem('ticTacToeScoreO') || '0');
-        
+        SkyStorage.migrate('ticTacToeScoreX', 'skystar:v1:tictactoe:scoreX');
+        SkyStorage.migrate('ticTacToeScoreO', 'skystar:v1:tictactoe:scoreO');
+        let scoreX = SkyStorage.getInt('skystar:v1:tictactoe:scoreX', 0);
+        let scoreO = SkyStorage.getInt('skystar:v1:tictactoe:scoreO', 0);
+
         if (winner === 'X') scoreX++;
         if (winner === 'O') scoreO++;
-        
-        localStorage.setItem('ticTacToeScoreX', scoreX.toString());
-        localStorage.setItem('ticTacToeScoreO', scoreO.toString());
+
+        SkyStorage.setInt('skystar:v1:tictactoe:scoreX', scoreX);
+        SkyStorage.setInt('skystar:v1:tictactoe:scoreO', scoreO);
         
         this.scoreXElement.textContent = scoreX;
         this.scoreOElement.textContent = scoreO;
@@ -253,7 +255,6 @@ class TicTacToeGame {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('TicTacToe: DOM loaded, initializing game...');
     const game = new TicTacToeGame();
     game.initDOM();
 });

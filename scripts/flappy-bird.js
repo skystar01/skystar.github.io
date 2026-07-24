@@ -26,7 +26,10 @@ class FlappyBird {
         this.pipeFreq = 1500;
         
         this.score = 0;
-        this.highScore = parseInt(localStorage.getItem('flappyHighScore') || '0');
+        this.highScore = (function() {
+            SkyStorage.migrate('flappyHighScore', 'skystar:v1:flappy:best');
+            return SkyStorage.getInt('skystar:v1:flappy:best', 0);
+        })();
         this.gameRunning = false;
         this.gamePaused = false;
         this.gameOver = false;
@@ -63,7 +66,6 @@ class FlappyBird {
             const response = await fetch(`${this.backendUrl}/`);
             if (response.ok) {
                 this.aiModelLoaded = true;
-                console.log('✅ Flask backend connected!');
             }
         } catch (error) {
             console.error('❌ Cannot connect to backend:', error);
@@ -85,6 +87,8 @@ class FlappyBird {
     bindEvents() {
         this.canvas.addEventListener('click', () => this.flap());
         document.addEventListener('keydown', (e) => {
+            // 仅当 Flappy Bird 容器处于 active 时才响应键盘
+            if (!document.querySelector('.game-container.game-flappy.active')) return;
             if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
                 e.preventDefault();
                 this.flap();
@@ -100,14 +104,12 @@ class FlappyBird {
     
     toggleAI() {
         if (!this.aiModelLoaded) {
-            console.log('⚠️ Backend not connected, please start Flask server first');
             return;
         }
         this.aiMode = !this.aiMode;
         if (this.aiMode && !this.gameRunning) {
             this.start();
         }
-        console.log(this.aiMode ? '🤖 AI Mode ON' : '👤 Manual Mode');
     }
     
     flap() {
@@ -321,7 +323,7 @@ class FlappyBird {
     updateHighScore() {
         if (this.score > this.highScore) {
             this.highScore = this.score;
-            localStorage.setItem('flappyHighScore', this.highScore.toString());
+            SkyStorage.setInt('skystar:v1:flappy:best', this.highScore);
         }
     }
     

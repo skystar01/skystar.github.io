@@ -7,7 +7,21 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='..')
-CORS(app)
+# 仅允许本地开发常用来源访问，避免公网/恶意网页调用推理 API
+# - localhost/127.0.0.1:5500  → VS Code Live Server 默认端口
+# - localhost/127.0.0.1:5000  → 同源访问
+# - null                       → file:// 双击打开 main.html 时浏览器发的 Origin
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:5500",
+            "http://127.0.0.1:5500",
+            "http://localhost:5000",
+            "http://127.0.0.1:5000",
+            "null",
+        ]
+    }
+})
 
 # Dueling DQN 网络结构
 class DuelingDQN(nn.Module):
@@ -58,7 +72,7 @@ def load_model():
 def index():
     return send_from_directory('..', 'index.html')
 
-@app.route('/&lt;path:path&gt;')
+@app.route('/<path:path>')
 def static_files(path):
     return send_from_directory('..', path)
 
@@ -101,5 +115,6 @@ if __name__ == '__main__':
         policy_net = None
     
     print('🚀 Flask 服务器启动中...')
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    # 关闭 debug 模式，避免 Werkzeug 调试器暴露导致 RCE 风险
+    app.run(host='127.0.0.1', port=5000, debug=False)
 
