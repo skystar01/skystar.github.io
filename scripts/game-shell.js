@@ -222,6 +222,38 @@
         canvas.style.height = Math.floor(h) + 'px';
     }
 
+    // 弹幕幸存者: canvas 适配容器（保留宽高比，不放大超过原始尺寸）
+    function fitSurvivor(container) {
+        const canvas = document.getElementById('survivorCanvas');
+        if (!canvas) return;
+        const cs = getComputedStyle(container);
+        const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        const cw = container.clientWidth - padX;
+        const ch = container.clientHeight - padY;
+        const hud = container.querySelector('.survivor-hud');
+        const weaponBar = container.querySelector('.surv-weapon-bar');
+        const instructions = container.querySelector('.surv-instructions');
+        let extraH = 0;
+        [hud, weaponBar, instructions].forEach(el => {
+            if (el) {
+                const s = getComputedStyle(el);
+                extraH += el.offsetHeight + (parseFloat(s.marginTop) || 0) + (parseFloat(s.marginBottom) || 0);
+            }
+        });
+        const availH = ch - extraH;
+        if (cw <= 0 || availH <= 0) return;
+
+        const aspect = canvas.width / canvas.height;
+        let w = Math.min(cw, 900);
+        let h = w / aspect;
+        if (h > availH) { h = availH; w = h * aspect; }
+        if (w > canvas.width) { w = canvas.width; h = w / aspect; }
+
+        canvas.style.width = Math.floor(w) + 'px';
+        canvas.style.height = Math.floor(h) + 'px';
+    }
+
     // 按游戏类型分别适配固定容器
     function fitGame(gameName, container) {
         if (!container) return;
@@ -250,6 +282,9 @@
                     break;
                 case 'maze':
                     if (window.mazeGame && window.mazeGame.fitMaze) window.mazeGame.fitMaze();
+                    break;
+                case 'survivor':
+                    fitSurvivor(container);
                     break;
                 case 'flappy':
                 default: {

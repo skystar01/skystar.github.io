@@ -852,14 +852,17 @@
             return { x: this.exit.x, y: this.exit.y };
         }
 
-        // 预判玩家未来 N 步位置: 按当前移动方向推演, 撞墙则停在墙前
+        // 预判玩家未来 N 步位置: 按最近一次成功移动方向推演, 撞墙则停在墙前
+        // 用 playerDir 而非 heldDir: 玩家松开键后仍有"惯性方向", AI 不会因为玩家停步就失效
         // predict=0 时返回当前位置 (即不预判)
         predictPlayerPosition(steps) {
-            if (steps <= 0 || !this.heldDir) return { x: this.player.x, y: this.player.y };
+            if (steps <= 0) return { x: this.player.x, y: this.player.y };
+            const dir = this.playerDir;
+            if (!dir || (dir.x === 0 && dir.y === 0)) return { x: this.player.x, y: this.player.y };
             let px = this.player.x, py = this.player.y;
             for (let s = 0; s < steps; s++) {
-                const nx = px + this.heldDir.x;
-                const ny = py + this.heldDir.y;
+                const nx = px + dir.x;
+                const ny = py + dir.y;
                 if (nx < 0 || nx >= this.N || ny < 0 || ny >= this.N) break;
                 if (this.grid[ny][nx] === 1) break; // 撞墙停止预判
                 px = nx; py = ny;
@@ -1313,20 +1316,38 @@
             // 钥匙 (金色发光, 浮动)
             this.drawKeys(ctx, cs);
 
-            // 怪物视野锥 (扇形, 朝向 m.dir, 警戒时变红更亮)
+            // 怪物视野锥: 13 条射线沿 FOV 角等分采样, 多边形画"实际可视范围" (沿墙截断)
+            // 之前的 arc 扇形忽略墙体, 玩家容易误判"锥在我身上=它看见我"; 现在跟 hasLineOfSight 一致
+            const FOV_RAY_COUNT = 13;
             for (let i = 0; i < this.monsters.length; i++) {
                 const m = this.monsters[i];
                 const cx = m.x * cs + cs / 2;
                 const cy = m.y * cs + cs / 2;
                 const facing = Math.atan2(m.dir.y, m.dir.x);
-                const radius = this.vision * cs;
-                // 警戒状态视野锥更亮 (红橙色), 巡逻时暗红
                 const alpha = m.alerted ? 0.18 : 0.08;
-                const color = m.alerted ? '239, 68, 68' : '239, 68, 68';
+                const color = '239, 68, 68';
+                // 13 射线等角采样, t=0 左边界, t=1 右边界
+                const points = [{ x: cx, y: cy }];
+                for (let r = 0; r < FOV_RAY_COUNT; r++) {
+                    const t = FOV_RAY_COUNT === 1 ? 0.5 : r / (FOV_RAY_COUNT - 1);
+                    const ang = facing - this.FOV_HALF_ANGLE + t * 2 * this.FOV_HALF_ANGLE;
+                    const dx = Math.cos(ang);
+                    const dy = Math.sin(ang);
+                    // 沿射线逐步走, 找撞墙距离 (跟 hasLineOfSight 同款网格量化)
+                    let hitDist = this.vision;
+                    for (let s = 1; s <= this.vision; s++) {
+                        const gx = m.x + Math.round(dx * s);
+                        const gy = m.y + Math.round(dy * s);
+                        if (gx < 0 || gx >= this.N || gy < 0 || gy >= this.N) { hitDist = s; break; }
+                        if (this.grid[gy][gx] === 1) { hitDist = s; break; }
+                    }
+                    points.push({ x: cx + dx * hitDist * cs, y: cy + dy * hitDist * cs });
+                }
+                // 画多边形
                 ctx.fillStyle = 'rgba(' + color + ', ' + alpha + ')';
                 ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.arc(cx, cy, radius, facing - this.FOV_HALF_ANGLE, facing + this.FOV_HALF_ANGLE);
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let p = 1; p < points.length; p++) ctx.lineTo(points[p].x, points[p].y);
                 ctx.closePath();
                 ctx.fill();
                 // 警戒时加描边突出
@@ -1337,19 +1358,32 @@
                 }
             }
 
-            // A* 寻路路径可视化
+            // A* 寻路路径可视化 (虚线 + 终点圆点, 跟 vision 道具画风统一)
             if (this.showPath) {
+                ctx.lineWidth = Math.max(2, cs * 0.18);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 for (let i = 0; i < this.monsters.length; i++) {
                     const path = this.monsters[i].path;
-                    if (path && path.length > 1) {
-                        ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
-                        for (let p = 1; p < path.length; p++) {
-                            ctx.beginPath();
-                            ctx.arc(path[p].x * cs + cs / 2, path[p].y * cs + cs / 2, Math.max(1, cs * 0.12), 0, Math.PI * 2);
-                            ctx.fill();
-                        }
+                    if (!path || path.length <= 1) continue;
+                    // 路径线
+                    ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+                    ctx.setLineDash([cs * 0.4, cs * 0.25]);
+                    ctx.beginPath();
+                    ctx.moveTo(path[0].x * cs + cs / 2, path[0].y * cs + cs / 2);
+                    for (let p = 1; p < path.length; p++) {
+                        ctx.lineTo(path[p].x * cs + cs / 2, path[p].y * cs + cs / 2);
                     }
+                    ctx.stroke();
+                    // 终点圆点 (怪物想去的地方: 玩家位置 / 巡逻点 / 诱饵)
+                    const end = path[path.length - 1];
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+                    ctx.beginPath();
+                    ctx.arc(end.x * cs + cs / 2, end.y * cs + cs / 2, Math.max(2, cs * 0.22), 0, Math.PI * 2);
+                    ctx.fill();
                 }
+                ctx.setLineDash([]);
             }
 
             // 视野道具: 高亮到出口的路径 (淡黄色虚线)
