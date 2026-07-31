@@ -81,6 +81,14 @@ class SurvivorGame {
         this.floatingTexts = [];
         this.poisonZones = [];   // 毒液方格
 
+        // ── Sprite & 粒子 ──
+        this.spriteCache = {};          // 预加载的精灵图
+        this.particles = [];            // 通用粒子 (敌人死亡/命中/boss 死亡)
+        this.snowFar = [];              // 远景飘雪 (~50)
+        this.snowNear = [];             // 近景飘雪 (~30)
+        this.shakeTime = 0;             // 屏幕震动剩余时间
+        this.shakeMag = 0;              // 屏幕震动强度 (px)
+
         // ── 经验/等级 ──
         this.level = 1;
         this.exp = 0;
@@ -91,6 +99,23 @@ class SurvivorGame {
         this.bossSpawned = false;
         this.bossSpawnTime = 200; // 约3分20秒
         this.enemyKillCount = 0;
+
+        // ── 地图滚动 (世界下移) ──
+        this.scrollY = 0;
+        this.scrollSpeed = 50; // px/s, 世界持续向下推
+
+        // ── 开始游戏 (默认未开始, 等点开始按钮) ──
+        this.gameStarted = false;
+
+        // ── Offscreen 缓存 (背景静态层) ──
+        this.bgCanvas = null; // 第一次 _drawBackground 时创建
+        this.groundTile = null; // 雪地格子 (offscreen, lazy init)
+        this.groundPattern = null; // ctx.createPattern 绑定, 平铺用
+        this.groundTileSize = 60; // 单格 60x60
+        this.wallW = 32; // 两侧墙宽 (每侧)
+
+        // ── 晶石 Path2D (棱形预构建, 3 种颜色) ──
+        this.crystalPaths = null; // 第一次渲染晶石时创建
 
         // ── 输入 ──
         this.keys = {};
@@ -108,6 +133,8 @@ class SurvivorGame {
     }
 
     init() {
+        this._loadSprites();
+        this._initSnow();
         this.resetGame();
         this._bindInput();
         this._bindUI();
@@ -120,10 +147,31 @@ class SurvivorGame {
             });
         }
 
-        this.lastTime = performance.now();
+        // 默认暂停, 但循环已在跑 (paused 期间只 _render 不 _update)
+        this.paused = true;
         this.gameRunning = true;
+        this.lastTime = performance.now();
         this._loop = this._loop.bind(this);
         this.animationId = requestAnimationFrame(this._loop);
+        this._showStartOverlay();
+    }
+
+    _startGame() {
+        if (this.gameStarted) return;
+        this.gameStarted = true;
+        this.paused = false;
+        this.lastTime = performance.now();
+        this._hideStartOverlay();
+        // 循环已在 init() 启动, 这里只翻 paused 即可
+    }
+
+    _showStartOverlay() {
+        const overlay = document.getElementById('survivorStartOverlay');
+        if (overlay) overlay.classList.add('active');
+    }
+    _hideStartOverlay() {
+        const overlay = document.getElementById('survivorStartOverlay');
+        if (overlay) overlay.classList.remove('active');
     }
 
     resetGame() {
@@ -147,6 +195,9 @@ class SurvivorGame {
         this.effects = [];
         this.floatingTexts = [];
         this.poisonZones = [];
+        this.particles = [];
+        this.shakeTime = 0;
+        this.shakeMag = 0;
 
         this.level = 1;
         this.exp = 0;
@@ -157,6 +208,14 @@ class SurvivorGame {
         this.enemyKillCount = 0;
         this.gameOver = false;
         this.levelupPending = false;
+
+        // 重置飘雪位置 (避免开局顶部空白)
+        if (this.snowFar) {
+            for (const s of this.snowFar) { s.x = Math.random() * this.W; s.y = Math.random() * this.H; }
+        }
+        if (this.snowNear) {
+            for (const s of this.snowNear) { s.x = Math.random() * this.W; s.y = Math.random() * this.H; }
+        }
 
         this._hideLevelup();
         this._hideGameover();
@@ -196,6 +255,10 @@ class SurvivorGame {
         if (overBtn) {
             overBtn.addEventListener('click', () => this.resetGame());
         }
+        const startBtn = document.getElementById('survivorStartBtn');
+        if (startBtn) {
+            startBtn.addEventListener('click', () => this._startGame());
+        }
     }
 
     pause() {
@@ -211,14 +274,18 @@ class SurvivorGame {
     // ─── 主循环 ───
     _loop(now) {
         this.animationId = requestAnimationFrame(this._loop);
+        if (!this.gameRunning) return;
+
+        // paused / 升级选择中 / gameOver: 仍渲染一帧 (背景+玩家), 但跳过 _update
         if (this.paused || this.levelupPending || this.gameOver) {
             this.lastTime = now;
+            this._render();
             return;
         }
+
         let dt = (now - this.lastTime) / 1000;
         this.lastTime = now;
         if (dt > this.DT_CAP) dt = this.DT_CAP;
-        if (!this.gameRunning) return;
 
         this.gameTime += dt;
         this.frame++;
@@ -237,8 +304,26 @@ class SurvivorGame {
         this._updatePoisonZones(dt);
         this._updateEffects(dt);
         this._updateFloatingTexts(dt);
+        this._updateParticles(dt);
         this._checkLevelup();
         this._checkBossSpawn();
+        this._applyWorldScroll(dt);
+    }
+
+    // ─── 地图滚动: 所有"世界对象"统一下移 ───
+    // 普通敌怪、晶石、毒区、玩家子弹、敌怪子弹、特效 都跟随世界下移
+    // Boss / 玩家 / 浮动文字 / 飘雪 是屏幕空间, 不参与
+    _applyWorldScroll(dt) {
+        const dy = this.scrollSpeed * dt;
+        this.scrollY += dy;
+        for (const e of this.enemies) {
+            if (!e.isBoss) e.y += dy;
+        }
+        for (const b of this.playerBullets) b.y += dy;
+        for (const b of this.enemyBullets) b.y += dy;
+        for (const c of this.crystals) c.y += dy;
+        for (const z of this.poisonZones) z.y += dy;
+        for (const e of this.effects) e.y += dy;
     }
 
     _updatePlayer(dt) {
@@ -407,11 +492,17 @@ class SurvivorGame {
                 arr.splice(i, 1);
                 continue;
             }
-            // 碰撞敌人
+            // 碰撞敌人 (平方距离 + 屏幕内剪枝, 避免 Math.hypot + 跳过屏外)
+            const reach = b.r + 50; // 敌怪最大 r ~30, 留余量
+            const reach2 = reach * reach;
             for (const e of this.enemies) {
                 if (b.hitSet.has(e)) continue;
                 if (e.dead) continue;
-                if (this._dist(b.x, b.y, e.x, e.y) < b.r + e.r) {
+                // 屏幕外剪枝 (敌怪 x 必须在画布内, y 在 [-50, H+50] 范围)
+                if (e.x < -50 || e.x > this.W + 50) continue;
+                if (e.y < -50 || e.y > this.H + 50) continue;
+                const r = b.r + e.r;
+                if (this._distSq(b.x, b.y, e.x, e.y) < r * r) {
                     this._hitEnemy(e, b.dmg, b);
                     b.hitSet.add(e);
                     // 爆炸
@@ -458,6 +549,7 @@ class SurvivorGame {
                 e.shield = 0;
             } else {
                 this._floatingText(e.x, e.y - e.r, '🛡', '#67e8f9');
+                this._spawnParticles(e.x, e.y - e.r, { kind: 'bulletHit', color: '#67e8f9', count: 3 });
                 return;
             }
         }
@@ -466,6 +558,9 @@ class SurvivorGame {
             e.slowTimer = 1.5;
             e.slowFactor = 0.5;
         }
+        // 命中火花
+        const sparkColor = (bullet && bullet.color) || '#bae6fd';
+        this._spawnParticles(e.x, e.y, { kind: 'bulletHit', color: sparkColor, count: 4 });
         if (e.hp <= 0) {
             this._killEnemy(e);
         }
@@ -478,6 +573,16 @@ class SurvivorGame {
 
         // 爆炸特效
         this.effects.push({ type: 'enemyDeath', x: e.x, y: e.y, r: e.r, life: 0.3, maxLife: 0.3, color: e.color });
+
+        // 死亡粒子
+        if (e.isBoss) {
+            this._spawnParticles(e.x, e.y, { kind: 'bossDeath', color: e.color, count: 36 });
+            this._triggerShake(8, 0.3);
+        } else if (e.isElite) {
+            this._spawnParticles(e.x, e.y, { kind: 'enemyDeath', color: e.color, count: 14 });
+        } else {
+            this._spawnParticles(e.x, e.y, { kind: 'enemyDeath', color: e.color, count: 10 });
+        }
 
         // 掉落晶石
         if (e.isBoss) {
@@ -533,18 +638,16 @@ class SurvivorGame {
             const sf = e.slowTimer > 0 ? e.slowFactor : 1;
             if (e.slowTimer > 0) e.slowTimer -= dt;
 
-            // 移动: 朝玩家移动 + 持续下推
-            const ang = Math.atan2(p.y - e.y, p.x - e.x);
+            // 移动: Boss 驻场屏上中央 (不参与 scroll, 可能有冲刺技能 TODO)
+            // 普通敌怪: 不自己移动, 由 _applyWorldScroll 统一下推
             if (e.isBoss) {
-                // Boss 缓慢移动
-                e.x += Math.cos(ang) * e.speed * 0.5 * sf * dt;
-                e.y += Math.sin(ang) * e.speed * 0.5 * sf * dt;
-            } else {
-                e.x += Math.cos(ang) * e.speed * sf * dt;
-                e.y += Math.sin(ang) * e.speed * sf * dt;
+                // Boss 驻场到屏上 30% 位置中央 (缓慢回弹)
+                e.x += (this.W / 2 - e.x) * 0.5 * dt;
+                e.y = this.H * 0.3;
             }
 
-            // 朝向玩家
+            // 朝向玩家 (dirX/dirY 仍要更新, 让 sprite 旋转)
+            const ang = Math.atan2(p.y - e.y, p.x - e.x);
             e.dirX = Math.cos(ang);
             e.dirY = Math.sin(ang);
 
@@ -562,6 +665,8 @@ class SurvivorGame {
                 p.hp -= e.contactDmg;
                 p.invincible = 0.8;
                 this._floatingText(p.x, p.y - 20, '-' + e.contactDmg, '#ef4444');
+                this._triggerShake(4, 0.15);
+                this._spawnParticles(p.x, p.y, { kind: 'bulletHit', color: '#ef4444', count: 6 });
             }
 
             // 出界（底部）
@@ -593,8 +698,9 @@ class SurvivorGame {
     }
 
     _createEnemy(type, isElite, isBoss) {
-        const x = 60 + Math.random() * (this.W - 120);
-        const y = -30;
+        // Boss 出生在屏上中央, 不从屏外进入
+        const x = isBoss ? this.W / 2 : 60 + Math.random() * (this.W - 120);
+        const y = isBoss ? this.H * 0.3 : -30;
         const mult = isElite ? 1.0 : 1.0;
         const sizeMult = isElite ? 2.0 : 1.0;
 
@@ -690,6 +796,8 @@ class SurvivorGame {
         for (let i = -2; i <= 2; i++) {
             this._addEnemyBullet(e.x, e.y, ang + i * 0.15, 160, 8);
         }
+        // Boss 射击闪光
+        this._spawnParticles(e.x, e.y, { kind: 'bulletHit', color: '#a855f7', count: 3 });
         // 特性攻击
         for (const t of e.bossTypes || []) {
             if (t === 'bomb') {
@@ -745,6 +853,8 @@ class SurvivorGame {
                 p.hp -= b.dmg;
                 p.invincible = 0.8;
                 this._floatingText(p.x, p.y - 20, '-' + Math.floor(b.dmg), '#ef4444');
+                this._triggerShake(3, 0.12);
+                this._spawnParticles(p.x, p.y, { kind: 'bulletHit', color: b.color, count: 4 });
                 this.enemyBullets.splice(i, 1);
             }
         }
@@ -755,12 +865,14 @@ class SurvivorGame {
         const p = this.player;
         for (let i = this.crystals.length - 1; i >= 0; i--) {
             const c = this.crystals[i];
-            c.life -= dt;
-            // 初速度衰减
+            // 永生: 不再衰减 life
+            // 初速度衰减 (保留, 有动感)
             c.vx *= 0.92;
             c.vy *= 0.92;
             c.x += c.vx * dt;
             c.y += c.vy * dt;
+            // 旋转
+            c.rot = (c.rot || 0) + dt * 1.5;
 
             const d = this._dist(c.x, c.y, p.x, p.y);
             // 磁吸
@@ -777,7 +889,8 @@ class SurvivorGame {
                 this.crystals.splice(i, 1);
                 continue;
             }
-            if (c.life <= 0) this.crystals.splice(i, 1);
+            // 出底部消失 (玩家没捡到, 落在屏幕外)
+            if (c.y > this.H + 50) this.crystals.splice(i, 1);
         }
     }
 
@@ -1115,7 +1228,7 @@ class SurvivorGame {
             html += `<div class="surv-event-card" data-idx="${i}">
                 <button class="ev-refresh ${c.refreshed ? 'used' : ''}" data-refresh="${i}" title="刷新">↻</button>
                 ${tierBadge}
-                <div class="ev-icon" style="color:${c.icon === '↻' ? '#c4b5fd' : ''}">${c.icon}</div>
+                <div class="ev-icon" style="color:${c.icon === '↻' ? '#bae6fd' : ''}">${c.icon}</div>
                 <div class="ev-name">${c.name}</div>
                 <div class="ev-desc">${c.desc}</div>
             </div>`;
@@ -1164,23 +1277,170 @@ class SurvivorGame {
     _dist(x1, y1, x2, y2) {
         return Math.hypot(x1 - x2, y1 - y2);
     }
+    // 平方距离 (避免 sqrt, 用于碰撞比较)
+    _distSq(x1, y1, x2, y2) {
+        const dx = x1 - x2, dy = y1 - y2;
+        return dx * dx + dy * dy;
+    }
+
+    // ─── 屏幕震动 ───
+    _triggerShake(mag, time) {
+        if (mag > this.shakeMag) this.shakeMag = mag;
+        if (time > this.shakeTime) this.shakeTime = time;
+    }
+
+    // ─── Sprite 预加载 ───
+    _loadSprites() {
+        const list = [
+            ['player',           'assets/survivor/player.png'],
+            ['boss',             'assets/survivor/boss.png'],
+            ['enemy-normal',     'assets/survivor/enemy-normal.png'],
+            ['enemy-bomb',       'assets/survivor/enemy-bomb.png'],
+            ['enemy-poison',     'assets/survivor/enemy-poison.png'],
+            ['enemy-shield',     'assets/survivor/enemy-shield.png'],
+            ['enemy-blackhole',  'assets/survivor/enemy-blackhole.png'],
+            ['bullet-dart',      'assets/survivor/bullet-dart.png'],
+            ['bullet-bomb',      'assets/survivor/bullet-bomb.png'],
+            ['bullet-poison',    'assets/survivor/bullet-poison.png'],
+            ['bullet-scatter',   'assets/survivor/bullet-scatter.png'],
+            ['bullet-snow',      'assets/survivor/bullet-snow.png'],
+        ];
+        for (const [key, src] of list) {
+            const img = new Image();
+            img.src = src;
+            this.spriteCache[key] = img;
+        }
+    }
+
+    // 取 sprite,未加载完成返回 null
+    _sprite(key) {
+        const img = this.spriteCache[key];
+        if (!img) return null;
+        if (!img.complete || img.naturalWidth === 0) return null;
+        return img;
+    }
+
+    // ─── 飘雪初始化 ───
+    _initSnow() {
+        this.snowFar = [];
+        this.snowNear = [];
+        for (let i = 0; i < 50; i++) {
+            this.snowFar.push({
+                x: Math.random() * this.W,
+                y: Math.random() * this.H,
+                v: 10 + Math.random() * 10,
+                r: 0.5 + Math.random() * 1.5,
+                drift: (Math.random() - 0.5) * 8,
+            });
+        }
+        for (let i = 0; i < 30; i++) {
+            this.snowNear.push({
+                x: Math.random() * this.W,
+                y: Math.random() * this.H,
+                v: 40 + Math.random() * 20,
+                r: 1.5 + Math.random() * 1.5,
+                drift: (Math.random() - 0.5) * 20,
+            });
+        }
+    }
+
+    // ─── 粒子系统 ───
+    _spawnParticles(x, y, opts) {
+        opts = opts || {};
+        const kind = opts.kind || 'bulletHit';
+        const color = opts.color || '#bae6fd';
+        const count = opts.count || 5;
+
+        for (let i = 0; i < count; i++) {
+            if (this.particles.length >= 200) break;
+            const ang = Math.random() * Math.PI * 2;
+            let speed, size, life, grav, vyBias;
+            if (kind === 'bossDeath') {
+                speed = 80 + Math.random() * 180;
+                size = 3 + Math.random() * 4;
+                life = 1.5 + Math.random() * 1.0;
+                grav = 80;
+                vyBias = 40;
+            } else if (kind === 'enemyDeath') {
+                speed = 60 + Math.random() * 140;
+                size = 2 + Math.random() * 3;
+                life = 0.8 + Math.random() * 0.7;
+                grav = 80;
+                vyBias = 40;
+            } else { // bulletHit
+                speed = 60 + Math.random() * 100;
+                size = 1.5 + Math.random() * 1.5;
+                life = 0.3 + Math.random() * 0.3;
+                grav = 0;
+                vyBias = 0;
+            }
+            this.particles.push({
+                x, y,
+                vx: Math.cos(ang) * speed,
+                vy: Math.sin(ang) * speed - vyBias,
+                life, maxLife: life, size, color, grav,
+            });
+        }
+    }
+
+    _updateParticles(dt) {
+        // 屏幕震动衰减
+        if (this.shakeTime > 0) this.shakeTime -= dt;
+
+        // 通用粒子
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            if (p.grav) p.vy += p.grav * dt;
+            p.life -= dt;
+            if (p.life <= 0) this.particles.splice(i, 1);
+        }
+
+        // 远景飘雪
+        for (const s of this.snowFar) {
+            s.y += s.v * dt;
+            s.x += s.drift * dt;
+            if (s.y > this.H) { s.y = -2; s.x = Math.random() * this.W; }
+            if (s.x < 0) s.x = this.W;
+            else if (s.x > this.W) s.x = 0;
+        }
+        // 近景飘雪
+        for (const s of this.snowNear) {
+            s.y += s.v * dt;
+            s.x += s.drift * dt;
+            if (s.y > this.H) { s.y = -2; s.x = Math.random() * this.W; }
+            if (s.x < 0) s.x = this.W;
+            else if (s.x > this.W) s.x = 0;
+        }
+    }
+
+    _drawParticles() {
+        const ctx = this.ctx;
+        for (const p of this.particles) {
+            const a = Math.max(0, p.life / p.maxLife);
+            ctx.globalAlpha = a;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
 
     // ─── 渲染 ───
     _render() {
         const ctx = this.ctx;
-        // 背景
-        ctx.fillStyle = '#0f0c1d';
-        ctx.fillRect(0, 0, this.W, this.H);
+        ctx.save();
 
-        // 方格
-        ctx.strokeStyle = 'rgba(167,139,250,0.08)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= this.W; x += this.CELL) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.H); ctx.stroke();
+        // 屏幕震动
+        if (this.shakeTime > 0) {
+            const m = this.shakeMag * (this.shakeTime > 0 ? Math.min(1, this.shakeTime * 6) : 0);
+            ctx.translate((Math.random() - 0.5) * 2 * m, (Math.random() - 0.5) * 2 * m);
         }
-        for (let y = 0; y <= this.H; y += this.CELL) {
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.W, y); ctx.stroke();
-        }
+
+        // 雪原背景
+        this._drawBackground();
 
         // 毒区
         for (const z of this.poisonZones) {
@@ -1191,26 +1451,54 @@ class SurvivorGame {
             ctx.lineWidth = 2; ctx.stroke();
         }
 
-        // 晶石
-        for (const c of this.crystals) {
-            const blink = c.life < 3 && Math.floor(c.life * 8) % 2 === 0;
-            if (blink) continue;
-            const colors = { green: '#4ade80', blue: '#60a5fa', red: '#f87171' };
-            ctx.fillStyle = colors[c.color];
-            ctx.shadowColor = colors[c.color];
-            ctx.shadowBlur = 8;
-            ctx.beginPath();
-            ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
+        // 晶石 (Path2D 预构建 + 按颜色分桶 + setTransform 批量, 省 save/restore 状态切换)
+        ctx.save(); // 保存震动 transform 状态, 循环后 restore
+        if (!this.crystalPaths) {
+            const r = 6;
+            const makeHex = () => {
+                const p = new Path2D();
+                for (let i = 0; i < 6; i++) {
+                    const a = i * Math.PI / 3;
+                    const px = Math.cos(a) * r;
+                    const py = Math.sin(a) * r;
+                    if (i === 0) p.moveTo(px, py);
+                    else p.lineTo(px, py);
+                }
+                p.closePath();
+                return p;
+            };
+            this.crystalPaths = {
+                green: makeHex(),
+                blue: makeHex(),
+                red: makeHex(),
+            };
         }
+        const crystalColors = { green: '#4ade80', blue: '#60a5fa', red: '#f87171' };
+        // 按颜色分桶
+        const buckets = { green: [], blue: [], red: [] };
+        for (const c of this.crystals) {
+            if (buckets[c.color]) buckets[c.color].push(c);
+        }
+        for (const col of ['green', 'blue', 'red']) {
+            const list = buckets[col];
+            if (list.length === 0) continue;
+            ctx.fillStyle = crystalColors[col];
+            for (const c of list) {
+                const rot = c.rot || 0;
+                // setTransform 省 save/translate/rotate/restore 4 个状态切换
+                ctx.setTransform(Math.cos(rot), Math.sin(rot), -Math.sin(rot), Math.cos(rot), c.x, c.y);
+                ctx.fill(this.crystalPaths[col]);
+            }
+        }
+        // 恢复 transform 到循环前状态 (含屏幕震动, 不影响后续 _drawEnemy / _drawPlayer)
+        ctx.restore();
 
         // 敌人
         for (const e of this.enemies) {
             this._drawEnemy(e);
         }
 
-        // 敌人子弹
+        // 敌人子弹 (程序化发光圆, 红色/紫色保留)
         for (const b of this.enemyBullets) {
             ctx.fillStyle = b.color;
             ctx.shadowColor = b.color;
@@ -1221,15 +1509,30 @@ class SurvivorGame {
             ctx.shadowBlur = 0;
         }
 
-        // 玩家子弹
+        // 玩家子弹 (5 种 sprite + 融合弹金色圆)
         for (const b of this.playerBullets) {
-            ctx.fillStyle = b.color;
-            ctx.shadowColor = b.color;
-            ctx.shadowBlur = 6;
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
+            const baseType = (b.type || '').replace('_fused', '');
+            const spriteKey = 'bullet-' + baseType;
+            const img = this._sprite(spriteKey);
+            if (img && BULLET_KEYS.includes(baseType)) {
+                // sprite 渲染
+                const ang = Math.atan2(b.vy, b.vx);
+                const size = 16;
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                ctx.rotate(ang);
+                ctx.drawImage(img, -size / 2, -size / 2, size, size);
+                ctx.restore();
+            } else {
+                // 融合弹 (A/S) 保留金色发光圆
+                ctx.fillStyle = b.color;
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r + 1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
         }
 
         // 特效
@@ -1268,6 +1571,9 @@ class SurvivorGame {
         // 玩家
         this._drawPlayer();
 
+        // 粒子 (死亡碎片/火花/飘雪?)
+        this._drawParticles();
+
         // 浮动文字
         for (const t of this.floatingTexts) {
             ctx.globalAlpha = t.life / t.maxLife;
@@ -1278,27 +1584,181 @@ class SurvivorGame {
             ctx.globalAlpha = 1;
         }
 
+        ctx.restore();
+
         // HUD 更新（每帧）
         this._updateHUD();
+    }
+
+    // ─── 雪原背景 ───
+    _drawBackground() {
+        const ctx = this.ctx;
+        const W = this.W, H = this.H;
+        const wallW = this.wallW;
+        const tileSize = this.groundTileSize;
+
+        // ── Lazy init: 地面 tile (offscreen) + 两侧墙 (offscreen) ──
+        if (!this.groundTile) {
+            // 单格 60x60, 含接缝高光 + 内部小雪点
+            const t = document.createElement('canvas');
+            t.width = t.height = tileSize;
+            const tctx = t.getContext('2d');
+            // 底色 (比墙亮一档, 区分)
+            tctx.fillStyle = '#102a44';
+            tctx.fillRect(0, 0, tileSize, tileSize);
+            // 中心微亮 (让 tile 内部比边缘稍亮)
+            tctx.fillStyle = 'rgba(186, 230, 253, 0.05)';
+            tctx.fillRect(2, 2, tileSize - 4, tileSize - 4);
+            // 顶 + 左 高光 (冰蓝)
+            tctx.strokeStyle = 'rgba(125, 211, 252, 0.4)';
+            tctx.lineWidth = 1;
+            tctx.beginPath();
+            tctx.moveTo(0.5, 0.5); tctx.lineTo(tileSize - 0.5, 0.5);
+            tctx.moveTo(0.5, 0.5); tctx.lineTo(0.5, tileSize - 0.5);
+            tctx.stroke();
+            // 底 + 右 阴影 (深冰蓝)
+            tctx.strokeStyle = 'rgba(2, 132, 199, 0.3)';
+            tctx.beginPath();
+            tctx.moveTo(0.5, tileSize - 0.5); tctx.lineTo(tileSize - 0.5, tileSize - 0.5);
+            tctx.moveTo(tileSize - 0.5, 0.5); tctx.lineTo(tileSize - 0.5, tileSize - 0.5);
+            tctx.stroke();
+            // 内部小雪点 (deterministic 几个, 让 tile 有细节不单调)
+            tctx.fillStyle = 'rgba(224, 242, 254, 0.5)';
+            const dots = [[14, 22, 2], [38, 12, 2], [28, 42, 2], [48, 32, 2], [10, 48, 2], [44, 50, 2]];
+            for (const [dx, dy, r] of dots) {
+                tctx.fillRect(dx, dy, r, r);
+            }
+            this.groundTile = t;
+            this.groundPattern = ctx.createPattern(t, 'repeat');
+        }
+
+        // ── 静态层: 渐变 + 两侧墙 (offscreen 缓存, 只画一次) ──
+        if (!this.bgCanvas) {
+            this.bgCanvas = document.createElement('canvas');
+            this.bgCanvas.width = W;
+            this.bgCanvas.height = H;
+            const bctx = this.bgCanvas.getContext('2d');
+            // 渐变底色 (深雪夜) — 整屏, 墙和地都坐落其上
+            const grad = bctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, '#0a1929');
+            grad.addColorStop(1, '#0c1a2e');
+            bctx.fillStyle = grad;
+            bctx.fillRect(0, 0, W, H);
+
+            // 左侧墙
+            bctx.fillStyle = '#0a1929';
+            bctx.fillRect(0, 0, wallW, H);
+            // 墙内竖向接缝 (错位砖块效果)
+            bctx.strokeStyle = 'rgba(2, 132, 199, 0.5)';
+            bctx.lineWidth = 1;
+            bctx.beginPath();
+            for (let y = 0; y < H; y += 60) {
+                bctx.moveTo(8, y); bctx.lineTo(8, y + 28);
+                bctx.moveTo(24, y + 30); bctx.lineTo(24, y + 60);
+            }
+            bctx.stroke();
+            // 墙右侧高光 (朝中间亮)
+            const wallHL = bctx.createLinearGradient(wallW - 4, 0, wallW, 0);
+            wallHL.addColorStop(0, 'rgba(125, 211, 252, 0)');
+            wallHL.addColorStop(1, 'rgba(125, 211, 252, 0.6)');
+            bctx.fillStyle = wallHL;
+            bctx.fillRect(wallW - 4, 0, 4, H);
+            // 墙顶/底 装饰线
+            bctx.strokeStyle = 'rgba(125, 211, 252, 0.4)';
+            bctx.lineWidth = 1;
+            bctx.beginPath();
+            bctx.moveTo(0, 0.5); bctx.lineTo(wallW, 0.5);
+            bctx.moveTo(0, H - 0.5); bctx.lineTo(wallW, H - 0.5);
+            bctx.stroke();
+
+            // 右侧墙 (镜像)
+            bctx.fillStyle = '#0a1929';
+            bctx.fillRect(W - wallW, 0, wallW, H);
+            bctx.strokeStyle = 'rgba(2, 132, 199, 0.5)';
+            bctx.lineWidth = 1;
+            bctx.beginPath();
+            for (let y = 0; y < H; y += 60) {
+                bctx.moveTo(W - 8, y); bctx.lineTo(W - 8, y + 28);
+                bctx.moveTo(W - 24, y + 30); bctx.lineTo(W - 24, y + 60);
+            }
+            bctx.stroke();
+            const wallHR = bctx.createLinearGradient(W - wallW, 0, W - wallW + 4, 0);
+            wallHR.addColorStop(0, 'rgba(125, 211, 252, 0.6)');
+            wallHR.addColorStop(1, 'rgba(125, 211, 252, 0)');
+            bctx.fillStyle = wallHR;
+            bctx.fillRect(W - wallW, 0, 4, H);
+            bctx.strokeStyle = 'rgba(125, 211, 252, 0.4)';
+            bctx.lineWidth = 1;
+            bctx.beginPath();
+            bctx.moveTo(W - wallW, 0.5); bctx.lineTo(W, 0.5);
+            bctx.moveTo(W - wallW, H - 0.5); bctx.lineTo(W, H - 0.5);
+            bctx.stroke();
+        }
+        // 每帧 blit 静态层
+        ctx.drawImage(this.bgCanvas, 0, 0);
+
+        // ── 动态层: 中间滚动地面 (createPattern + translate, 1 次 fill 即可) ──
+        // scrollY 单调增, modulo 让 translate 永在 [0, tileSize) 内, 视觉无缝
+        const middleX = wallW;
+        const middleW = W - 2 * wallW;
+        ctx.save();
+        ctx.translate(0, this.scrollY % tileSize);
+        ctx.fillStyle = this.groundPattern;
+        // 上下各多画一格, 防止滚出视野
+        ctx.fillRect(middleX, -tileSize, middleW, H + tileSize);
+        ctx.restore();
+
+        // ── 飘雪 (动态层, 批 fill 优化) ──
+        // 远景: 50 个一起 beginPath + 1 次 fill (减少 fillStyle/beginPath 切换)
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.4)';
+        ctx.beginPath();
+        for (const s of this.snowFar) {
+            ctx.moveTo(s.x + s.r, s.y);
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        // 近景: 30 个一起
+        ctx.fillStyle = 'rgba(224, 242, 254, 0.75)';
+        ctx.beginPath();
+        for (const s of this.snowNear) {
+            ctx.moveTo(s.x + s.r, s.y);
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        }
+        ctx.fill();
     }
 
     _drawPlayer() {
         const ctx = this.ctx;
         const p = this.player;
+        const img = this._sprite('player');
+        const size = 64;
+
         // 无敌闪烁
         if (p.invincible > 0 && Math.floor(p.invincible * 10) % 2 === 0) {
             ctx.globalAlpha = 0.5;
         }
-        // 光环
-        ctx.shadowColor = '#a78bfa';
-        ctx.shadowBlur = 12;
-        ctx.fillStyle = '#c4b5fd';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        // 朝向指示
-        ctx.strokeStyle = '#fff';
+
+        if (img) {
+            // 朝向: dir 默认 (0, -1) 表示朝上, sprite 通常以 "上" 为正面
+            const ang = Math.atan2(p.dirY, p.dirX) + Math.PI / 2;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(ang);
+            ctx.drawImage(img, -size / 2, -size / 2, size, size);
+            ctx.restore();
+        } else {
+            // 降级: 冰蓝光球
+            ctx.shadowColor = '#7dd3fc';
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = '#bae6fd';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // 朝向指示 (白色短线, 即使有 sprite 也保留一点视觉提示)
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.7)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(p.x, p.y);
@@ -1309,17 +1769,32 @@ class SurvivorGame {
 
     _drawEnemy(e) {
         const ctx = this.ctx;
-        ctx.shadowColor = e.color;
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = e.color;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        const spriteKey = e.isBoss ? 'boss' : 'enemy-' + e.type;
+        const img = this._sprite(spriteKey);
+        const size = e.isBoss ? 96 : (e.isElite ? 64 : 32);
 
-        // 护盾
+        if (img) {
+            // 朝向玩家
+            const ang = Math.atan2(e.dirY, e.dirX) + Math.PI / 2;
+            ctx.save();
+            ctx.translate(e.x, e.y);
+            ctx.rotate(ang);
+            ctx.drawImage(img, -size / 2, -size / 2, size, size);
+            ctx.restore();
+        } else {
+            // 降级: 发光圆
+            ctx.shadowColor = e.color;
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = e.color;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // 护盾 (冰蓝)
         if (e.shield > 0) {
-            ctx.strokeStyle = '#67e8f9';
+            ctx.strokeStyle = '#7dd3fc';
             ctx.lineWidth = 3;
             ctx.globalAlpha = 0.7;
             ctx.beginPath();
@@ -1339,17 +1814,17 @@ class SurvivorGame {
 
         // Boss 血条
         if (e.isBoss) {
-            const bw = 60;
+            const bw = 80;
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.fillRect(e.x - bw / 2, e.y - e.r - 12, bw, 6);
+            ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw, 7);
             ctx.fillStyle = '#ef4444';
-            ctx.fillRect(e.x - bw / 2, e.y - e.r - 12, bw * (e.hp / e.maxHp), 6);
+            ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw * (e.hp / e.maxHp), 7);
         }
 
         // 精英标记
         if (e.isElite) {
             ctx.fillStyle = '#fbbf24';
-            ctx.font = 'bold 10px sans-serif';
+            ctx.font = 'bold 12px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('★', e.x, e.y - e.r - 4);
         }
