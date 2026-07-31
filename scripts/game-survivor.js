@@ -181,6 +181,8 @@ class SurvivorGame {
             r: 18,
             hp: 200,
             maxHp: 200,
+            mana: 60,
+            maxMana: 100,
             speed: 200,
             dirX: 0, dirY: -1,  // 朝向（默认向上）
             weapons: [
@@ -204,6 +206,7 @@ class SurvivorGame {
         this.gameTime = 0;
         this.spawnTimer = 0;
         this.spawnInterval = 1.2;
+        this.skillCd = 0;
         this.bossSpawned = false;
         this.enemyKillCount = 0;
         this.gameOver = false;
@@ -305,9 +308,49 @@ class SurvivorGame {
         this._updateEffects(dt);
         this._updateFloatingTexts(dt);
         this._updateParticles(dt);
+        this._updateSkill(dt);
         this._checkLevelup();
         this._checkBossSpawn();
         this._applyWorldScroll(dt);
+    }
+
+    // ─── 技能: 冰霜新星 (空格释放, 消耗蓝量) ───
+    _updateSkill(dt) {
+        if (this.skillCd > 0) this.skillCd -= dt;
+        // 只在空格"按下瞬间"触发, 防止按住连发
+        const pressed = this.keys['Space'] && !this._spacePrev;
+        this._spacePrev = !!this.keys['Space'];
+        if (pressed) {
+            this._castSkill();
+        }
+    }
+
+    _castSkill() {
+        const p = this.player;
+        if (this.skillCd > 0) return;
+        const COST = 50;
+        if (p.mana < COST) {
+            this._floatingText(p.x, p.y - 30, '蓝量不足', '#60a5fa');
+            return;
+        }
+        p.mana -= COST;
+        this.skillCd = 3.0;
+
+        // 冰霜新星: 清屏周围敌弹 + 范围伤害
+        const R = 220;
+        this.enemyBullets = this.enemyBullets.filter(b => this._dist(b.x, b.y, p.x, p.y) > R);
+        for (const e of this.enemies) {
+            if (e.dead) continue;
+            if (this._dist(e.x, e.y, p.x, p.y) < R + e.r) {
+                this._hitEnemy(e, 60, {});
+            }
+        }
+        // 特效
+        this.effects.push({ type: 'explode', x: p.x, y: p.y, r: R, life: 0.45, maxLife: 0.45, color: '#67e8f9' });
+        this._triggerShake(6, 0.25);
+        this._spawnParticles(p.x, p.y, { kind: 'bossDeath', color: '#67e8f9', count: 24 });
+        this._floatingText(p.x, p.y - 34, '❄ 冰霜新星', '#67e8f9');
+        this._updateHUD();
     }
 
     // ─── 地图滚动: 所有"世界对象"统一下移 ───
@@ -596,19 +639,35 @@ class SurvivorGame {
             }
             this._doGameWin();
         } else if (e.isElite) {
-            // 精英: 2~3 个蓝/红
+            // 精英: 2~3 个蓝/红 (品质随时间提升) + 必掉一瓶
+            const t = this.gameTime;
             const n = 2 + Math.floor(Math.random() * 2);
             for (let i = 0; i < n; i++) {
-                this._dropCrystal(e.x + (Math.random()-0.5)*30, e.y + (Math.random()-0.5)*30, Math.random() < 0.35 ? 'red' : 'blue');
+                const roll = Math.random();
+                const color = roll < Math.min(0.5, 0.2 + t / 200) ? 'red' : 'blue';
+                this._dropCrystal(e.x + (Math.random()-0.5)*30, e.y + (Math.random()-0.5)*30, color);
             }
+            this._dropPickup(e.x, e.y + 10, Math.random() < 0.5 ? 'hp' : 'mana');
         } else {
-            // 普通: 必掉 1 绿 + 60% 再掉 1 绿, 15% 额外蓝
+            // 普通: 必掉 1 绿 + 概率额外, 品质随时间提升
+            const t = this.gameTime;
+            const blueChance = Math.min(0.45, 0.08 + t / 150);   // 前期8%, 后期45%
+            const redChance  = Math.min(0.2, t / 500);           // 后期才出红
             this._dropCrystal(e.x, e.y, 'green');
             const r = Math.random();
-            if (r < 0.15) {
+            if (r < redChance) {
+                this._dropCrystal(e.x + 12, e.y + 8, 'red');
+            } else if (r < redChance + blueChance) {
                 this._dropCrystal(e.x + 12, e.y + 8, 'blue');
-            } else if (r < 0.75) {
+            } else if (r < redChance + blueChance + 0.55) {
                 this._dropCrystal(e.x - 12, e.y + 10, 'green');
+            }
+            // 小概率掉血/蓝瓶
+            const pr = Math.random();
+            if (pr < 0.06) {
+                this._dropPickup(e.x, e.y + 14, 'hp');
+            } else if (pr < 0.12) {
+                this._dropPickup(e.x, e.y + 14, 'mana');
             }
         }
     }
@@ -620,8 +679,23 @@ class SurvivorGame {
             vx: (Math.random() - 0.5) * 40,
             vy: (Math.random() - 0.5) * 40 - 30,
             color, exp,
+            kind: 'crystal',
             r: 8,
             life: 12,
+            magnet: false,
+        });
+    }
+
+    // 血瓶 / 蓝瓶
+    _dropPickup(x, y, kind) {
+        this.crystals.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 40,
+            vy: (Math.random() - 0.5) * 40 - 30,
+            color: kind === 'hp' ? '#f87171' : '#60a5fa',
+            kind,
+            r: 9,
+            life: 15,
             magnet: false,
         });
     }
@@ -641,13 +715,13 @@ class SurvivorGame {
         if (!this.bossSpawned) {
             this.spawnTimer -= dt;
             if (this.spawnTimer <= 0) {
-                // 一次生成 1~3 只 (随时间增加), 保持压力
-                const batch = 1 + Math.floor(this.gameTime / 50); // 50s后2只, 100s后3只
+                // 一次生成 1~2 只 (随时间缓慢增加), 后期不失控
+                const batch = 1 + Math.floor(this.gameTime / 75); // 75s后2只, 150s后3只
                 for (let i = 0; i < Math.min(batch, 3); i++) {
                     this._spawnEnemy();
                 }
-                // 间隔随时间递减
-                this.spawnInterval = Math.max(0.35, 1.2 - this.gameTime * 0.006);
+                // 间隔随时间递减 (下限 0.5s, 防止后期过密)
+                this.spawnInterval = Math.max(0.5, 1.2 - this.gameTime * 0.004);
                 this.spawnTimer = this.spawnInterval;
             }
         }
@@ -911,8 +985,21 @@ class SurvivorGame {
                 c.y += Math.sin(ang) * pull * dt;
             }
             if (d < p.r + c.r) {
-                this.exp += c.exp;
-                this._floatingText(c.x, c.y, '+' + c.exp, c.color === 'green' ? '#4ade80' : c.color === 'blue' ? '#60a5fa' : '#f87171');
+                if (c.kind === 'hp') {
+                    // 血瓶: 回血
+                    p.hp = Math.min(p.maxHp, p.hp + 40);
+                    this._floatingText(c.x, c.y - 8, '+40 HP', '#f87171');
+                    this._spawnParticles(c.x, c.y, { kind: 'bulletHit', color: '#f87171', count: 6 });
+                } else if (c.kind === 'mana') {
+                    // 蓝瓶: 加蓝
+                    p.mana = Math.min(p.maxMana, p.mana + 30);
+                    this._floatingText(c.x, c.y - 8, '+30 MP', '#60a5fa');
+                    this._spawnParticles(c.x, c.y, { kind: 'bulletHit', color: '#60a5fa', count: 6 });
+                } else {
+                    // 晶石: 经验
+                    this.exp += c.exp;
+                    this._floatingText(c.x, c.y, '+' + c.exp, c.color === 'green' ? '#4ade80' : c.color === 'blue' ? '#60a5fa' : '#f87171');
+                }
                 this.crystals.splice(i, 1);
                 continue;
             }
@@ -1192,16 +1279,19 @@ class SurvivorGame {
     // ─── UI 渲染 ───
     _updateHUD() {
         const p = this.player;
-        const hpEl = document.getElementById('survHpValue');
         const hpFill = document.getElementById('survHpFill');
         const hpText = document.getElementById('survHpText');
+        const mpFill = document.getElementById('survMpFill');
+        const mpText = document.getElementById('survMpText');
         const lvEl = document.getElementById('survLevelValue');
         const expFill = document.getElementById('survExpFill');
         const timeEl = document.getElementById('survTimeValue');
         const killEl = document.getElementById('survKillValue');
 
-        if (hpEl) hpEl.style.width = Math.max(0, p.hp / p.maxHp * 100) + '%';
+        if (hpFill) hpFill.style.width = Math.max(0, p.hp / p.maxHp * 100) + '%';
         if (hpText) hpText.textContent = Math.ceil(Math.max(0, p.hp)) + '/' + p.maxHp;
+        if (mpFill) mpFill.style.width = Math.max(0, p.mana / p.maxMana * 100) + '%';
+        if (mpText) mpText.textContent = Math.floor(p.mana) + '/' + p.maxMana;
         if (lvEl) lvEl.textContent = this.level;
         if (expFill) expFill.style.width = (this.exp / expToNext(this.level) * 100) + '%';
         if (timeEl) timeEl.textContent = Math.floor(this.gameTime) + 's';
@@ -1480,19 +1570,36 @@ class SurvivorGame {
             ctx.lineWidth = 2; ctx.strokeRect(z.x - half, z.y - half, half * 2, half * 2);
         }
 
-        // 晶石 (Path2D 预构建 + 按颜色分桶 + setTransform 批量, 省 save/restore 状态切换)
+        // 晶石 (长六边形) + 血/蓝瓶 (Path2D 预构建 + 按类型分桶 + setTransform 批量)
         ctx.save(); // 保存震动 transform 状态, 循环后 restore
         if (!this.crystalPaths) {
-            const r = 8;
+            const rx = 11, ry = 7; // 长六边形: 水平拉长, 与圆形敌弹区分
             const makeHex = () => {
                 const p = new Path2D();
                 for (let i = 0; i < 6; i++) {
                     const a = i * Math.PI / 3;
-                    const px = Math.cos(a) * r;
-                    const py = Math.sin(a) * r;
+                    const px = Math.cos(a) * rx;
+                    const py = Math.sin(a) * ry;
                     if (i === 0) p.moveTo(px, py);
                     else p.lineTo(px, py);
                 }
+                p.closePath();
+                return p;
+            };
+            const makeBottle = () => {
+                const p = new Path2D();
+                const bw = 9, bh = 13, neck = 4;
+                // 瓶颈
+                p.moveTo(-neck/2, -bh/2 + 3);
+                p.lineTo(-neck/2, -bh/2 + 1);
+                p.lineTo(neck/2, -bh/2 + 1);
+                p.lineTo(neck/2, -bh/2 + 3);
+                // 瓶身右侧
+                p.lineTo(bw/2, bh/2 - 2);
+                p.quadraticCurveTo(bw/2, bh/2, bw/2 - 2, bh/2);
+                // 瓶底
+                p.lineTo(-bw/2 + 2, bh/2);
+                p.quadraticCurveTo(-bw/2, bh/2, -bw/2, bh/2 - 2);
                 p.closePath();
                 return p;
             };
@@ -1500,23 +1607,33 @@ class SurvivorGame {
                 green: makeHex(),
                 blue: makeHex(),
                 red: makeHex(),
+                hp: makeBottle(),
+                mana: makeBottle(),
             };
         }
         const crystalColors = { green: '#4ade80', blue: '#60a5fa', red: '#f87171' };
-        // 按颜色分桶
-        const buckets = { green: [], blue: [], red: [] };
+        const pickupColors = { hp: '#f87171', mana: '#60a5fa' };
+        // 按颜色/类型分桶
+        const buckets = { green: [], blue: [], red: [], hp: [], mana: [] };
         for (const c of this.crystals) {
-            if (buckets[c.color]) buckets[c.color].push(c);
+            const key = c.kind === 'crystal' ? c.color : c.kind;
+            if (buckets[key]) buckets[key].push(c);
         }
-        for (const col of ['green', 'blue', 'red']) {
+        for (const col of ['green', 'blue', 'red', 'hp', 'mana']) {
             const list = buckets[col];
-            if (list.length === 0) continue;
-            ctx.fillStyle = crystalColors[col];
+            if (!list || list.length === 0) continue;
+            ctx.fillStyle = pickupColors[col] || crystalColors[col];
             for (const c of list) {
                 const rot = c.rot || 0;
                 // setTransform 省 save/translate/rotate/restore 4 个状态切换
                 ctx.setTransform(Math.cos(rot), Math.sin(rot), -Math.sin(rot), Math.cos(rot), c.x, c.y);
                 ctx.fill(this.crystalPaths[col]);
+                // 瓶子加白色描边, 更好辨认
+                if (col === 'hp' || col === 'mana') {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke(this.crystalPaths[col]);
+                }
             }
         }
         // 恢复 transform 到循环前状态 (含屏幕震动, 不影响后续 _drawEnemy / _drawPlayer)
