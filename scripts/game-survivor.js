@@ -178,7 +178,7 @@ class SurvivorGame {
         this.player = {
             x: this.W / 2,
             y: this.H - 60,
-            r: 14,
+            r: 18,
             hp: 200,
             maxHp: 200,
             speed: 200,
@@ -203,7 +203,7 @@ class SurvivorGame {
         this.exp = 0;
         this.gameTime = 0;
         this.spawnTimer = 0;
-        this.spawnInterval = 1.5;
+        this.spawnInterval = 1.2;
         this.bossSpawned = false;
         this.enemyKillCount = 0;
         this.gameOver = false;
@@ -349,9 +349,9 @@ class SurvivorGame {
         p.x = Math.max(p.r, Math.min(this.W - p.r, p.x));
         p.y = Math.max(p.r, Math.min(this.H - p.r, p.y));
 
-        // 毒区伤害
+        // 毒区伤害 (矩形判定: 毒区为方格)
         for (const z of this.poisonZones) {
-            if (z.team === 'enemy' && this._dist(p.x, p.y, z.x, z.y) < p.r + z.r) {
+            if (z.team === 'enemy' && Math.abs(p.x - z.x) < z.half + p.r && Math.abs(p.y - z.y) < z.half + p.r) {
                 if (p.invincible <= 0) {
                     p.hp -= 8 * dt;
                 }
@@ -463,7 +463,7 @@ class SurvivorGame {
             x, y,
             vx: Math.cos(ang) * speed,
             vy: Math.sin(ang) * speed,
-            r: 5,
+            r: 7,
             dmg,
             tier: w.tier,
             level: w.level,
@@ -511,10 +511,11 @@ class SurvivorGame {
                         arr.splice(i, 1);
                         break;
                     }
-                    // 毒区
+                    // 毒区 (方格覆盖)
                     if (b.poison) {
+                        const g = this._snapToGrid(b.x, b.y);
                         this.poisonZones.push({
-                            x: b.x, y: b.y, r: b.poisonR,
+                            x: g.x, y: g.y, half: 30,
                             team: 'player', life: 4, dmg: b.dmg * 0.3, tick: 0
                         });
                         arr.splice(i, 1);
@@ -584,22 +585,31 @@ class SurvivorGame {
             this._spawnParticles(e.x, e.y, { kind: 'enemyDeath', color: e.color, count: 10 });
         }
 
-        // 掉落晶石
+        // 掉落晶石 (更丰富, 加快前期升级)
         if (e.isBoss) {
             // Boss 掉多个
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < 10; i++) {
                 this._dropCrystal(e.x + (Math.random()-0.5)*40, e.y + (Math.random()-0.5)*40, 'red');
             }
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < 8; i++) {
                 this._dropCrystal(e.x + (Math.random()-0.5)*60, e.y + (Math.random()-0.5)*60, 'blue');
             }
             this._doGameWin();
         } else if (e.isElite) {
-            this._dropCrystal(e.x, e.y, Math.random() < 0.3 ? 'red' : 'blue');
+            // 精英: 2~3 个蓝/红
+            const n = 2 + Math.floor(Math.random() * 2);
+            for (let i = 0; i < n; i++) {
+                this._dropCrystal(e.x + (Math.random()-0.5)*30, e.y + (Math.random()-0.5)*30, Math.random() < 0.35 ? 'red' : 'blue');
+            }
         } else {
+            // 普通: 必掉 1 绿 + 60% 再掉 1 绿, 15% 额外蓝
+            this._dropCrystal(e.x, e.y, 'green');
             const r = Math.random();
-            if (r < 0.1) this._dropCrystal(e.x, e.y, 'blue');
-            else this._dropCrystal(e.x, e.y, 'green');
+            if (r < 0.15) {
+                this._dropCrystal(e.x + 12, e.y + 8, 'blue');
+            } else if (r < 0.75) {
+                this._dropCrystal(e.x - 12, e.y + 10, 'green');
+            }
         }
     }
 
@@ -610,10 +620,19 @@ class SurvivorGame {
             vx: (Math.random() - 0.5) * 40,
             vy: (Math.random() - 0.5) * 40 - 30,
             color, exp,
-            r: 6,
+            r: 8,
             life: 12,
             magnet: false,
         });
+    }
+
+    // 对齐到地面方格中心 (地面 tile 60x60, 毒区/轰炸以方格为单位)
+    _snapToGrid(x, y) {
+        const g = this.groundTileSize;
+        return {
+            x: Math.floor(x / g) * g + g / 2,
+            y: Math.floor(y / g) * g + g / 2
+        };
     }
 
     // ─── 敌人 ───
@@ -622,9 +641,13 @@ class SurvivorGame {
         if (!this.bossSpawned) {
             this.spawnTimer -= dt;
             if (this.spawnTimer <= 0) {
-                this._spawnEnemy();
+                // 一次生成 1~3 只 (随时间增加), 保持压力
+                const batch = 1 + Math.floor(this.gameTime / 50); // 50s后2只, 100s后3只
+                for (let i = 0; i < Math.min(batch, 3); i++) {
+                    this._spawnEnemy();
+                }
                 // 间隔随时间递减
-                this.spawnInterval = Math.max(0.5, 1.5 - this.gameTime * 0.003);
+                this.spawnInterval = Math.max(0.35, 1.2 - this.gameTime * 0.006);
                 this.spawnTimer = this.spawnInterval;
             }
         }
@@ -715,7 +738,7 @@ class SurvivorGame {
         const hpScale = isBoss ? 15 : (isElite ? 3 : 1);
         const e = {
             x, y,
-            r: (isBoss ? 30 : 16) * sizeMult,
+            r: (isBoss ? 40 : 22) * sizeMult,
             hp: base.hp * hpScale,
             maxHp: base.hp * hpScale,
             speed: base.speed * (isBoss ? 0.6 : 1),
@@ -761,17 +784,19 @@ class SurvivorGame {
                 this._addEnemyBullet(e.x, e.y, ang, e.bulletSpeed, e.contactDmg * 0.4);
                 break;
             case 'bomb':
-                // 定点轰炸: 在玩家位置标记, 延迟爆炸（由 _updateEffects 触发）
-                this.effects.push({ type: 'bombMarker', x: p.x, y: p.y, r: 30, life: 1.2, maxLife: 1.2, color:'#fb923c', willExplode: true, explodeDmg: 15 });
+                // 定点轰炸: 在玩家所在方格标记, 延迟爆炸（由 _updateEffects 触发）
+                const g1 = this._snapToGrid(p.x, p.y);
+                this.effects.push({ type: 'bombMarker', x: g1.x, y: g1.y, r: 30, life: 1.2, maxLife: 1.2, color:'#fb923c', willExplode: true, explodeDmg: 15 });
                 break;
             case 'poison': {
-                // 在玩家附近方格吐毒液
+                // 在玩家附近方格吐毒液 (对齐格子)
                 const count = e.isElite ? 2 : 1;
                 for (let i = 0; i < count; i++) {
-                    const tx = p.x + (Math.random() - 0.5) * 80;
-                    const ty = p.y + (Math.random() - 0.5) * 80;
+                    const tx = p.x + (Math.random() - 0.5) * 120;
+                    const ty = p.y + (Math.random() - 0.5) * 120;
+                    const g = this._snapToGrid(tx, ty);
                     this.poisonZones.push({
-                        x: tx, y: ty, r: 25,
+                        x: g.x, y: g.y, half: 30,
                         team: 'enemy', life: 4, dmg: 6, tick: 0
                     });
                 }
@@ -801,9 +826,11 @@ class SurvivorGame {
         // 特性攻击
         for (const t of e.bossTypes || []) {
             if (t === 'bomb') {
-                this.effects.push({ type: 'bombMarker', x: p.x, y: p.y, r: 40, life: 1.0, maxLife: 1.0, color:'#fb923c' });
+                const g = this._snapToGrid(p.x, p.y);
+                this.effects.push({ type: 'bombMarker', x: g.x, y: g.y, r: 30, life: 1.0, maxLife: 1.0, color:'#fb923c' });
             } else if (t === 'poison') {
-                this.poisonZones.push({ x: p.x, y: p.y, r: 30, team:'enemy', life: 4, dmg: 8, tick: 0 });
+                const g = this._snapToGrid(p.x, p.y);
+                this.poisonZones.push({ x: g.x, y: g.y, half: 30, team:'enemy', life: 4, dmg: 8, tick: 0 });
             } else if (t === 'blackhole') {
                 this._addEnemyBullet(e.x, e.y, ang, 140, 10, { bounce: true, bounceCount: 4, r: 9 });
             }
@@ -823,7 +850,7 @@ class SurvivorGame {
             x, y,
             vx: Math.cos(ang) * speed,
             vy: Math.sin(ang) * speed,
-            r: opts.r || 5,
+            r: opts.r || 7,
             dmg,
             color: opts.bounce ? '#a855f7' : '#f87171',
             bounce: opts.bounce || false,
@@ -900,11 +927,12 @@ class SurvivorGame {
             z.life -= dt;
             z.tick = (z.tick || 0) + dt;
             if (z.life <= 0) { this.poisonZones.splice(i, 1); continue; }
-            // 对敌人持续伤害（玩家毒区）
+            // 对敌人持续伤害（玩家毒区, 矩形判定）
             if (z.team === 'player') {
+                const half = z.half || 25;
                 for (const e of this.enemies) {
                     if (e.dead) continue;
-                    if (this._dist(z.x, z.y, e.x, e.y) < z.r + e.r) {
+                    if (Math.abs(z.x - e.x) < half + e.r && Math.abs(z.y - e.y) < half + e.r) {
                         if (z.tick >= 0.5) {
                             this._hitEnemy(e, z.dmg, {});
                         }
@@ -1442,19 +1470,20 @@ class SurvivorGame {
         // 雪原背景
         this._drawBackground();
 
-        // 毒区
+        // 毒区 (方格覆盖)
         for (const z of this.poisonZones) {
             const alpha = Math.min(1, z.life / 2);
+            const half = z.half || 25;
             ctx.fillStyle = z.team === 'player' ? `rgba(132,204,22,${0.2 * alpha})` : `rgba(239,68,68,${0.2 * alpha})`;
-            ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillRect(z.x - half, z.y - half, half * 2, half * 2);
             ctx.strokeStyle = z.team === 'player' ? `rgba(132,204,22,${0.5 * alpha})` : `rgba(239,68,68,${0.5 * alpha})`;
-            ctx.lineWidth = 2; ctx.stroke();
+            ctx.lineWidth = 2; ctx.strokeRect(z.x - half, z.y - half, half * 2, half * 2);
         }
 
         // 晶石 (Path2D 预构建 + 按颜色分桶 + setTransform 批量, 省 save/restore 状态切换)
         ctx.save(); // 保存震动 transform 状态, 循环后 restore
         if (!this.crystalPaths) {
-            const r = 6;
+            const r = 8;
             const makeHex = () => {
                 const p = new Path2D();
                 for (let i = 0; i < 6; i++) {
@@ -1517,7 +1546,7 @@ class SurvivorGame {
             if (img && BULLET_KEYS.includes(baseType)) {
                 // sprite 渲染
                 const ang = Math.atan2(b.vy, b.vx);
-                const size = 16;
+                const size = 22;
                 ctx.save();
                 ctx.translate(b.x, b.y);
                 ctx.rotate(ang);
@@ -1529,7 +1558,7 @@ class SurvivorGame {
                 ctx.shadowColor = b.color;
                 ctx.shadowBlur = 10;
                 ctx.beginPath();
-                ctx.arc(b.x, b.y, b.r + 1, 0, Math.PI * 2);
+                ctx.arc(b.x, b.y, b.r + 2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
             }
@@ -1554,15 +1583,15 @@ class SurvivorGame {
                 ctx.fill();
                 ctx.globalAlpha = 1;
             } else if (e.type === 'bombMarker') {
+                // 定点轰炸标记: 方格闪烁 + 十字
                 ctx.strokeStyle = e.color;
                 ctx.globalAlpha = 0.3 + Math.sin(t * Math.PI * 4) * 0.3;
                 ctx.lineWidth = 3;
+                const half = e.r || 30;
+                ctx.strokeRect(e.x - half, e.y - half, half * 2, half * 2);
                 ctx.beginPath();
-                ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(e.x - e.r, e.y); ctx.lineTo(e.x + e.r, e.y);
-                ctx.moveTo(e.x, e.y - e.r); ctx.lineTo(e.x, e.y + e.r);
+                ctx.moveTo(e.x - half, e.y); ctx.lineTo(e.x + half, e.y);
+                ctx.moveTo(e.x, e.y - half); ctx.lineTo(e.x, e.y + half);
                 ctx.stroke();
                 ctx.globalAlpha = 1;
             }
@@ -1771,7 +1800,7 @@ class SurvivorGame {
         const ctx = this.ctx;
         const spriteKey = e.isBoss ? 'boss' : 'enemy-' + e.type;
         const img = this._sprite(spriteKey);
-        const size = e.isBoss ? 96 : (e.isElite ? 64 : 32);
+        const size = e.isBoss ? 128 : (e.isElite ? 88 : 44);
 
         if (img) {
             // 朝向玩家
