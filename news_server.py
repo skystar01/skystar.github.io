@@ -42,7 +42,7 @@ app = FastAPI(title="每日资讯服务", version="1.0")
 # 仅允许本地开发常用来源访问，避免公网/恶意网页调用 API 白嫖 LLM 额度
 # - localhost/127.0.0.1:5500  → VS Code Live Server 默认端口
 # - localhost/127.0.0.1:8000  → 同源访问
-# - null                       → file:// 双击打开 main.html 时浏览器发的 Origin
+# - null                       → file:// 双击打开 index.html 时浏览器发的 Origin
 ALLOWED_ORIGINS = [
     "http://localhost:5500",
     "http://127.0.0.1:5500",

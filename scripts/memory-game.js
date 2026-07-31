@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('memoryBoard')) {
         window.memoryGame = new MemoryGame();
 
-        // 暴露给 main.html 的 fitGame()
+        // 暴露给 index.html 的 fitGame()
         window.fitMemory = function (container) {
             if (!container) return;
             const boardArea = container.querySelector('.memory-board-area');

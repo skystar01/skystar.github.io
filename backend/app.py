@@ -10,7 +10,7 @@ app = Flask(__name__, static_folder='..')
 # 仅允许本地开发常用来源访问，避免公网/恶意网页调用推理 API
 # - localhost/127.0.0.1:5500  → VS Code Live Server 默认端口
 # - localhost/127.0.0.1:5000  → 同源访问
-# - null                       → file:// 双击打开 main.html 时浏览器发的 Origin
+# - null                       → file:// 双击打开 index.html 时浏览器发的 Origin
 CORS(app, resources={
     r"/api/*": {
         "origins": [

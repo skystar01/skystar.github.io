@@ -6,7 +6,7 @@
 
 ```
 .
-├── main.html              # 单页 SPA 入口（home/news/about/skills/projects/game/contact）
+├── index.html             # 单页 SPA 入口（home/news/about/skills/projects/game/contact）
 ├── styles/                # CSS（main + 6 个游戏样式）
 ├── scripts/               # 8 个游戏 JS + 一次性工具脚本
 ├── assets/                # 图标 / 卡牌图
@@ -26,7 +26,7 @@
 
 ## 功能模块
 
-### 1. 主页（main.html）
+### 1. 主页（index.html）
 
 7 个 panel：home / news / about / skills / projects / game / contact，外加 3 个 modal。
 
@@ -47,12 +47,12 @@
 
 ### 前端（纯静态）
 
-直接用浏览器打开 `main.html`，或用任意静态服务器：
+直接用浏览器打开 `index.html`，或用任意静态服务器：
 
 ```bash
 # 例：VS Code Live Server / Python 内置服务器
 python -m http.server 5500
-# 访问 http://localhost:5500/main.html
+# 访问 http://localhost:5500
 ```
 
 ### 后端 A：Flappy Bird AI 推理（Flask + PyTorch）
@@ -85,7 +85,7 @@ python news_server.py
 # 或 Windows 直接双击 start-news.bat
 ```
 
-服务启动在 `http://localhost:8000`，前端 `main.html` 会自动读取 `news/news-data.js`。
+服务启动在 `http://localhost:8000`，前端 `index.html` 会自动读取 `news/news-data.js`。
 
 ## 依赖说明
 

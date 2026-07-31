@@ -531,7 +531,7 @@ class GomokuGame {
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('gomokuBoard')) {
         window.gomokuGame = new GomokuGame();
-        // 暴露 fitGomoku 给 main.html 的 fitGame()
+        // 暴露 fitGomoku 给 index.html 的 fitGame()
         window.fitGomoku = function (container) {
             const board = container.querySelector('.gomoku-board-wrapper');
             if (!board) return;
