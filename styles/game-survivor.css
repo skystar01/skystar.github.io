@@ -156,6 +156,22 @@
     background: rgba(239,68,68,0.3);
     transform: translateY(-1px);
 }
+.surv-pause-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(125,211,252,0.4);
+    background: rgba(125,211,252,0.12);
+    color: var(--game-text);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+    transition: all 0.2s;
+}
+.surv-pause-btn:hover {
+    background: rgba(125,211,252,0.28);
+    border-color: rgba(125,211,252,0.7);
+    transform: translateY(-1px);
+}
 
 /* 武器槽 */
 .surv-weapon-bar {

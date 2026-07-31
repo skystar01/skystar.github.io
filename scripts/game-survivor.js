@@ -211,6 +211,7 @@ class SurvivorGame {
         this.enemyKillCount = 0;
         this.gameOver = false;
         this.levelupPending = false;
+        this.paused = false; // 重启后立即可玩 (避免 gameOver 状态卡住 paused)
 
         // 重置飘雪位置 (避免开局顶部空白)
         if (this.snowFar) {
@@ -254,7 +255,7 @@ class SurvivorGame {
         if (restartBtn) {
             restartBtn.addEventListener('click', () => this.resetGame());
         }
-        const overBtn = document.getElementById('survivorGameoverBtn');
+        const overBtn = document.getElementById('survGameoverBtn');
         if (overBtn) {
             overBtn.addEventListener('click', () => this.resetGame());
         }
@@ -262,6 +263,22 @@ class SurvivorGame {
         if (startBtn) {
             startBtn.addEventListener('click', () => this._startGame());
         }
+        const pauseBtn = document.getElementById('survivorPauseBtn');
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => this._togglePause());
+        }
+    }
+
+    _togglePause() {
+        // 升级选择中 / gameOver / 还没开始: 暂停按钮无效
+        if (this.levelupPending || this.gameOver || !this.gameStarted) return;
+        if (this.paused) {
+            this.resume();
+        } else {
+            this.pause();
+        }
+        const btn = document.getElementById('survivorPauseBtn');
+        if (btn) btn.textContent = this.paused ? '▶ 继续' : '⏸ 暂停';
     }
 
     pause() {
@@ -649,17 +666,18 @@ class SurvivorGame {
             }
             this._dropPickup(e.x, e.y + 10, Math.random() < 0.5 ? 'hp' : 'mana');
         } else {
-            // 普通: 必掉 1 绿 + 概率额外, 品质随时间提升
+            // 普通: 必掉 1 绿 + 概率额外, 品质随时间提升, 后期主要不额外掉绿
             const t = this.gameTime;
-            const blueChance = Math.min(0.45, 0.08 + t / 150);   // 前期8%, 后期45%
-            const redChance  = Math.min(0.2, t / 500);           // 后期才出红
+            const blueChance = Math.min(0.45, 0.08 + t / 150);          // 前期8%, 后期45%
+            const redChance  = Math.min(0.2, t / 500);                  // 后期才出红
+            const extraGreenChance = Math.max(0.05, 0.55 - t / 90);     // 前期55%, 90秒后≈5% (兜底)
             this._dropCrystal(e.x, e.y, 'green');
             const r = Math.random();
             if (r < redChance) {
                 this._dropCrystal(e.x + 12, e.y + 8, 'red');
             } else if (r < redChance + blueChance) {
                 this._dropCrystal(e.x + 12, e.y + 8, 'blue');
-            } else if (r < redChance + blueChance + 0.55) {
+            } else if (r < redChance + blueChance + extraGreenChance) {
                 this._dropCrystal(e.x - 12, e.y + 10, 'green');
             }
             // 小概率掉血/蓝瓶
@@ -810,11 +828,17 @@ class SurvivorGame {
         }[type] || {};
 
         const hpScale = isBoss ? 15 : (isElite ? 3 : 1);
+        // 时间缩放血量: 后期血量按 gameTime 增长, 避免冰霜新星 + 少量攻击就速通
+        // boss: 1.5 分钟 x2, 3 分钟 x3, 4 分钟 x4
+        // elite: 3 分钟 x2, 6 分钟 x3
+        const t = this.gameTime;
+        const timeHpMult = isBoss ? (1 + t / 90) : (isElite ? (1 + t / 180) : 1);
+        const hpFinal = Math.round(base.hp * hpScale * timeHpMult);
         const e = {
             x, y,
             r: (isBoss ? 40 : 22) * sizeMult,
-            hp: base.hp * hpScale,
-            maxHp: base.hp * hpScale,
+            hp: hpFinal,
+            maxHp: hpFinal,
             speed: base.speed * (isBoss ? 0.6 : 1),
             color: base.color,
             contactDmg: base.contactDmg * (isElite ? 1.5 : 1),
@@ -1871,6 +1895,23 @@ class SurvivorGame {
             ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
         }
         ctx.fill();
+
+        // ── PAUSED 遮罩 (在飘雪之上, 半透明黑底 + 大字) ──
+        if (this.paused && this.gameStarted) {
+            ctx.fillStyle = 'rgba(10, 25, 41, 0.55)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#bae6fd';
+            ctx.font = 'bold 64px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(125, 211, 252, 0.8)';
+            ctx.shadowBlur = 24;
+            ctx.fillText('PAUSED', W / 2, H / 2);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(224, 242, 254, 0.7)';
+            ctx.font = '14px sans-serif';
+            ctx.fillText('按 暂停 按钮继续', W / 2, H / 2 + 56);
+        }
     }
 
     _drawPlayer() {
