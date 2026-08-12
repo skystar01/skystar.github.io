@@ -15,10 +15,11 @@ const BULLET_DEFS = {
 const BULLET_KEYS = Object.keys(BULLET_DEFS);
 
 // 发射间隔（秒）—— 等级越高/位阶越高越快
+// 基础 0.9s (B/1); 位阶 B→A 0.55x, A→S 0.28x; 等级每升一级 0.85x (指数衰减, 无上限)
 function cooldownFor(tier, level) {
     const tierMult = tier === 'B' ? 1.0 : tier === 'A' ? 0.55 : 0.28;
-    const lvMult = [1.0, 0.82, 0.65][level - 1] || 0.65;
-    return 0.8 * tierMult * lvMult;
+    const lvMult = Math.max(0.25, Math.pow(0.85, level - 1));
+    return 0.9 * tierMult * lvMult;
 }
 
 // 经验曲线: 4分钟≈24级, 前期快后期慢

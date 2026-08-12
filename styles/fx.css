@@ -1,0 +1,212 @@
+/* =============================================
+   fx.css — 视觉强化 & 交互特效层
+   增量加载,不修改 main.css;全部效果可用
+   prefers-reduced-motion 一键关闭
+   ============================================= */
+
+/* ─── 1. 全局细节:选中色 / 焦点 ─── */
+::selection {
+    background: rgba(var(--accent-rgb, 124,110,245), 0.55);
+    color: #fff;
+    text-shadow: none;
+}
+
+/* ─── 2. 首屏 hero 入场编排(逐元素上升淡入) ─── */
+@keyframes fxRise {
+    from { opacity: 0; transform: translateY(26px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+body.fx-ready .hero-left > * {
+    animation: fxRise 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+body.fx-ready .hero-left > *:nth-child(1) { animation-delay: 0.10s; }
+body.fx-ready .hero-left > *:nth-child(2) { animation-delay: 0.24s; }
+body.fx-ready .hero-left > *:nth-child(3) { animation-delay: 0.38s; }
+body.fx-ready .hero-left > *:nth-child(4) { animation-delay: 0.52s; }
+body.fx-ready .hero-left > *:nth-child(5) { animation-delay: 0.66s; }
+body.fx-ready .hero-visual {
+    animation: fxRise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) 0.45s both;
+}
+body.fx-ready .hero-quick-links {
+    animation: fxRise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.85s both;
+}
+body.fx-ready .corner-brand {
+    animation: fxRise 0.8s ease 0.2s both;
+}
+
+/* ─── 3. 每次切换面板时,标题/卡片重新「活」一遍 ─── */
+.panel.active .panel-heading > * {
+    animation: fxRise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.panel.active .panel-heading > *:nth-child(2) { animation-delay: 0.08s; }
+.panel.active .panel-heading > *:nth-child(3) { animation-delay: 0.16s; }
+
+.panel.active .project-card,
+.panel.active .skill-item {
+    animation: fxRise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.panel.active .project-card:nth-of-type(2),
+.panel.active .skill-item:nth-child(2)  { animation-delay: 0.06s; }
+.panel.active .project-card:nth-of-type(3),
+.panel.active .skill-item:nth-child(3)  { animation-delay: 0.12s; }
+.panel.active .project-card:nth-of-type(4),
+.panel.active .skill-item:nth-child(4)  { animation-delay: 0.18s; }
+.panel.active .skill-item:nth-child(5)  { animation-delay: 0.24s; }
+.panel.active .skill-item:nth-child(6)  { animation-delay: 0.30s; }
+.panel.active .skill-item:nth-child(7)  { animation-delay: 0.36s; }
+.panel.active .skill-item:nth-child(8)  { animation-delay: 0.42s; }
+.panel.active .skill-item:nth-child(9)  { animation-delay: 0.48s; }
+.panel.active .skill-item:nth-child(10) { animation-delay: 0.54s; }
+
+/* ─── 4. hero 大标题:流光渐变(AI ENGINEER) ─── */
+.hero-heading .line2 {
+    background: linear-gradient(100deg,
+        var(--accent) 0%, var(--accent2) 25%,
+        #ffffff 50%, var(--accent2) 75%, var(--accent) 100%);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: fxShimmer 5.5s linear infinite;
+}
+@keyframes fxShimmer {
+    from { background-position: 0% 0; }
+    to   { background-position: -250% 0; }
+}
+
+/* ─── 5. 打字机光标 ─── */
+.fx-caret {
+    display: inline-block;
+    width: 2px; height: 1em;
+    margin-left: 3px;
+    vertical-align: -0.12em;
+    background: var(--accent2);
+    box-shadow: 0 0 6px var(--accent2);
+    animation: fxCaretBlink 0.9s steps(1) infinite;
+}
+@keyframes fxCaretBlink { 50% { opacity: 0; } }
+
+/* ─── 6. 鼠标粒子拖尾画布 ─── */
+#fxTrail {
+    position: fixed; inset: 0;
+    z-index: 400;
+    pointer-events: none;
+}
+
+/* ─── 7. 磁吸元素(JS 控制 transform,CSS 负责回弹顺滑) ─── */
+.fx-magnetic {
+    transition: transform 0.18s ease-out;
+    will-change: transform;
+}
+
+/* ─── 8. 卡片 3D 倾斜 ─── */
+.fx-tilt {
+    transition: transform 0.22s ease-out, box-shadow 0.22s ease-out;
+    transform-style: preserve-3d;
+    will-change: transform;
+}
+
+/* ─── 9. Konami 狂欢模式:背景短暂色相旋转 ─── */
+body.fx-party .bg-theme.active {
+    animation: fxHueSpin 2.4s linear infinite;
+}
+@keyframes fxHueSpin {
+    from { filter: hue-rotate(0deg) saturate(1.3); }
+    to   { filter: hue-rotate(360deg) saturate(1.3); }
+}
+
+/* ─── 10. 终端彩蛋 ─── */
+#fxTerm {
+    position: fixed;
+    left: calc(var(--sidebar-w) + 24px);
+    right: 24px;
+    bottom: 24px;
+    max-width: 720px;
+    z-index: 600;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #7df0c8;
+    background: rgba(6, 10, 24, 0.92);
+    border: 1px solid rgba(var(--accent2-rgb, 78,205,196), 0.35);
+    border-radius: 12px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55),
+                0 0 24px rgba(var(--accent2-rgb, 78,205,196), 0.12);
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    transform: translateY(16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
+                opacity 0.28s ease;
+}
+#fxTerm.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: all;
+}
+#fxTerm .fx-term-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    color: rgba(200, 210, 240, 0.5);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    user-select: none;
+}
+#fxTerm .fx-term-bar i { font-style: normal; }
+#fxTerm .fx-term-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    flex-shrink: 0;
+}
+#fxTerm .fx-term-body {
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 12px 14px 6px;
+}
+#fxTerm .fx-term-body::-webkit-scrollbar { width: 4px; }
+#fxTerm .fx-term-body::-webkit-scrollbar-thumb {
+    background: rgba(125, 240, 200, 0.25); border-radius: 2px;
+}
+#fxTerm .fx-line { white-space: pre-wrap; word-break: break-all; }
+#fxTerm .fx-line.dim { color: rgba(160, 200, 190, 0.55); }
+#fxTerm .fx-line.err { color: #ff8fa3; }
+#fxTerm .fx-line.acc { color: #b9a8ff; }
+#fxTerm .fx-term-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px 12px;
+}
+#fxTerm .fx-prompt { color: var(--accent2); flex-shrink: 0; }
+#fxTerm input {
+    flex: 1;
+    background: transparent;
+    border: none; outline: none;
+    color: #eafff7;
+    font: inherit;
+    caret-color: var(--accent2);
+}
+
+/* ─── 11. 尊重用户的「减少动态」偏好:一键关闭所有特效 ─── */
+@media (prefers-reduced-motion: reduce) {
+    .hero-heading .line2 { animation: none; }
+    .fx-caret { animation: none; }
+    body.fx-party .bg-theme.active { animation: none; }
+    body.fx-ready .hero-left > *,
+    body.fx-ready .hero-visual,
+    body.fx-ready .hero-quick-links,
+    body.fx-ready .corner-brand,
+    .panel.active .panel-heading > *,
+    .panel.active .project-card,
+    .panel.active .skill-item {
+        animation: none !important;
+    }
+    #fxTrail { display: none; }
+    #fxTerm { transition: none; }
+}

@@ -1,0 +1,294 @@
+/* =============================================
+   journey.css — 全空间叙事模式
+   在 fx 层之上再叠一层:面板变「空间站」,相机纵深穿越
+   仅在 body.journey 下生效,reduce-motion 时完全不加载该模式
+   ============================================= */
+
+/* ─── 1. 场景改造:隐藏侧边栏,panels-wrap 变 3D 空间 ─── */
+body.journey .sidebar { display: none; }
+
+body.journey .panels-wrap {
+    left: 0;
+    width: 100%;
+    perspective: 1000px;
+    perspective-origin: 50% 46%;          /* 灭点略偏上,更有"往深处看"的感觉 */
+    overflow: hidden;
+}
+
+/* 面板全部变为空间中的平面,transform/opacity 由 journey.js 每帧驱动 */
+body.journey .panel {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transition: none !important;           /* 相机是 rAF 驱动,不能有 CSS 过渡拖尾 */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none !important;
+    overflow-y: auto;
+    will-change: transform, opacity;
+}
+body.journey .panel.exit { opacity: 0; }   /* 旧退场逻辑在本模式下被相机接管 */
+body.journey .panel.dock { pointer-events: all !important; }
+
+/* 空间模式不显示滚动条(滚动能力保留) */
+body.journey .panel { scrollbar-width: none; }
+body.journey .panel::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* 远端空间站微微失焦发光,像悬浮在深空的舷窗 */
+body.journey .panel {
+    filter: saturate(1.05);
+}
+
+/* ─── 2. 飞行拖影画布 ─── */
+#fxWarp {
+    position: fixed; inset: 0;
+    z-index: 500;
+    pointer-events: none;
+}
+
+/* ─── 3. 星图导航(替代侧边栏) ─── */
+.jmap {
+    position: fixed;
+    right: 26px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 300;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.jmap::before {                            /* 贯穿的轨道线 */
+    content: '';
+    position: absolute;
+    left: 7px; top: 10px; bottom: 10px;
+    width: 1px;
+    background: linear-gradient(180deg,
+        transparent, rgba(var(--accent2-rgb, 78,205,196), 0.35) 20%,
+        rgba(var(--accent2-rgb, 78,205,196), 0.35) 80%, transparent);
+}
+.jmap-stop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    font-family: 'Space Mono', monospace;
+}
+.jmap-dot {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--accent2-rgb, 78,205,196), 0.5);
+    background: rgba(10, 14, 35, 0.6);
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+.jmap-label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: rgba(200, 210, 240, 0.45);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+.jmap-stop:hover .jmap-dot {
+    border-color: var(--accent2);
+    box-shadow: 0 0 10px rgba(var(--accent2-rgb, 78,205,196), 0.5);
+}
+.jmap-stop:hover .jmap-label { color: rgba(230, 236, 255, 0.85); }
+.jmap-stop.on .jmap-dot {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    box-shadow: 0 0 14px rgba(var(--accent2-rgb, 78,205,196), 0.8),
+                0 0 4px #fff inset;
+    animation: jmapPulse 2s ease-in-out infinite;
+}
+.jmap-stop.on .jmap-label { color: #fff; }
+@keyframes jmapPulse {
+    50% { box-shadow: 0 0 22px rgba(var(--accent2-rgb, 78,205,196), 0.5); }
+}
+
+/* 左上角迷你品牌(替代侧边栏 logo) */
+.jbrand {
+    position: fixed;
+    top: 20px; left: 24px;
+    z-index: 300;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.22em;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    user-select: none;
+    background: linear-gradient(180deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: filter 0.3s ease;
+}
+.jbrand:hover { filter: brightness(1.3) drop-shadow(0 0 8px rgba(var(--accent-rgb,124,110,245),0.6)); }
+
+/* 底部航行提示(首页淡入,滚过一次后永久隐藏) */
+.jhint {
+    position: fixed;
+    bottom: 26px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 300;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: rgba(200, 210, 240, 0.5);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: jhintFloat 2.2s ease-in-out infinite;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+}
+.jhint.gone { opacity: 0; }
+.jhint .jhint-arrow { color: var(--accent2); font-size: 13px; }
+@keyframes jhintFloat {
+    50% { transform: translateX(-50%) translateY(-6px); }
+}
+
+/* ─── 4. 大门开场 ─── */
+#fx-gate {
+    position: fixed; inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    cursor: pointer;
+    /* 不透明星空幕布:完全遮住身后的首页 */
+    background-color: #04060f;
+    background-image:
+        radial-gradient(1.5px 1.5px at 12% 22%, rgba(255,255,255,0.9), transparent 100%),
+        radial-gradient(1px 1px at 78% 12%, rgba(255,255,255,0.7), transparent 100%),
+        radial-gradient(1.2px 1.2px at 88% 58%, rgba(180,200,255,0.8), transparent 100%),
+        radial-gradient(1px 1px at 24% 74%, rgba(255,255,255,0.6), transparent 100%),
+        radial-gradient(1.4px 1.4px at 62% 84%, rgba(190,210,255,0.8), transparent 100%),
+        radial-gradient(1px 1px at 42% 8%,  rgba(255,255,255,0.55), transparent 100%),
+        radial-gradient(1.2px 1.2px at 6% 52%,  rgba(200,215,255,0.7), transparent 100%),
+        radial-gradient(1px 1px at 55% 42%, rgba(255,255,255,0.4), transparent 100%),
+        radial-gradient(ellipse 70% 55% at 50% 58%, rgba(40,50,140,0.5), transparent 70%),
+        radial-gradient(ellipse 45% 40% at 50% 60%, rgba(78,205,196,0.14), transparent 70%);
+    transition: opacity 0.9s ease;
+}
+#fx-gate.fly { opacity: 0; pointer-events: none; }
+
+#fx-gate .gate-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-style: preserve-3d;
+    transition: transform 1.15s cubic-bezier(0.6, 0, 0.9, 0.4);
+}
+#fx-gate.fly .gate-inner { transform: scale(7.5); }
+
+#fx-gate .gate-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.8rem, 8vw, 5.2rem);
+    letter-spacing: 0.35em;
+    margin-bottom: 40px;
+    padding-left: 0.35em;                  /* 抵消末字 letter-spacing 的视觉偏移 */
+    background: linear-gradient(100deg, #8f81ff, #4ecdc4, #fff, #8f81ff);
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: fxShimmer 5s linear infinite;
+}
+
+/* 拱门:外框 + 两扇门叶 */
+#fx-gate .gate-frame {
+    width: min(340px, 58vw);
+    aspect-ratio: 0.68;
+    position: relative;
+    perspective: 900px;
+    border-radius: 999px 999px 6px 6px;
+    border: 2px solid rgba(var(--accent2-rgb, 78,205,196), 0.65);
+    box-shadow: 0 0 34px rgba(var(--accent2-rgb, 78,205,196), 0.35),
+                0 0 90px rgba(var(--accent-rgb, 124,110,245), 0.25),
+                inset 0 0 26px rgba(var(--accent2-rgb, 78,205,196), 0.15);
+}
+#fx-gate .gate-leaf {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 50%;
+    background:
+        repeating-linear-gradient(90deg,
+            rgba(255,255,255,0.03) 0 2px, transparent 2px 22px),
+        linear-gradient(160deg, #131a3e, #0a0f2c 60%, #070a20);
+    transition: transform 1.05s cubic-bezier(0.65, 0, 0.25, 1);
+    backface-visibility: hidden;
+}
+#fx-gate .gate-leaf.left {
+    left: 0;
+    border-radius: 999px 0 0 4px;
+    border-right: 1px solid rgba(var(--accent2-rgb, 78,205,196), 0.8);
+    transform-origin: left center;
+}
+#fx-gate .gate-leaf.right {
+    right: 0;
+    border-radius: 0 999px 4px 0;
+    border-left: 1px solid rgba(var(--accent2-rgb, 78,205,196), 0.8);
+    transform-origin: right center;
+}
+#fx-gate .gate-leaf::after {               /* 门缝光 */
+    content: '';
+    position: absolute;
+    top: 8%; bottom: 8%;
+    width: 2px;
+    background: linear-gradient(180deg,
+        transparent, rgba(var(--accent2-rgb, 78,205,196), 0.9), transparent);
+    filter: blur(1px);
+}
+#fx-gate .gate-leaf.left::after  { right: -1px; }
+#fx-gate .gate-leaf.right::after { left: -1px; }
+
+#fx-gate.opening .gate-leaf.left  { transform: rotateY(-108deg); }
+#fx-gate.opening .gate-leaf.right { transform: rotateY(108deg); }
+
+/* 门后透出的光 */
+#fx-gate .gate-glow {
+    position: absolute;
+    inset: 6px;
+    border-radius: 999px 999px 4px 4px;
+    background: radial-gradient(ellipse at 50% 60%,
+        rgba(var(--accent2-rgb, 78,205,196), 0.5),
+        rgba(var(--accent-rgb, 124,110,245), 0.28) 55%, transparent 75%);
+    opacity: 0.35;
+    transition: opacity 1s ease;
+    pointer-events: none;
+}
+#fx-gate.opening .gate-glow { opacity: 1; }
+
+#fx-gate .gate-hint {
+    margin-top: 34px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.42em;
+    padding-left: 0.42em;
+    color: rgba(200, 210, 240, 0.6);
+    animation: jhintFloat 2.4s ease-in-out infinite;
+}
+
+/* ─── 5. 响应式:小屏收窄星图 ─── */
+@media (max-width: 760px) {
+    .jmap { right: 12px; }
+    .jmap-label { display: none; }
+    .jbrand { font-size: 0.95rem; top: 16px; left: 16px; }
+    #fx-gate .gate-hint { letter-spacing: 0.25em; }
+}
+
+/* ─── 6. reduce-motion: journey 模式根本不会被 JS 启用,
+        这里再兜底一次,保证样式永不生效 ─── */
+@media (prefers-reduced-motion: reduce) {
+    body.journey .panel { transition: none; }
+    #fx-gate, #fxWarp, .jhint { display: none; }
+}
