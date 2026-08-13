@@ -4,7 +4,7 @@
 # 适用文件:
 #   train_flappy.py        → gymnasium, flappy_bird_gymnasium, torch, matplotlib
 #   test_flappy.py         → gymnasium, flappy_bird_gymnasium, torch
-#   scripts/_prep_awards.py → pypdfium2
+#   tools/_prep_awards.py   → pypdfium2
 
 gymnasium>=0.29.0
 flappy_bird_gymnasium>=0.1.0

@@ -1,3 +1,6 @@
+// 阶段2: 飞机游戏专属 CSS 随本模块懒加载
+import '../styles/game-plane.css';
+
 class PlaneShooterGame {
     constructor() {
         this.W = 1000;

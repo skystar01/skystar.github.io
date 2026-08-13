@@ -12,18 +12,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="styles/game-tic-tac-toe.css">
-    <link rel="stylesheet" href="styles/game-gomoku.css">
-    <link rel="stylesheet" href="styles/game-memory.css">
-    <link rel="stylesheet" href="styles/game-plane.css">
     <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/game-2048.css">
-    <link rel="stylesheet" href="styles/game-tetris.css">
-    <link rel="stylesheet" href="styles/game-maze.css">
-    <link rel="stylesheet" href="styles/game-survivor.css">
     <link rel="stylesheet" href="styles/game-center.css">
     <link rel="stylesheet" href="styles/fx.css">
     <link rel="stylesheet" href="styles/journey.css">
+    <!-- 游戏专属样式改为懒加载: 由 src/games-bundle.js / src/game-plane.js 动态 import, 仅进游戏时下载 -->
 
 </head>
 <body>
@@ -1273,34 +1266,15 @@
     <!-- 每日资讯数据(由 news_server.py 自动生成,无后端运行时也能加载) -->
     <script src="news/news-data.js" defer></script>
 
-    <!-- 星空粒子背景(全屏 canvas) -->
-    <script src="scripts/stars-bg.js" defer></script>
-    <script src="scripts/ui.js" defer></script>
-    <!-- 交互特效 & 彩蛋层(打字机/视差/粒子拖尾/磁吸/终端彩蛋,需在 ui.js 之后) -->
-    <script src="scripts/fx.js" defer></script>
-    <!-- 全空间叙事模式(大门开场 + 纵深穿越导航,需在 fx.js 之后) -->
-    <script src="scripts/journey.js" defer></script>
-    <script src="scripts/game-shell.js" defer></script>
-    <script src="scripts/storage.js" defer></script>
-    
-    
-    
-    
-    
-    
-    <!-- 每日资讯模块 -->
-    <script src="scripts/news.js" defer></script>
+    <!-- 阶段1：模块化入口（ES Module 验证，Vite 打包） -->
+    <script type="module" src="/src/main.js"></script>
 
-    <!-- Game scripts -->
-    <script src="scripts/snake-game.js" defer></script>
-    <script src="scripts/flappy-bird.js" defer></script>
-    <script src="scripts/game-2048.js" defer></script>
-    <script src="scripts/game-tetris.js" defer></script>
-    <script src="scripts/game-tic-tac-toe.js" defer></script>
-    <script src="scripts/gomoku.js" defer></script>
-    <script src="scripts/memory-game.js" defer></script>
-    <script src="scripts/game-maze.js" defer></script>
-    <script src="scripts/game-survivor.js" defer></script>
-    <!-- game-plane.js 按需加载: 切到飞机游戏时由 game-shell.js 动态注入 -->
+    
+    
+    
+    
+    
+    
+
     </body>
 </html>
