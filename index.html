@@ -1267,7 +1267,9 @@
     <script src="news/news-data.js" defer></script>
 
     <!-- 阶段1：模块化入口（ES Module 验证，Vite 打包） -->
-    <script type="module" src="/src/main.js"></script>
+    <!-- 注意: 用相对路径 ./src/main.js, 否则在 GitHub Pages 子路径(/skystar.github.io/)部署时 -->
+    <!-- 绝对路径 /src/main.js 会被解析到根域名 skystar01.github.io/src/main.js 而 404 -->
+    <script type="module" src="./src/main.js"></script>
 
     
     
