@@ -52,7 +52,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+# 注意: package-lock.json 已纳入版本控制, 供 CI 用 npm ci 复现构建 (勿再忽略)
 yarn.lock
 
 # ─── Misc ───
