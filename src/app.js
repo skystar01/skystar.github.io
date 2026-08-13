@@ -441,6 +441,11 @@ function switchPanel(target) {
     window.currentPanelHue = targetHue;
     if (typeof window.setStarTheme === 'function') window.setStarTheme(target, useWaypoint);
 }
+// 暴露 switchPanel 到 window 总线:
+// 导航点击/键盘/按钮均通过 window.switchPanel(...) 调用;
+// 且下方 journey 段(约 1433 行)会先读取 window.switchPanel 再包装,必须在包装前挂好,
+// 否则 origSwitch 为 undefined → 包装器不安装 → window.switchPanel 始终 undefined 而报 is not a function。
+window.switchPanel = switchPanel;
 
 // Nav item clicks
 document.querySelectorAll('.nav-item').forEach(item => {
