@@ -14,6 +14,19 @@ import '../styles/game-tetris.css';
 import '../styles/game-maze.css';
 import '../styles/game-survivor.css';
 
+// 阶段2 修复: 本模块通过动态 import() 懒加载, 此时 DOMContentLoaded 早已触发,
+// 若仍用 document.addEventListener('DOMContentLoaded', ...) 包裹初始化, 回调永远不会执行,
+// 导致所有游戏的按钮绑定 / 画布 fit / window.xxxGame 暴露全部失效
+// (现象: 点开始无反应、界面错位、零报错)。
+// 改为 whenDomReady: 文档已就绪则立即执行, 否则才挂 DOMContentLoaded, 二者兼容。
+function whenDomReady(cb) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', cb);
+    } else {
+        cb();
+    }
+}
+
 // ---------- snake-game.js ----------
 class SnakeGame {
     constructor(canvasId, scoreId, statusId, overlayId, finalScoreId) {
@@ -964,7 +977,7 @@ class SnakeGame {
 
 let snakeGame = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     if (document.getElementById('gameCanvas')) {
         snakeGame = new SnakeGame(
             'gameCanvas',
@@ -1538,7 +1551,7 @@ class FlappyBird {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     const flappyGame = new FlappyBird('flappyCanvas');
     window.flappyGame = flappyGame;
 
@@ -2113,7 +2126,7 @@ class Game2048 {
 }
 
 // 页面加载时初始化
-document.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     const game2048 = new Game2048(
         'grid2048',
         'score2048',
@@ -3010,7 +3023,7 @@ class TetrisGame {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     const tetris = new TetrisGame(
         'tetrisCanvas',
         'tetrisScore',
@@ -3309,7 +3322,7 @@ class TicTacToeGame {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     const game = new TicTacToeGame();
     game.initDOM();
 });
@@ -3845,7 +3858,7 @@ class GomokuGame {
 }
 
 // ─── 启动 ───
-document.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     if (document.getElementById('gomokuBoard')) {
         window.gomokuGame = new GomokuGame();
         // 暴露 fitGomoku 给 index.html 的 fitGame()
@@ -4419,7 +4432,7 @@ class MemoryGame {
 }
 
 // ─── 启动 + fitGame ───
-document.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     if (document.getElementById('memoryBoard')) {
         window.memoryGame = new MemoryGame();
 
@@ -6404,7 +6417,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 自动初始化 (脚本 defer 加载, DOM 已就绪)
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => { game = new MazeGame(); });
+        whenDomReady(() => { game = new MazeGame(); });
     } else {
         game = new MazeGame();
     }
