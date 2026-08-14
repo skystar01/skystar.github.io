@@ -1078,6 +1078,13 @@ class FlappyBird {
     }
     
     async checkBackend() {
+        // 仅在本地开发环境探测 Flask 后端。线上(GitHub Pages 等)127.0.0.1:5000
+        // 必然不可达,若仍发起请求会在控制台留下毫无意义的 ERR_CONNECTION_REFUSED,
+        // 因此非 localhost 直接跳过,留待按 A 时降级到浏览器端 ONNX。
+        if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            this.aiModelLoaded = false;
+            return;
+        }
         try {
             const response = await fetch(`${this.backendUrl}/`);
             if (response.ok) {

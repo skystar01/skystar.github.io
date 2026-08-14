@@ -56,7 +56,12 @@ function copyClassicDirs() {
         }
       }
       const pairs = [
-        { src: 'news', dest: 'news' }
+        { src: 'news', dest: 'news' },
+        // 根目录 assets/ 与 images/ 里有大量被 JS 用字符串路径引用的资源
+        // (游戏精灵图、卡牌图、截图等)。Vite 只打包 import 与 CSS url(),
+        // 不处理 JS 字符串资源路径,故需整目录原样拷进产物,否则线上 404。
+        { src: 'assets', dest: 'assets' },
+        { src: 'images', dest: 'images' }
       ]
       for (const { src, dest } of pairs) {
         const srcDir = path.resolve(process.cwd(), src)
