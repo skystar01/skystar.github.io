@@ -8,13 +8,21 @@
 //  - 单例:session 只建一次,后续推理复用
 // =============================================
 
-const WASM_BASE = import.meta.env.BASE_URL + 'models/';
-const MODEL_URL = WASM_BASE + 'flappy-dqn.onnx';
 // wasm 运行时放在 public/models/(包体 exports 不放行深路径,走静态目录最稳)。
-// 必须用 import.meta.env.BASE_URL 拼出带 "./"(或子路径)前缀的目录,
-// 否则浏览器会把 ort-wasm-simd-threaded.jsep.mjs 当成裸模块标识符而解析失败
-// (报 "Failed to resolve module specifier")。
-const WASM_DIR = WASM_BASE;
+//
+// ⚠️ 关键坑(踩了三次):wasm 路径必须是「绝对 URL」,不能是相对路径。
+//   - vite base 是 './',import.meta.env.BASE_URL 只返回 './',无法提供
+//     GitHub Pages 的子路径(/skystar.github.io/)。
+//   - 若给 onnxruntime 相对路径 './models/',它会把 jsep 工作线程解析到
+//     它自己 bundle 所在的 assets/ 目录 → 请求 assets/models/...mjs → 404。
+//   - 用 document.baseURI 取页面绝对目录(自带子路径),拼出绝对 URL,
+//     onnxruntime 才会老老实实去 <origin>/<子路径>/models/ 下加载。
+function resolveModelsDir() {
+  const uri = document.baseURI || location.href;
+  return uri.slice(0, uri.lastIndexOf('/') + 1) + 'models/';
+}
+const WASM_DIR = resolveModelsDir();
+const MODEL_URL = WASM_DIR + 'flappy-dqn.onnx';
 
 // 推理上下文单例({ ort, session }),重复调用复用同一个 Promise
 let contextPromise = null;
