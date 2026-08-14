@@ -45,8 +45,10 @@ function copyClassicDirs() {
     },
     closeBundle() {
       const outDir = path.resolve(process.cwd(), resolvedOutDir)
-      // onnxruntime-web 会被 Vite 静态分析出 jsep(WebGPU 版)wasm 资产(26MB),
-      // 本站只用 WASM 后端,永不请求它——删掉,不给 Pages 增加死重
+      // Vite 会把 onnxruntime-web 依赖里的 jsep wasm 自动打包进 assets/(带 hash)。
+      // 本站统一从 public/models/ 加载(见 src/flappy-onnx.js 的 wasmPaths),
+      // 故删掉 assets/ 里这份重复的哈希副本,避免 26MB 死重。
+      // ⚠️ 注意:真正的 jsep wasm 在 public/models/ 下必须保留(浏览器端推理会被请求)。
       const assetsDir = path.join(outDir, 'assets')
       if (fs.existsSync(assetsDir)) {
         for (const f of fs.readdirSync(assetsDir)) {
