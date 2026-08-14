@@ -8,9 +8,13 @@
 //  - 单例:session 只建一次,后续推理复用
 // =============================================
 
-const MODEL_URL = 'models/flappy-dqn.onnx';
-// wasm 运行时放在 public/models/(包体 exports 不放行深路径,走静态目录最稳)
-const WASM_DIR = 'models/';
+const WASM_BASE = import.meta.env.BASE_URL + 'models/';
+const MODEL_URL = WASM_BASE + 'flappy-dqn.onnx';
+// wasm 运行时放在 public/models/(包体 exports 不放行深路径,走静态目录最稳)。
+// 必须用 import.meta.env.BASE_URL 拼出带 "./"(或子路径)前缀的目录,
+// 否则浏览器会把 ort-wasm-simd-threaded.jsep.mjs 当成裸模块标识符而解析失败
+// (报 "Failed to resolve module specifier")。
+const WASM_DIR = WASM_BASE;
 
 // 推理上下文单例({ ort, session }),重复调用复用同一个 Promise
 let contextPromise = null;
