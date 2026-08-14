@@ -451,6 +451,19 @@
                     <div class="eyebrow">Tech Stack</div>
                     <h2>技能矩阵</h2>
                     <div class="underline"></div>
+                    <!-- RL 签名元素:训练 loss 收敛曲线,每次飞入本站时重绘一遍 -->
+                    <svg class="rl-loss-curve" viewBox="0 0 220 72" aria-hidden="true">
+                        <g class="rl-loss-grid">
+                            <line x1="10" y1="18" x2="212" y2="18"/>
+                            <line x1="10" y1="36" x2="212" y2="36"/>
+                            <line x1="10" y1="54" x2="212" y2="54"/>
+                        </g>
+                        <path class="rl-loss-line" pathLength="1"
+                              d="M10,14 C28,16 34,30 52,34 S80,44 100,46 S140,54 162,55 S196,57 208,57"/>
+                        <circle class="rl-loss-end" cx="208" cy="57" r="3"/>
+                        <text class="rl-loss-text" x="10" y="10">loss</text>
+                        <text class="rl-loss-text rl-loss-text-right" x="212" y="68" text-anchor="end">episode → converged</text>
+                    </svg>
                 </div>
                 <div class="skills-groups">
                     <section class="skill-group skill-group-primary">

@@ -14,6 +14,9 @@ import '../styles/game-tetris.css';
 import '../styles/game-maze.css';
 import '../styles/game-survivor.css';
 
+// Flappy AI 浏览器端推理(静态站无 Flask 时的降级路径,内部仍是动态 import,不增首屏成本)
+import { loadFlappyAi, predictAction } from './flappy-onnx.js';
+
 // 阶段2 修复: 本模块通过动态 import() 懒加载, 此时 DOMContentLoaded 早已触发,
 // 若仍用 document.addEventListener('DOMContentLoaded', ...) 包裹初始化, 回调永远不会执行,
 // 导致所有游戏的按钮绑定 / 画布 fit / window.xxxGame 暴露全部失效
@@ -1048,6 +1051,8 @@ class FlappyBird {
         
         this.aiMode = false;
         this.aiModelLoaded = false;
+        this.aiBackend = null;        // 'flask' | 'onnx' —— 记录当前 AI 走哪条推理通道
+        this.aiLoading = null;        // ONNX 加载中的 Promise,防重复触发
         this.lastPassedPipe = null;
         this.backendUrl = 'http://127.0.0.1:5000';
         
@@ -1076,12 +1081,37 @@ class FlappyBird {
         try {
             const response = await fetch(`${this.backendUrl}/`);
             if (response.ok) {
+                this.aiBackend = 'flask';
                 this.aiModelLoaded = true;
             }
         } catch (error) {
-            console.error('❌ Cannot connect to backend:', error);
+            // 连不上 Flask 是常态(静态托管),留待按 A 时降级到 ONNX
             this.aiModelLoaded = false;
         }
+    }
+
+    // Flask 不在时的降级通道:加载浏览器端 ONNX 模型(仅首次有下载成本)
+    async tryLoadOnnxAi() {
+        if (this.aiLoading) return this.aiLoading;
+        this.aiLoading = (async () => {
+            try {
+                if (typeof window.showToast === 'function') {
+                    window.showToast('正在加载浏览器端 AI 模型(约 13MB,仅首次)…');
+                }
+                await loadFlappyAi();
+                this.aiBackend = 'onnx';
+                this.aiModelLoaded = true;
+                if (typeof window.showToast === 'function') {
+                    window.showToast('AI 就绪:浏览器本地推理,无需后端');
+                }
+            } catch (err) {
+                console.error('ONNX 模型加载失败:', err);
+                if (typeof window.showToast === 'function') {
+                    window.showToast('AI 模型加载失败,请稍后再试');
+                }
+            }
+        })();
+        return this.aiLoading;
     }
     
     initClouds() {
@@ -1113,9 +1143,10 @@ class FlappyBird {
         });
     }
     
-    toggleAI() {
+    async toggleAI() {
         if (!this.aiModelLoaded) {
-            return;
+            await this.tryLoadOnnxAi();          // Flask 不在时现场加载 ONNX
+            if (!this.aiModelLoaded) return;
         }
         this.aiMode = !this.aiMode;
         if (this.aiMode && !this.gameRunning) {
@@ -1241,9 +1272,21 @@ class FlappyBird {
     
     async getAIAction() {
         if (!this.aiModelLoaded) return 0;
-        
+
+        const state = this.getGameState();
+
+        // ONNX 通道:纯浏览器推理,零网络开销
+        if (this.aiBackend === 'onnx') {
+            try {
+                return await predictAction(state);
+            } catch (error) {
+                console.error('ONNX 推理失败:', error);
+                return 0;
+            }
+        }
+
+        // Flask 通道(本地开发)
         try {
-            const state = this.getGameState();
             const response = await fetch(`${this.backendUrl}/api/ai/action`, {
                 method: 'POST',
                 headers: {
@@ -1251,7 +1294,7 @@ class FlappyBird {
                 },
                 body: JSON.stringify({ state: state })
             });
-            
+
             const data = await response.json();
             return data.action;
         } catch (error) {
@@ -1565,7 +1608,7 @@ whenDomReady(() => {
         if (highScoreEl) highScoreEl.textContent = flappyGame.highScore || 0;
         if (aiStatus) {
             if (!flappyGame.aiModelLoaded) {
-                aiStatus.innerHTML = '<i class="fas fa-plug"></i> 未连接';
+                aiStatus.innerHTML = '<i class="fas fa-robot"></i> AI 待召唤';
                 aiStatus.className = 'game-status status-player';
             } else if (flappyGame.aiMode) {
                 aiStatus.innerHTML = '<i class="fas fa-robot"></i> AI 模式';
@@ -1577,7 +1620,7 @@ whenDomReady(() => {
         }
         if (aiButton) {
             if (!flappyGame.aiModelLoaded) {
-                aiButton.innerHTML = '<i class="fas fa-plug"></i> 启动 Flask 后可召唤 AI';
+                aiButton.innerHTML = '<i class="fas fa-robot"></i> 召唤 AI 试玩';
                 aiButton.disabled = false;
             } else if (flappyGame.aiMode) {
                 aiButton.innerHTML = '<i class="fas fa-user"></i> 切回手动';
@@ -1590,16 +1633,9 @@ whenDomReady(() => {
     }
 
     if (aiButton) {
-        aiButton.addEventListener('click', () => {
-            if (!flappyGame.aiModelLoaded) {
-                if (typeof window.showToast === 'function') {
-                    window.showToast('未连接 Flask 推理服务，请先启动 backend (port 5000)');
-                } else {
-                    alert('未连接 Flask 推理服务，请先启动 backend (port 5000)');
-                }
-                return;
-            }
-            flappyGame.toggleAI();
+        aiButton.addEventListener('click', async () => {
+            // toggleAI 内部已处理降级:Flask 不在则现场加载浏览器端 ONNX 模型
+            await flappyGame.toggleAI();
             updateFlappyUI();
         });
     }

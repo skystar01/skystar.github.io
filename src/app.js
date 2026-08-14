@@ -1092,7 +1092,9 @@ document.addEventListener('keydown', e => {
     // 5. 鼠标粒子拖尾(发光星尘,跟随主题色)
     // ────────────────────────────────────────────
     var trail = { canvas: null, ctx: null, parts: [], lastSpawn: 0, dpr: 1 };
-    var MAX_PARTS = 90;
+    // 减法审计:拖尾定位为「氛围配角」,密度/尺寸/亮度全面压低,
+    // 主角让给面板内容与 RL 可视化;爆发(burst)场景不受影响
+    var MAX_PARTS = 55;
 
     if (!reduceMotion && !coarsePointer) {
         trail.canvas = document.createElement('canvas');
@@ -1110,7 +1112,7 @@ document.addEventListener('keydown', e => {
 
         window.addEventListener('mousemove', function (e) {
             var now = performance.now();
-            if (now - trail.lastSpawn < 22) return;   // ~45 次/秒封顶
+            if (now - trail.lastSpawn < 40) return;   // ~25 次/秒封顶(减量)
             trail.lastSpawn = now;
             spawnPart(e.clientX, e.clientY, 1);
         }, { passive: true });
@@ -1126,7 +1128,7 @@ document.addEventListener('keydown', e => {
             vy: Math.sin(a) * sp - 0.25,
             life: 1,
             decay: 0.018 + Math.random() * 0.02,
-            r: big ? (2 + Math.random() * 3.5) : (1 + Math.random() * 2)
+            r: big ? (2 + Math.random() * 3.5) : (0.7 + Math.random() * 1.3)
         });
     }
 
@@ -1149,11 +1151,11 @@ document.addEventListener('keydown', e => {
             p.vy += 0.012;                       // 微重力,星尘下沉
             p.life -= p.decay;
             if (p.life <= 0) { trail.parts.splice(i, 1); continue; }
-            var al = p.life * 0.75;
+            var al = p.life * 0.45;
             ctx.beginPath();
             ctx.fillStyle = 'rgba(' + accentRGB[0] + ',' + accentRGB[1] + ',' + accentRGB[2] + ',' + al.toFixed(3) + ')';
             ctx.shadowColor = 'rgba(' + accentRGB[0] + ',' + accentRGB[1] + ',' + accentRGB[2] + ',0.9)';
-            ctx.shadowBlur = 8 * p.life;
+            ctx.shadowBlur = 6 * p.life;
             ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
             ctx.fill();
         }

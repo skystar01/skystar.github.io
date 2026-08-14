@@ -19,10 +19,16 @@ env/
 # ─── PyTorch / Models ───
 *.pth
 *.onnx
+# 例外:浏览器端推理模型必须随源码提交(CI 构建时要拷进 dist)
+!public/models/flappy-dqn.onnx
 *.pt
 *.pkl
 *.h5
 *.keras
+
+# ─── 本地构建/缓存产物(勿提交) ───
+dist-v2/
+.npm-cache/
 
 # ─── IDE / Editor ───
 .vscode/

@@ -193,6 +193,44 @@ body.fx-party .bg-theme.active {
     caret-color: var(--accent2);
 }
 
+/* ─── 12. RL 签名元素:技能矩阵的 loss 收敛曲线 ───
+   pathLength=1 让 dashoffset 用 0~1 表示,免量长度;
+   停靠技能站(.active)时触发一次描线动画,强化「训练收敛」隐喻 */
+.rl-loss-curve {
+    display: block;
+    width: 220px;
+    height: 72px;
+    margin-top: 10px;
+}
+.rl-loss-grid line {
+    stroke: rgba(255, 255, 255, 0.07);
+    stroke-width: 1;
+    stroke-dasharray: 3 5;
+}
+.rl-loss-line {
+    fill: none;
+    stroke: var(--accent2);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;                    /* 未激活:线藏起来 */
+    transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1) 0.35s;
+    filter: drop-shadow(0 0 4px rgba(var(--accent2-rgb, 78,205,196), 0.6));
+}
+.panel.active .rl-loss-line { stroke-dashoffset: 0; }
+.rl-loss-end {
+    fill: var(--accent2);
+    opacity: 0;
+    transition: opacity 0.4s ease 2s;        /* 线画完再亮收敛点 */
+}
+.panel.active .rl-loss-end { opacity: 1; }
+.rl-loss-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    fill: rgba(200, 210, 240, 0.4);
+}
+
 /* ─── 11. 尊重用户的「减少动态」偏好:一键关闭所有特效 ─── */
 @media (prefers-reduced-motion: reduce) {
     .hero-heading .line2 { animation: none; }
@@ -209,4 +247,6 @@ body.fx-party .bg-theme.active {
     }
     #fxTrail { display: none; }
     #fxTerm { transition: none; }
+    .rl-loss-line { transition: none; stroke-dashoffset: 0; }
+    .rl-loss-end { transition: none; opacity: 1; }
 }
