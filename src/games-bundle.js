@@ -6659,6 +6659,8 @@ class SurvivorGame {
                 { type: 'scatter', tier: 'B', level: 1, timer: 0 }
             ],
             invincible: 0,
+            // 击退 (boss 冲刺击中) - knockX/Y 是速度, knockTimer 倒计时
+            knockX: 0, knockY: 0, knockTimer: 0,
         };
         this.playerBullets = [];
         this.enemyBullets = [];
@@ -6860,6 +6862,16 @@ class SurvivorGame {
         const p = this.player;
         if (p.invincible > 0) p.invincible -= dt;
 
+        // 击退 (boss 冲刺击中): 应用 knock 速度, 自然衰减, 期间短无敌防连击
+        if (p.knockTimer > 0) {
+            p.knockTimer -= dt;
+            p.x += p.knockX * dt;
+            p.y += p.knockY * dt;
+            p.knockX *= 0.85;  // 0.2s 内自然停下 (0.85^13 ≈ 0.12)
+            p.knockY *= 0.85;
+            p.invincible = Math.max(p.invincible, 0.08);
+        }
+
         let dx = 0, dy = 0;
         if (this.keys['ArrowLeft'] || this.keys['KeyA']) dx -= 1;
         if (this.keys['ArrowRight'] || this.keys['KeyD']) dx += 1;
@@ -6875,8 +6887,8 @@ class SurvivorGame {
             p.dirX = dx;
             p.dirY = dy;
         }
-        // 边界
-        p.x = Math.max(p.r, Math.min(this.W - p.r, p.x));
+        // 边界 (含两侧墙: wallW=32, 玩家不进入墙内)
+        p.x = Math.max(p.r + this.wallW, Math.min(this.W - p.r - this.wallW, p.x));
         p.y = Math.max(p.r, Math.min(this.H - p.r, p.y));
 
         // 毒区伤害 (矩形判定: 毒区为方格)
@@ -7226,9 +7238,74 @@ class SurvivorGame {
             // 移动: Boss 驻场屏上中央 (不参与 scroll, 可能有冲刺技能 TODO)
             // 普通敌怪: 不自己移动, 由 _applyWorldScroll 统一下推
             if (e.isBoss) {
-                // Boss 驻场到屏上 30% 位置中央 (缓慢回弹)
-                e.x += (this.W / 2 - e.x) * 0.5 * dt;
-                e.y = this.H * 0.3;
+                // 冲刺状态机: idle → charging → dashing → returning → idle (周期 6s)
+                if (e.chargeState === 'charging') {
+                    // 蓄力: 静止, 等 0.8s 后冲
+                    e.chargeTimer -= dt;
+                    if (e.chargeTimer <= 0) {
+                        e.chargeState = 'dashing';
+                        e.chargeTimer = 0.5;
+                        e.chargeHit = false;
+                    }
+                } else if (e.chargeState === 'dashing') {
+                    // 冲刺: 500 px/s 朝 chargeTarget, 最多 0.5s
+                    const dx = e.chargeTarget.x - e.x;
+                    const dy = e.chargeTarget.y - e.y;
+                    const d = Math.hypot(dx, dy);
+                    const speed = 500;
+                    if (d > speed * dt) {
+                        e.x += (dx / d) * speed * dt;
+                        e.y += (dy / d) * speed * dt;
+                    } else {
+                        e.x = e.chargeTarget.x;
+                        e.y = e.chargeTarget.y;
+                    }
+                    // 撞到玩家 → 35 伤害 + 200 px 击退 + 屏幕震动
+                    if (!e.chargeHit && this._dist(e.x, e.y, p.x, p.y) < e.r + p.r) {
+                        e.chargeHit = true;
+                        p.hp -= 35;
+                        const ka = Math.atan2(p.y - e.y, p.x - e.x);
+                        p.knockX = Math.cos(ka) * 200;
+                        p.knockY = Math.sin(ka) * 200;
+                        p.knockTimer = 0.2;
+                        this._triggerShake(6, 0.3);
+                        this._floatingText(p.x, p.y - 30, '-35', '#ef4444');
+                    }
+                    e.chargeTimer -= dt;
+                    if (e.chargeTimer <= 0) {
+                        e.chargeState = 'returning';
+                        e.chargeTimer = 0.4;
+                    }
+                } else if (e.chargeState === 'returning') {
+                    // 0.4s 慢速返回驻场点 (方案 2: 沿路返回)
+                    const dx = this.W / 2 - e.x;
+                    const dy = this.H * 0.3 - e.y;
+                    const d = Math.hypot(dx, dy);
+                    if (d > 1) {
+                        // 剩余时间内匀速返回, 起步慢到自然
+                        const speed = Math.max(d / Math.max(e.chargeTimer, 0.001), 50);
+                        e.x += (dx / d) * Math.min(speed, 600) * dt;
+                        e.y += (dy / d) * Math.min(speed, 600) * dt;
+                    } else {
+                        e.x = this.W / 2;
+                        e.y = this.H * 0.3;
+                    }
+                    e.chargeTimer -= dt;
+                    if (e.chargeTimer <= 0) {
+                        e.chargeState = 'idle';
+                        e.chargeTimer = 4.3;  // 6s 周期 - 0.8 charging - 0.5 dashing - 0.4 returning
+                    }
+                } else {
+                    // idle: 驻场 + 倒计时到 charging
+                    e.x += (this.W / 2 - e.x) * 0.5 * dt;
+                    e.y = this.H * 0.3;
+                    e.chargeTimer -= dt;
+                    if (e.chargeTimer <= 0) {
+                        e.chargeState = 'charging';
+                        e.chargeTimer = 0.8;
+                        e.chargeTarget = { x: p.x, y: p.y };  // 锁定目标
+                    }
+                }
             }
 
             // 朝向玩家 (dirX/dirY 仍要更新, 让 sprite 旋转)
@@ -7284,7 +7361,9 @@ class SurvivorGame {
 
     _createEnemy(type, isElite, isBoss) {
         // Boss 出生在屏上中央, 不从屏外进入
-        const x = isBoss ? this.W / 2 : 60 + Math.random() * (this.W - 120);
+        // 敌怪 spawn x 限制在墙内 (考虑 e.r, 留 10px 缓冲, 防止 elite 画到墙里)
+        const enemyR = isElite ? 44 : 22;
+        const x = isBoss ? this.W / 2 : this.wallW + enemyR + 10 + Math.random() * (this.W - 2 * this.wallW - 2 * enemyR - 20);
         const y = isBoss ? this.H * 0.3 : -30;
         const mult = isElite ? 1.0 : 1.0;
         const sizeMult = isElite ? 2.0 : 1.0;
@@ -7335,6 +7414,11 @@ class SurvivorGame {
             while (t2 === t1) t2 = types[Math.floor(Math.random() * types.length)];
             e.bossTypes = [t1, t2];
             e.shootInterval = 1.2;
+            // ── 冲刺技能状态机 (B方案: 6s 周期, 0.8s 蓄力, 0.5s 冲刺, 0.4s 返回) ──
+            e.chargeState = 'idle';  // idle → charging → dashing → returning → idle
+            e.chargeTimer = 2.5 + Math.random() * 1.5;  // 首次延迟 2.5-4s
+            e.chargeTarget = { x: 0, y: 0 };           // 蓄力时锁定的玩家位置
+            e.chargeHit = false;                       // 防止冲刺时多帧重复扣血
         }
 
         this.enemies.push(e);
@@ -7470,11 +7554,12 @@ class SurvivorGame {
             c.rot = (c.rot || 0) + dt * 1.5;
 
             const d = this._dist(c.x, c.y, p.x, p.y);
-            // 磁吸
-            if (d < 80 || c.magnet) {
+            // 磁吸: 触发半径 130 (从 80 扩大), 渐进加速 (远处慢吸, 近处猛吸)
+            if (d < 130 || c.magnet) {
                 c.magnet = true;
                 const ang = Math.atan2(p.y - c.y, p.x - c.x);
-                const pull = 200;
+                // 距离越近 pull 越大: 边界 130 → 280, 80 → 580, 0 → 1060
+                const pull = 280 + Math.max(0, 130 - d) * 6;
                 c.x += Math.cos(ang) * pull * dt;
                 c.y += Math.sin(ang) * pull * dt;
             }
@@ -7499,6 +7584,10 @@ class SurvivorGame {
             }
             // 出底部消失 (玩家没捡到, 落在屏幕外)
             if (c.y > this.H + 50) this.crystals.splice(i, 1);
+            // x 边界 clamp (墙内, 考虑 c.r 防止画到墙里)
+            const cr = c.r || 8;
+            if (c.x < this.wallW + cr) c.x = this.wallW + cr;
+            if (c.x > this.W - this.wallW - cr) c.x = this.W - this.wallW - cr;
         }
     }
 
@@ -8133,6 +8222,25 @@ class SurvivorGame {
         // 恢复 transform 到循环前状态 (含屏幕震动, 不影响后续 _drawEnemy / _drawPlayer)
         ctx.restore();
 
+        // 磁吸光带: 被吸的晶石 → 玩家 (浅冰蓝半透, 批 stroke 1 次)
+        // 用 save/restore 防止 strokeStyle/lineWidth 污染后续 _drawEnemy/_drawPlayer
+        {
+            const pp = this.player;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(186, 230, 253, 0.32)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (const c of this.crystals) {
+                if (!c.magnet) continue;
+                const ddx = pp.x - c.x, ddy = pp.y - c.y;
+                if (ddx * ddx + ddy * ddy > 130 * 130) continue;  // _distSq 性能优化
+                ctx.moveTo(c.x, c.y);
+                ctx.lineTo(pp.x, pp.y);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
         // 敌人
         for (const e of this.enemies) {
             this._drawEnemy(e);
@@ -8476,6 +8584,42 @@ class SurvivorGame {
             ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw, 7);
             ctx.fillStyle = '#ef4444';
             ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw * (e.hp / e.maxHp), 7);
+
+            // ── 冲刺状态视觉 ──
+            if (e.chargeState === 'charging') {
+                // 红色脉动光圈 (0.4 频率)
+                const pulse = 6 + Math.sin(this.frame * 0.4) * 4;
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.r + 12 + pulse, 0, Math.PI * 2);
+                ctx.stroke();
+                // 警告线 (虚线, 指向锁定目标)
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 6]);
+                ctx.beginPath();
+                ctx.moveTo(e.x, e.y);
+                ctx.lineTo(e.chargeTarget.x, e.chargeTarget.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            } else if (e.chargeState === 'dashing') {
+                // 冲刺拖影: 沿反方向画 3 个半透明 boss 位置
+                const img2 = this._sprite('boss');
+                if (img2) {
+                    const dx = e.chargeTarget.x - e.x;
+                    const dy = e.chargeTarget.y - e.y;
+                    const d = Math.hypot(dx, dy);
+                    if (d > 1) {
+                        const nx = -dx / d, ny = -dy / d;
+                        for (let i = 1; i <= 3; i++) {
+                            ctx.globalAlpha = 0.35 - i * 0.1;
+                            ctx.drawImage(img2, e.x + nx * i * 18 - e.r / 2, e.y + ny * i * 18 - e.r / 2, e.r, e.r);
+                        }
+                        ctx.globalAlpha = 1;
+                    }
+                }
+            }
         }
 
         // 精英标记
