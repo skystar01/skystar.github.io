@@ -472,21 +472,40 @@ function showToast(msg) {
 window.showToast = showToast;
 
 // ─── CONTACT COPY ───
+function copyContactText(txt) {
+    const done = () => showToast('已复制到剪贴板');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(done).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = txt;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            done();
+        });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        done();
+    }
+}
+document.querySelectorAll('.contact-item-copy').forEach(item => {
+    const txt = item.getAttribute('data-copy') || item.querySelector('p')?.textContent || '';
+    item.style.cursor = 'pointer';
+    item.addEventListener('click', () => copyContactText(txt.trim()));
+});
 document.querySelectorAll('.contact-item').forEach(item => {
-    const txt = item.querySelector('p').textContent;
+    if (item.classList.contains('contact-item-copy')) return;
+    const p = item.querySelector('p');
+    const txt = p ? p.textContent : '';
     if (txt.includes('+86') || txt === 'tjqflydream') {
         item.style.cursor = 'pointer';
-        item.addEventListener('click', () => {
-            navigator.clipboard.writeText(txt).catch(() => {
-                const ta = document.createElement('textarea');
-                ta.value = txt;
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
-            });
-            showToast('已复制到剪贴板');
-        });
+        item.addEventListener('click', () => copyContactText(txt));
     }
 });
 
@@ -2556,6 +2575,9 @@ document.addEventListener('keydown', e => {
             } catch (e) {
                 updatedAtEl.textContent = '最后更新:' + (data.date || '');
             }
+            if (data._snapshot) {
+                updatedAtEl.textContent += ' · 本地快照';
+            }
         } else {
             updatedAtEl.textContent = '尚未更新';
         }
@@ -2613,6 +2635,9 @@ document.addEventListener('keydown', e => {
         if (currentKeyword) {
             foot += ` · 搜索「${currentKeyword}」`;
         }
+        if (data._snapshot) {
+            foot += ' · 当前为本地快照，实时抓取需启动本地后端';
+        }
         footEl.textContent = foot;
 
         showState('content');
@@ -2620,7 +2645,7 @@ document.addEventListener('keydown', e => {
 
     function loadFromFile() {
         if (window.NEWS_DATA && window.NEWS_DATA.items && window.NEWS_DATA.items.length > 0) {
-            renderNews(window.NEWS_DATA);
+            renderNews(Object.assign({}, window.NEWS_DATA, { _snapshot: true }));
             return true;
         }
         return false;
@@ -2630,10 +2655,31 @@ document.addEventListener('keydown', e => {
         SkyStorage.migrate(LEGACY_KEY, STORAGE_KEY);
         const data = SkyStorage.getJSON(STORAGE_KEY, null);
         if (data && data.items) {
-            renderNews(data);
+            renderNews(Object.assign({}, data, { _snapshot: true }));
             return true;
         }
         return false;
+    }
+
+    function restoreSnapshotOrEmpty(errMsg) {
+        // 刷新失败时优先回退快照，避免整页错误态吓到访客
+        if (window.NEWS_DATA && window.NEWS_DATA.items && window.NEWS_DATA.items.length > 0) {
+            renderNews(Object.assign({}, window.NEWS_DATA, { _snapshot: true }));
+            if (typeof window.showToast === 'function') {
+                window.showToast('实时刷新不可用，已展示本地快照');
+            }
+            return;
+        }
+        const cached = SkyStorage.getJSON(STORAGE_KEY, null);
+        if (cached && cached.items && cached.items.length) {
+            renderNews(Object.assign({}, cached, { _snapshot: true }));
+            if (typeof window.showToast === 'function') {
+                window.showToast('实时刷新不可用，已展示本地缓存');
+            }
+            return;
+        }
+        if (errMsg) errorText.textContent = errMsg;
+        showState('error');
     }
 
     function saveToLocalStorage(data) {
@@ -2663,14 +2709,15 @@ document.addEventListener('keydown', e => {
             renderNews(data);
         } catch (e) {
             console.error('Fetch failed', e);
+            let msg;
             if (e.name === 'AbortError') {
-                errorText.textContent = '请求超时(超过 3 分钟),请检查后端';
+                msg = '请求超时(超过 3 分钟),请检查后端';
             } else if (e.message && e.message.includes('Failed to fetch')) {
-                errorText.textContent = '后端未启动。请双击 start-news.bat 启动服务后再试';
+                msg = '后端未启动。静态站可继续浏览本地快照；本地开发请双击 start-news.bat';
             } else {
-                errorText.textContent = '刷新失败:' + e.message;
+                msg = '刷新失败:' + e.message;
             }
-            showState('error');
+            restoreSnapshotOrEmpty(msg);
         } finally {
             refreshBtn.disabled = false;
         }

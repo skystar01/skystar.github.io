@@ -4,6 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sky Star - AI Developer & Innovator</title>
+    <meta name="description" content="Sky Star 个人主页：强化学习 / 模型训练 / AI 游戏智能体。含开悟竞赛、Flappy DQN 端到端 Demo 与可玩 AI 游戏中心。">
+    <meta name="author" content="Sky Star">
+    <meta name="theme-color" content="#0d1228">
+    <link rel="canonical" href="https://skystar01.github.io/">
+    <!-- Open Graph / 分享卡片 -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Sky Star">
+    <meta property="og:title" content="Sky Star · RL-focused AI Engineer">
+    <meta property="og:description" content="强化学习 / 模型训练 / AI 游戏智能体。竞赛成果 + Flappy DQN 浏览器推理 + 可玩 Demo。">
+    <meta property="og:url" content="https://skystar01.github.io/">
+    <meta property="og:image" content="https://skystar01.github.io/assets/logo.webp">
+    <meta property="og:image:alt" content="Sky Star">
+    <meta property="og:locale" content="zh_CN">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Sky Star · RL-focused AI Engineer">
+    <meta name="twitter:description" content="强化学习 / 模型训练 / AI 游戏智能体。竞赛成果 + Flappy DQN 浏览器推理 + 可玩 Demo。">
+    <meta name="twitter:image" content="https://skystar01.github.io/assets/logo.webp">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
@@ -323,13 +340,13 @@
                 <div id="news-empty" class="news-state news-empty hidden">
                     <i class="fas fa-rss"></i>
                     <p class="news-state-title">还没有今日资讯</p>
-                    <p class="news-state-hint">点右上角"刷新"按钮,启动本地后端拉取</p>
+                    <p class="news-state-hint">静态部署下会展示本地快照；点右上角「刷新」需先启动本地后端</p>
                 </div>
 
                 <div id="news-error" class="news-state news-error hidden">
                     <i class="fas fa-triangle-exclamation"></i>
-                    <p class="news-state-title">刷新失败</p>
-                    <p id="news-error-text" class="news-state-hint">请确认已双击 start-news.bat 启动服务</p>
+                    <p class="news-state-title">实时刷新不可用</p>
+                    <p id="news-error-text" class="news-state-hint">已回退到本地快照。若需拉取今日资讯，请双击 start-news.bat</p>
                 </div>
 
                 <div id="news-content" class="news-content hidden">
@@ -1244,15 +1261,17 @@
                             <h4>GitHub</h4>
                             <p><a href="https://github.com/skystar01" target="_blank">github.com/skystar01</a></p>
                         </div>
-                        <div class="contact-item">
+                        <div class="contact-item contact-item-copy" data-copy="tjqflydream" title="点击复制微信号">
                             <i class="fab fa-weixin"></i>
                             <h4>微信</h4>
                             <p>tjqflydream</p>
+                            <span class="contact-hint">点击复制</span>
                         </div>
-                        <div class="contact-item">
+                        <div class="contact-item contact-item-copy" data-copy="+86 18781881567" title="点击复制手机号">
                             <i class="fas fa-phone"></i>
                             <h4>电话</h4>
-                            <p>+86 18781881567</p>
+                            <p class="contact-phone-mask">187 **** 1567</p>
+                            <span class="contact-hint">点击复制完整号码</span>
                         </div>
                     </div>
                     <aside class="contact-aside">

@@ -1172,6 +1172,21 @@ html, body {
 .contact-item p { font-size: 0.83rem; color: var(--muted); word-break: break-all; }
 .contact-item a { color: var(--accent2); text-decoration: none; }
 .contact-item a:hover { color: var(--accent); }
+.contact-item-copy {
+    position: relative;
+}
+.contact-item-copy .contact-hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: rgba(200, 210, 240, 0.45);
+}
+.contact-item-copy:hover .contact-hint { color: var(--accent2); }
+.contact-phone-mask {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
+}
 
 .contact-aside {
     display: flex;
