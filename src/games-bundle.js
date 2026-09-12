@@ -1061,14 +1061,14 @@ class FlappyBird {
         this.clouds = [];
         
         this.colors = {
-            sky: '#87ceeb',
-            ground: '#deb887',
-            birdBody: '#ffff00',
+            sky: '#1a2744',            // 深空暮色,贴合游戏中心舞台
+            ground: '#3d2c1f',
+            birdBody: '#fbbf24',
             birdBeak: '#ff6b35',
-            pipeGreen: '#009600',
-            pipeDark: '#006400',
-            pipeBorder: '#004d00',
-            cloud: '#ffffff'
+            pipeGreen: '#2dd4bf',
+            pipeDark: '#0f766e',
+            pipeBorder: '#115e59',
+            cloud: 'rgba(148, 163, 184, 0.35)'
         };
         
         this.initClouds();
@@ -1498,14 +1498,18 @@ class FlappyBird {
         this.ctx.strokeText('SPACE/↑/W - Fly | P/ESC - Pause | A - AI Mode', this.width / 2, this.height / 2 + 70);
         this.ctx.fillText('SPACE/↑/W - Fly | P/ESC - Pause | A - AI Mode', this.width / 2, this.height / 2 + 70);
         
-        if (this.aiModelLoaded) {
+        if (this.aiBackend === 'flask') {
             this.ctx.fillStyle = '#44ff44';
-            this.ctx.strokeText('✅ Flask Backend Connected', this.width / 2, this.height / 2 + 110);
-            this.ctx.fillText('✅ Flask Backend Connected', this.width / 2, this.height / 2 + 110);
+            this.ctx.strokeText('AI 就绪 · Flask 推理', this.width / 2, this.height / 2 + 110);
+            this.ctx.fillText('AI 就绪 · Flask 推理', this.width / 2, this.height / 2 + 110);
+        } else if (this.aiBackend === 'onnx' || this.aiModelLoaded) {
+            this.ctx.fillStyle = '#44ff44';
+            this.ctx.strokeText('AI 就绪 · 浏览器本地推理', this.width / 2, this.height / 2 + 110);
+            this.ctx.fillText('AI 就绪 · 浏览器本地推理', this.width / 2, this.height / 2 + 110);
         } else {
-            this.ctx.fillStyle = '#ff4444';
-            this.ctx.strokeText('❌ Backend not connected', this.width / 2, this.height / 2 + 110);
-            this.ctx.fillText('❌ Backend not connected', this.width / 2, this.height / 2 + 110);
+            this.ctx.fillStyle = '#a5b4fc';
+            this.ctx.strokeText('按 A / 点「召唤 AI」加载模型', this.width / 2, this.height / 2 + 110);
+            this.ctx.fillText('按 A / 点「召唤 AI」加载模型', this.width / 2, this.height / 2 + 110);
         }
     }
     
@@ -1563,7 +1567,12 @@ class FlappyBird {
     }
     
     draw() {
-        this.ctx.fillStyle = this.colors.sky;
+        // 深空暮色渐变底,比单色更贴舞台
+        const skyGrad = this.ctx.createLinearGradient(0, 0, 0, this.height);
+        skyGrad.addColorStop(0, '#0b1228');
+        skyGrad.addColorStop(0.55, this.colors.sky);
+        skyGrad.addColorStop(1, '#243055');
+        this.ctx.fillStyle = skyGrad;
         this.ctx.fillRect(0, 0, this.width, this.height);
         
         this.drawClouds();
@@ -1892,7 +1901,6 @@ class Game2048 {
                     }
                 } else {
                     cell.innerText = '';
-                    cell.style.backgroundColor = 'rgba(238, 228, 218, 0.35)';
                 }
                 this.gridContainer.appendChild(cell);
             }

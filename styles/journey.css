@@ -30,7 +30,15 @@ body.journey .panel {
     will-change: transform, opacity;
 }
 body.journey .panel.exit { opacity: 0; }   /* 旧退场逻辑在本模式下被相机接管 */
-body.journey .panel.dock { pointer-events: all !important; }
+body.journey .panel.dock {
+    pointer-events: all !important;
+    /* 只抬层级,不铺不透明底——首页星空要能透出来 */
+    z-index: 20;
+}
+/* 游戏站画布面积大、背景本身不透明,补一层暗底压住任何残影 */
+body.journey .panel#panel-game.dock {
+    background: rgba(8, 10, 28, 0.88);
+}
 
 /* 空间模式不显示滚动条(滚动能力保留) */
 body.journey .panel { scrollbar-width: none; }
@@ -150,6 +158,12 @@ body.journey .panel {
     pointer-events: none;
 }
 .jhint.gone { opacity: 0; }
+/* 游戏站已有操作说明,jhint 叠字很脏:到站后直接藏起来 */
+body[data-active-panel="game"] .jhint {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden;
+}
 .jhint .jhint-arrow { color: var(--accent2); font-size: 13px; }
 @keyframes jhintFloat {
     50% { transform: translateX(-50%) translateY(-6px); }

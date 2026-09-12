@@ -183,10 +183,15 @@
     box-shadow: 0 0 40px rgba(0, 215, 195, 0.15);
 }
 
-/* Flappy Bird Canvas */
+/* Flappy Bird Canvas — 放大到舞台视觉重心,加橙色描边贴合 game 主题 */
 #flappyCanvas {
+    width: min(360px, 72vw);
+    height: auto;
+    max-height: min(540px, 62vh);
     border-radius: 16px;
-    box-shadow: 0 0 40px rgba(113, 197, 207, 0.3);
+    border: 2px solid rgba(255, 126, 61, 0.35);
+    box-shadow: 0 0 40px rgba(255, 126, 61, 0.22), 0 16px 40px rgba(0, 0, 0, 0.35);
+    background: #0b1228;
 }
 
 /* Game Container Switching */
@@ -510,4 +515,157 @@
     .game-btn { padding: 8px 16px; font-size: 0.82rem; }
     .game-over-title { font-size: 2rem; }
     .game-over-score { font-size: 1.1rem; }
+}
+
+/* ─── AI 算法标签 ───
+   紧贴 AI 按钮旁的算法说明, 让访客一眼看到游戏用了什么 AI。
+   普通启发式/搜索算法: 紫色 λ 标识; 训练模型: 绿色 ⚡ 标识(更醒目)
+   动效分层: 默认呼吸 → hover 放大+λ 旋转 → AI 激活时脉动+强发光 */
+@keyframes ai-tag-breathe {
+    0%, 100% { opacity: 0.85; }
+    50%      { opacity: 1; }
+}
+@keyframes ai-tag-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+    50%      { box-shadow: 0 0 10px 1px rgba(139, 92, 246, 0.35); }
+}
+@keyframes ai-tag-rl-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+    50%      { box-shadow: 0 0 12px 1px rgba(74, 222, 128, 0.45); }
+}
+@keyframes ai-tag-pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.07); }
+}
+@keyframes ai-tag-icon-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+@keyframes ai-tag-icon-bolt {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.9; }
+    50%      { transform: scale(1.18) rotate(-8deg); opacity: 1; }
+}
+
+.ai-algo-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    color: #c4b5fd;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    border-radius: 999px;
+    font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
+    letter-spacing: 0.01em;
+    vertical-align: middle;
+    white-space: nowrap;
+    line-height: 1.4;
+    /* 默认轻呼吸 + 紫色光晕脉动 */
+    animation: ai-tag-breathe 3s ease-in-out infinite,
+               ai-tag-glow 3s ease-in-out infinite;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                background 0.25s ease,
+                border-color 0.25s ease,
+                color 0.2s ease;
+    will-change: transform, box-shadow;
+    cursor: default;
+}
+.ai-algo-tag::before {
+    content: 'λ';
+    color: #a78bfa;
+    font-weight: 700;
+    font-size: 0.95em;
+    display: inline-block;
+    transform-origin: center;
+    transition: color 0.2s ease;
+}
+/* hover: 放大 + λ 旋转 + 加深背景 + 强发光 */
+.ai-algo-tag:hover {
+    transform: scale(1.08);
+    background: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.55);
+    box-shadow: 0 0 16px 1px rgba(139, 92, 246, 0.4);
+    animation-play-state: paused;
+}
+.ai-algo-tag:hover::before {
+    animation: ai-tag-icon-spin 1.2s linear infinite;
+}
+
+/* 训练模型型 AI (flappy): 绿色强调 + ⚡ 持续"电流"动画 */
+.ai-algo-tag[data-kind="rl"] {
+    color: #4ade80;
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.15), rgba(139, 92, 246, 0.1));
+    border-color: rgba(74, 222, 128, 0.4);
+    animation: ai-tag-breathe 2.5s ease-in-out infinite,
+               ai-tag-rl-glow 2.5s ease-in-out infinite;
+}
+.ai-algo-tag[data-kind="rl"]::before {
+    content: '⚡';
+    color: #4ade80;
+    font-size: 0.9em;
+    animation: ai-tag-icon-bolt 2.5s ease-in-out infinite;
+}
+.ai-algo-tag[data-kind="rl"]:hover {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.28), rgba(139, 92, 246, 0.15));
+    border-color: rgba(74, 222, 128, 0.65);
+    box-shadow: 0 0 18px 2px rgba(74, 222, 128, 0.45);
+}
+.ai-algo-tag[data-kind="rl"]:hover::before {
+    animation: ai-tag-icon-spin 0.9s linear infinite;
+}
+
+/* AI 激活态 (由 JS 加 .ai-algo-tag--active): 持续脉动 + 强发光 + 白字 */
+.ai-algo-tag.ai-algo-tag--active {
+    color: #fff;
+    background: rgba(139, 92, 246, 0.28);
+    border-color: rgba(167, 139, 250, 0.7);
+    animation: ai-tag-pulse 0.8s ease-in-out infinite,
+               ai-tag-glow 1.2s ease-in-out infinite;
+}
+.ai-algo-tag[data-kind="rl"].ai-algo-tag--active {
+    color: #d1fae5;
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.35), rgba(139, 92, 246, 0.22));
+    border-color: rgba(74, 222, 128, 0.75);
+    animation: ai-tag-pulse 0.6s ease-in-out infinite,
+               ai-tag-rl-glow 0.8s ease-in-out infinite;
+}
+
+/* 尊重 prefers-reduced-motion: 全部禁用动画 (无障碍) */
+@media (prefers-reduced-motion: reduce) {
+    .ai-algo-tag,
+    .ai-algo-tag::before,
+    .ai-algo-tag:hover::before,
+    .ai-algo-tag[data-kind="rl"]::before {
+        animation: none !important;
+    }
+    .ai-algo-tag:hover { transform: none; }
+}
+
+/* ─── AI 算法标签 (图片版) ───
+   标签里换成艺术字 sprite (H3 生成 + 抠像).
+   去掉文字版的 background / border / padding / 文字色,
+   但保留 .ai-algo-tag 的动效 (呼吸/hover 缩放/激活脉动) */
+.ai-algo-tag--img {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    color: transparent !important;
+    height: 32px;
+    width: auto;
+    max-width: 320px;
+    object-fit: contain;
+    /* 文字版 .ai-algo-tag 的 display: inline-flex 跟 img 不兼容, 改 inline-block */
+    display: inline-block;
+    vertical-align: middle;
+}
+.ai-algo-tag--img::before {
+    content: none !important;
+    animation: none !important;
+}
+
+/* 响应式: 小屏自动换行不挤压 */
+@media (max-width: 640px) {
+    .ai-algo-tag { margin-left: 0; margin-top: 4px; }
 }

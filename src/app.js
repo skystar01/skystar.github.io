@@ -1452,19 +1452,48 @@ document.addEventListener('keydown', e => {
         var diff = targetZ - camZ;
         camZ = Math.abs(diff) > 0.4 ? camZ + diff * 0.06 : targetZ;
 
+        // 到站判定只看 target,不看过渡中的 camZ —— 飞行途中绝不让相邻站漏出来
+        var settling = Math.abs(targetZ - camZ) < 24;
+        var targetName = null;
+        STATIONS.forEach(function (name) {
+            if (panels[name] && Math.abs(panels[name].z - targetZ) < 1) targetName = name;
+        });
+
         STATIONS.forEach(function (name) {
             var p = panels[name];
             if (!p) return;
             var tz = camZ - p.z;           // 0=到站; 负=前方深处; 正=已越过
+            var isTarget = name === targetName;
+
+            // 停靠/接近到站:只亮目标站,其余一律硬隐藏(消除半透明叠影)
+            if (settling || Math.abs(tz) < 80) {
+                if (isTarget && Math.abs(tz) < 80) {
+                    p.el.style.transform = 'translate(-50%,-50%) translateZ(0px)';
+                    p.el.style.opacity = '1';
+                    p.el.style.visibility = 'visible';
+                    p.el.style.filter = '';
+                } else {
+                    p.el.style.opacity = '0';
+                    p.el.style.visibility = 'hidden';
+                    p.el.style.filter = '';
+                    p.el.style.pointerEvents = 'none';
+                }
+                var docked = isTarget && Math.abs(tz) < 60;
+                p.el.classList.toggle('dock', docked);
+                return;
+            }
+
             var op;
             if (tz < FADE_FAR || tz > GONE)      op = 0;
             else if (tz >= PASS_OUT)             op = 1 - (tz - PASS_OUT) / (GONE - PASS_OUT);
             else if (tz >= FADE_IN)              op = 1;
             else                                 op = (tz - FADE_FAR) / (FADE_IN - FADE_FAR);
 
+            // 飞行中更狠地收掉非目标站,避免半透明残影叠在游戏画布上
+            if (!isTarget) op *= 0.55;
+
             var visible = op > 0.02;
 
-            // 距离模糊:远处和正在掠过的站轻微失焦,焦点只留在当前站
             var blur = 0;
             if (tz < FADE_IN) blur = Math.min(4, (FADE_IN - tz) / 300);
             else if (tz > 60) blur = Math.min(4, (tz - 60) / 100);
@@ -1473,10 +1502,7 @@ document.addEventListener('keydown', e => {
             p.el.style.opacity = op.toFixed(3);
             p.el.style.visibility = visible ? 'visible' : 'hidden';
             p.el.style.filter = blur > 0.2 ? 'saturate(1.05) blur(' + blur.toFixed(1) + 'px)' : '';
-
-            // 停靠判定:只有到站的 panel 可交互
-            var docked = Math.abs(tz) < 60;
-            p.el.classList.toggle('dock', docked);
+            p.el.classList.toggle('dock', false);
         });
     }
 
@@ -1640,6 +1666,21 @@ document.addEventListener('keydown', e => {
         hint.classList.add('gone');
         setTimeout(function () { hint.remove(); }, 800);
     }
+
+    // 游戏站本身有操作说明,jhint 会叠字;到站/离开时用 inline style 强制开关
+    function syncHintForPanel(name) {
+        if (!hint || hintGone) return;
+        hint.style.opacity = (name === 'game') ? '0' : '';
+        hint.style.visibility = (name === 'game') ? 'hidden' : '';
+    }
+    var _origSwitchForHint = window.switchPanel;
+    if (typeof _origSwitchForHint === 'function') {
+        window.switchPanel = function (t) {
+            _origSwitchForHint(t);
+            syncHintForPanel(t);
+        };
+    }
+    syncHintForPanel(current);
 
     // ────────────────────────────────────────────
     // 6. 大门开场(每个会话只看一次)

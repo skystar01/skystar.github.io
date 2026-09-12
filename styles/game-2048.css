@@ -1,5 +1,5 @@
 /* =============================================
-   2048 游戏样式
+   2048 游戏样式 — 深空主题(与游戏中心舞台一致)
    ============================================= */
 
 .game-container.game-2048 {
@@ -16,7 +16,7 @@
 .game2048-title {
     font-size: 2.5rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #f8fafc, #fbbf24);
+    background: linear-gradient(135deg, #e0e7ff, #a78bfa 45%, #4ecdc4);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -53,13 +53,15 @@
 }
 
 .game2048-grid-container {
-    background-color: #cdc1b4;
+    background: linear-gradient(160deg, rgba(15, 18, 40, 0.95), rgba(8, 10, 28, 0.98));
+    border: 1px solid rgba(139, 92, 246, 0.35);
     border-radius: 16px;
     padding: 12px;
     width: 100%;
-    max-width: 540px;        /* 400→540, 配合容器变大 (fit 后 540×540, 跟 plane 高度对齐) */
-    aspect-ratio: 1 / 1;     /* 正方形, 高度自动算 */
+    max-width: 540px;
+    aspect-ratio: 1 / 1;
     margin: 0 auto;
+    box-shadow: 0 0 40px rgba(124, 110, 245, 0.12), inset 0 0 30px rgba(78, 205, 196, 0.04);
 }
 
 .game2048-grid {
@@ -70,35 +72,50 @@
 
 .cell-2048 {
     aspect-ratio: 1 / 1;
-    background-color: rgba(238, 228, 218, 0.6);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(139, 92, 246, 0.12);
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
     font-size: 1.8rem;
-    color: #776e65;
+    color: transparent;
     transition: all 0.12s ease-in-out;
 }
 
-.tile-2048-2 { background: #eee4da; color: #776e65; }
-.tile-2048-4 { background: #ede0c8; color: #776e65; }
-.tile-2048-8 { background: #f2b179; color: #f9f6f2; }
-.tile-2048-16 { background: #f59563; color: #f9f6f2; }
-.tile-2048-32 { background: #f67c5f; color: #f9f6f2; }
-.tile-2048-64 { background: #f65e3b; color: #f9f6f2; }
-.tile-2048-128 { background: #edcf72; color: #f9f6f2; font-size: 1.2rem; }
-.tile-2048-256 { background: #edcc61; color: #f9f6f2; font-size: 1.2rem; }
-.tile-2048-512 { background: #edc850; color: #f9f6f2; font-size: 1.2rem; }
-.tile-2048-1024 { background: #edc53f; color: #f9f6f2; font-size: 1rem; }
-.tile-2048-2048 { background: #edc22e; color: #f9f6f2; font-size: 1rem; }
-.tile-2048-super { background: #3c3a32; color: #f9f6f2; font-size: 0.9rem; }
+/* 低分冷色 → 高分暖色/发光,贴合深空导航仪气质 */
+.tile-2048-2 { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.25); }
+.tile-2048-4 { background: rgba(129, 140, 248, 0.22); color: #e0e7ff; border-color: rgba(129, 140, 248, 0.35); }
+.tile-2048-8 { background: rgba(139, 92, 246, 0.38); color: #f5f3ff; border-color: rgba(167, 139, 250, 0.5); }
+.tile-2048-16 { background: rgba(124, 58, 237, 0.48); color: #fff; border-color: rgba(167, 139, 250, 0.55); box-shadow: 0 0 12px rgba(139, 92, 246, 0.25); }
+.tile-2048-32 { background: rgba(78, 205, 196, 0.42); color: #ecfeff; border-color: rgba(94, 234, 212, 0.5); box-shadow: 0 0 14px rgba(78, 205, 196, 0.3); }
+.tile-2048-64 { background: rgba(34, 211, 238, 0.48); color: #ecfeff; border-color: rgba(103, 232, 249, 0.55); box-shadow: 0 0 16px rgba(34, 211, 238, 0.35); }
+.tile-2048-128 { background: rgba(251, 191, 36, 0.42); color: #fffbeb; border-color: rgba(252, 211, 77, 0.5); font-size: 1.35rem; box-shadow: 0 0 18px rgba(251, 191, 36, 0.3); }
+.tile-2048-256 { background: rgba(249, 115, 22, 0.48); color: #fff7ed; border-color: rgba(251, 146, 60, 0.55); font-size: 1.35rem; box-shadow: 0 0 20px rgba(249, 115, 22, 0.35); }
+.tile-2048-512 { background: rgba(244, 63, 94, 0.5); color: #fff1f2; border-color: rgba(251, 113, 133, 0.55); font-size: 1.35rem; box-shadow: 0 0 22px rgba(244, 63, 94, 0.4); }
+.tile-2048-1024 { background: linear-gradient(145deg, rgba(236, 72, 153, 0.55), rgba(139, 92, 246, 0.55)); color: #fff; font-size: 1.15rem; box-shadow: 0 0 24px rgba(236, 72, 153, 0.4); border-color: rgba(244, 114, 182, 0.55); }
+.tile-2048-2048 {
+    background: linear-gradient(145deg, rgba(251, 191, 36, 0.7), rgba(249, 115, 22, 0.65), rgba(236, 72, 153, 0.5));
+    color: #fff;
+    font-size: 1.15rem;
+    border-color: rgba(253, 224, 71, 0.65);
+    box-shadow: 0 0 28px rgba(251, 191, 36, 0.5), 0 0 48px rgba(236, 72, 153, 0.25);
+}
+.tile-2048-super {
+    background: linear-gradient(145deg, rgba(99, 102, 241, 0.65), rgba(14, 165, 233, 0.55));
+    color: #fff;
+    font-size: 0.95rem;
+    border-color: rgba(165, 180, 252, 0.6);
+    box-shadow: 0 0 28px rgba(99, 102, 241, 0.45);
+}
 
 .game2048-button-row {
     display: flex;
     justify-content: center;
     gap: 12px;
     margin-top: 20px;
+    flex-wrap: wrap;
 }
 
 .game2048-btn {
@@ -166,22 +183,24 @@
 }
 
 .game2048-overlay-card {
-    background: #f9f6f2;
+    background: linear-gradient(155deg, rgba(15, 23, 42, 0.96), rgba(8, 13, 31, 0.98));
+    border: 1px solid rgba(139, 92, 246, 0.4);
     padding: 25px 35px;
-    border-radius: 30px;
+    border-radius: 24px;
     text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 30px rgba(124, 110, 245, 0.2);
 }
 
 .game2048-overlay-card h2 {
     font-size: 1.8rem;
     margin: 0 0 12px;
-    color: #776e65;
+    color: #e0e7ff;
 }
 
 .game2048-overlay-card p {
     font-size: 1.1rem;
     margin-bottom: 20px;
-    color: #64748b;
+    color: #a5b4fc;
 }
 
 .game2048-restart-btn {
