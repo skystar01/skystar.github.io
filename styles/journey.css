@@ -165,8 +165,13 @@ body.journey .panel {
     pointer-events: none;
 }
 .jhint.gone { opacity: 0; }
-/* 游戏站已有操作说明,jhint 叠字很脏:到站后直接藏起来 */
-body[data-active-panel="game"] .jhint {
+/* 非首页不展示航行提示,避免叠字 */
+body[data-active-panel="game"] .jhint,
+body[data-active-panel="about"] .jhint,
+body[data-active-panel="skills"] .jhint,
+body[data-active-panel="projects"] .jhint,
+body[data-active-panel="contact"] .jhint,
+body[data-active-panel="news"] .jhint {
     opacity: 0 !important;
     pointer-events: none !important;
     visibility: hidden;

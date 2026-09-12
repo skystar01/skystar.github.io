@@ -439,6 +439,25 @@
                                 <strong>AI 智能体 + 游戏 Demo</strong>
                             </div>
                         </div>
+
+                        <div class="about-stats" aria-label="关键结果">
+                            <div class="about-stat">
+                                <b>#4</b>
+                                <span>开悟初赛全国总榜</span>
+                            </div>
+                            <div class="about-stat">
+                                <b>#9</b>
+                                <span>开悟复赛全国</span>
+                            </div>
+                            <div class="about-stat">
+                                <b>10</b>
+                                <span>本站可玩 Demo</span>
+                            </div>
+                            <div class="about-stat">
+                                <b>ONNX</b>
+                                <span>浏览器本地 RL 推理</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -524,12 +543,20 @@
                 </div>
                 <div class="projects-grid">
                     <div class="project-card">
+                        <div class="project-card-visual" aria-hidden="true">
+                            <img src="images/kaiwu-stats.svg" alt="" loading="lazy" />
+                        </div>
                         <div class="project-card-top">
                             <span class="icon-chess project-icon" aria-label="智能博弈"><svg viewBox="0 0 24 24"><path d="M9 21h8M10 17h6l1 4H9l1-4Z"/><path d="M10.5 17c.2-3 1.4-4.8 4.4-6.3 1.2-.6 1.6-1.6 1.1-2.7-.7-1.6-2.6-1.7-4.2-.6L10 8.7V5.5L13.2 3c2.7-.1 5 1.5 5.6 4 .7 2.8-.8 5.1-3.3 6.2-1.5.7-2.2 1.4-2.4 3.8"/><circle cx="14" cy="7.2" r=".35"/></svg></span>
                             <span class="project-level">主秀项目</span>
                         </div>
                         <h3>智能博弈算法</h3>
                         <p class="project-one-liner">腾讯开悟 AI 竞赛强化学习智能体项目。</p>
+                        <div class="project-metrics">
+                            <span><b>#4</b> 初赛全国</span>
+                            <span><b>#9</b> 复赛全国</span>
+                            <span><b>川渝二等</b></span>
+                        </div>
                         <div class="project-badges">
                             <span>川渝二等奖</span>
                             <span>全国总榜第 4</span>
@@ -539,37 +566,58 @@
                         <div class="project-tags">
                             <span>RL</span><span>DQN</span><span>PPO</span><span>Reward Shaping</span>
                         </div>
-                        <a href="https://github.com/skystar01/my-created" target="_blank" class="project-link">
-                            查看代码 <i class="fas fa-external-link-alt"></i>
-                        </a>
+                        <div class="project-ctas">
+                            <a href="https://github.com/skystar01/my-created" target="_blank" class="project-link">
+                                查看代码 <i class="fas fa-external-link-alt"></i>
+                            </a>
+                            <button type="button" class="project-cta-soft" data-open-project="智能博弈算法">详情与证书 <i class="fas fa-chevron-right"></i></button>
+                        </div>
                     </div>
                     <div class="project-card">
+                        <div class="project-card-visual" aria-hidden="true">
+                            <img src="images/flappy-pipeline.svg" alt="" loading="lazy" />
+                        </div>
                         <div class="project-card-top">
                             <span class="icon-flappy project-icon" aria-label="Flappy Bird AI"><svg viewBox="0 0 24 24"><path d="M4 14c4.5-6.8 9.3-7.6 16-4.5-3.1.8-5.2 2.4-6.6 5.3"/><path class="wing" d="M5.5 14.2c3.6-1.2 6.5-.5 8.8 2.1-2.8 1.7-6.2 1.5-8.8-2.1Z"/><path d="M15.5 9.2 18 6.5M17.2 10.1l3.1-1"/><circle cx="12.2" cy="10.2" r=".55"/></svg></span>
                             <span class="project-level">端到端 Demo</span>
                         </div>
                         <h3>Flappy Bird AI</h3>
-                        <p class="project-one-liner">从训练到 Web 推理 API 的 RL 自学项目。</p>
+                        <p class="project-one-liner">从训练到浏览器推理的 RL 自学项目。</p>
+                        <div class="project-metrics">
+                            <span><b>Dueling DQN</b></span>
+                            <span><b>PER</b></span>
+                            <span><b>ONNX</b></span>
+                        </div>
                         <div class="project-badges">
                             <span>Dueling DQN</span>
                             <span>PER</span>
-                            <span>Flask API</span>
+                            <span>Flask / ONNX</span>
                         </div>
-                        <p>跑通自定义 Gym 环境、训练循环、checkpoint 保存、Flask 推理服务和前端 Canvas 调用，游戏区可按 A 召唤 AI 试玩。</p>
+                        <p>跑通自定义 Gym、训练循环、checkpoint、Flask API 与浏览器本地推理，游戏区可直接召唤 AI 试玩。</p>
                         <div class="project-tags">
                             <span>PyTorch</span><span>Flask</span><span>Canvas</span><span>AI Demo</span>
                         </div>
-                        <a href="https://github.com/skystar01/skystar.github.io" target="_blank" class="project-link">
-                            查看代码 <i class="fas fa-external-link-alt"></i>
-                        </a>
+                        <div class="project-ctas">
+                            <a href="https://github.com/skystar01/skystar.github.io" target="_blank" class="project-link">
+                                查看代码 <i class="fas fa-external-link-alt"></i>
+                            </a>
+                            <button type="button" class="project-cta-play" data-play-game="flappy">在本站试玩 <i class="fas fa-gamepad"></i></button>
+                        </div>
                     </div>
                     <div class="project-card">
+                        <div class="project-card-visual" aria-hidden="true">
+                            <img src="images/qa-pipeline.svg" alt="" loading="lazy" />
+                        </div>
                         <div class="project-card-top">
                             <span class="icon-chat project-icon" aria-label="智能问答"><svg viewBox="0 0 24 24"><path d="M4 5.5h16v9.5H9l-5 4v-13.5Z"/><path d="M8 9h8M8 12h5"/><circle class="dot dot-1" cx="7.2" cy="9" r=".55"/><circle class="dot dot-2" cx="10" cy="9" r=".55"/><circle class="dot dot-3" cx="12.8" cy="9" r=".55"/></svg></span>
                             <span class="project-level">训练流程</span>
                         </div>
                         <h3>智能问答系统</h3>
                         <p class="project-one-liner">本科毕设，从零预训练轻量级中文对话模型。</p>
+                        <div class="project-metrics">
+                            <span><b>端到端</b> pipeline</span>
+                            <span><b>FastAPI</b></span>
+                        </div>
                         <div class="project-badges">
                             <span>数据清洗</span>
                             <span>Tokenizer</span>
@@ -579,9 +627,12 @@
                         <div class="project-tags">
                             <span>NLP</span><span>Transformer</span><span>PyTorch</span><span>Pipeline</span>
                         </div>
-                        <a href="https://github.com/skystar01/my-created" target="_blank" class="project-link">
-                            查看代码 <i class="fas fa-external-link-alt"></i>
-                        </a>
+                        <div class="project-ctas">
+                            <a href="https://github.com/skystar01/my-created" target="_blank" class="project-link">
+                                查看代码 <i class="fas fa-external-link-alt"></i>
+                            </a>
+                            <button type="button" class="project-cta-soft" data-open-project="智能问答系统">流程说明 <i class="fas fa-chevron-right"></i></button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1250,12 +1301,18 @@
             <div class="right-content-area">
                 <div class="project-info-panel">
                     <h3 id="modalProjectTitle">智能问答系统</h3>
+                    <div class="modal-metrics" id="modalMetrics" hidden></div>
                     <p class="project-desc-text" id="modalProjectDesc" style="white-space: pre-wrap;"></p>
                     <div class="project-meta-tags" id="modalTechTags"></div>
                     <div class="progress-row">
                         <span>完成度</span>
                         <div class="progress-bar-bg"><div class="progress-fill-modal" id="modalProgressFill"></div></div>
                         <span id="modalProgressValue">0%</span>
+                    </div>
+                    <div class="modal-cta-row">
+                        <button type="button" class="game-btn game-btn-primary modal-play-btn" id="modalPlayBtn" hidden>
+                            <i class="fas fa-gamepad"></i> 在本站试玩
+                        </button>
                     </div>
                 </div>
                 <div class="carousel-section">

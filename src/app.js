@@ -501,29 +501,37 @@ const projectData = {
         tags:['强化学习','DQN','PPO','竞赛获奖'],
         features:['DQN / Target DQN 算法实现','PPO 算法调参与实验','奖励函数设计 (reward shaping)','特征工程与状态表示','超参数调优','团队协作'],
         link:'https://github.com/skystar01/my-created',
-        screenshots:['images/award-kaiwu-final-page1.webp']
+        linkLabel:'查看代码',
+        metrics:[{k:'初赛全国',v:'#4'},{k:'复赛全国',v:'#9'},{k:'奖项',v:'川渝二等奖'}],
+        screenshots:['images/kaiwu-stats.svg','images/award-kaiwu-final-page1.webp']
     },
     'Flappy Bird AI': {
         icon:'icon-flappy',
-        description:'从零实现的 Flappy Bird AI 训练与部署项目。算法核心：Dueling DQN（拆分 Value / Advantage 流）+ Prioritized Experience Replay（带 alpha / beta 退火）+ 自定义 Reward Wrapper（过管 +10、死亡 -10、存活 +0.1）。\n\n完整跑通的 pipeline：\n  1) 自定义 Gym 环境\n  2) Dueling DQN 网络（PyTorch）\n  3) Reward Wrapper 与训练循环（含 epsilon 衰减、Huber Loss、Grad Clip、Target Network 同步）\n  4) Checkpoint 保存（best_flappy.pth / final_flappy.pth）\n  5) Flask API 暴露推理接口\n  6) 网站前端 Canvas 直接调用 API\n\n训练好的模型已部署在本站游戏区，按 A 即可召唤 AI 试玩。',
+        description:'从零实现的 Flappy Bird AI 训练与部署项目。算法核心：Dueling DQN（拆分 Value / Advantage 流）+ Prioritized Experience Replay（带 alpha / beta 退火）+ 自定义 Reward Wrapper（过管 +10、死亡 -10、存活 +0.1）。\n\n完整跑通的 pipeline：\n  1) 自定义 Gym 环境\n  2) Dueling DQN 网络（PyTorch）\n  3) Reward Wrapper 与训练循环（含 epsilon 衰减、Huber Loss、Grad Clip、Target Network 同步）\n  4) Checkpoint 保存（best_flappy.pth / final_flappy.pth）\n  5) Flask API 暴露推理接口\n  6) 前端 Canvas + 浏览器 ONNX 本地推理\n\n训练好的模型已部署在本站游戏区，可直接召唤 AI 试玩。',
         progress:90,
-        techStack:'PyTorch,Flask,DQN,RL',
+        techStack:'PyTorch,Flask,DQN,ONNX,RL',
         level:'主秀',
         tags:['Dueling DQN','PER','Reward Shaping','端到端','部署'],
-        features:['Dueling DQN 网络结构','Prioritized Experience Replay','自定义 Reward Wrapper','Huber Loss + Gradient Clipping','Target Network 定期同步','Flask API 推理服务','端到端 pipeline'],
+        features:['Dueling DQN 网络结构','Prioritized Experience Replay','自定义 Reward Wrapper','Huber Loss + Gradient Clipping','Target Network 定期同步','Flask API 推理服务','浏览器 ONNX 本地推理'],
         link:'https://github.com/skystar01/skystar.github.io',
-        screenshots:['🎮','🤖','📊']
+        linkLabel:'查看代码',
+        playTarget:'game',
+        playLabel:'在本站试玩 AI',
+        metrics:[{k:'算法',v:'Dueling DQN'},{k:'回放',v:'PER'},{k:'推理',v:'ONNX / Flask'}],
+        screenshots:['images/flappy-pipeline.svg','images/flappy-curve.svg']
     },
     '智能问答系统': {
         icon:'icon-chat',
-        description:'本科毕业设计。基于开源项目 jingyaogong/minimind 实现，从零预训练轻量级中文对话 Transformer 模型。\n\n完整跑通  数据清洗 → tokenizer 配置 → 模型训练 → 推理脚本 → FastAPI 封装 端到端流程。租显卡完成训练，最终模型可进行基础中文多轮对话。\n\n**定位**：重在流程完整，模型效果受限于参数量与训练资源。',
+        description:'本科毕业设计。基于开源项目 jingyaogong/minimind 实现，从零预训练轻量级中文对话 Transformer 模型。\n\n完整跑通 数据清洗 → tokenizer 配置 → 模型训练 → 推理脚本 → FastAPI 封装 端到端流程。租显卡完成训练，最终模型可进行基础中文多轮对话。\n\n定位：重在流程完整，模型效果受限于参数量与训练资源。',
         progress:75,
         techStack:'PyTorch,FastAPI,NLP',
         level:'副秀',
         tags:['NLP','Transformer','端到端'],
         features:['参考开源项目 minimind','中文对话数据集处理','轻量级 Transformer 训练','数据处理 pipeline','基础多轮对话生成'],
         link:'https://github.com/skystar01/my-created',
-        screenshots:['🤖','💬','📚']
+        linkLabel:'查看代码',
+        metrics:[{k:'方向',v:'中文对话'},{k:'流程',v:'端到端'},{k:'服务',v:'FastAPI'}],
+        screenshots:['images/qa-pipeline.svg']
     }
 };
 
@@ -647,6 +655,102 @@ const skillData = {
             { name: '工作中使用', desc: '业务组件开发', link: '#' }
         ],
         exploring: ['Hooks 进阶', '状态管理 (Redux / Zustand)']
+    },
+    '模型训练': {
+        icon: 'fas fa-brain',
+        description: 'LoRA 微调、训练循环、checkpoint 管理与端到端 pipeline。Flappy / 竞赛 / 毕设都走完整训练链路，而不是只调推理接口。',
+        level: '熟练',
+        tags: ['LoRA', '训练循环', 'Pipeline'],
+        features: ['训练循环与调度', 'Checkpoint 保存/续训', 'LoRA 微调实践', '显存与算力取舍'],
+        projects: [
+            { name: 'Flappy Bird AI', desc: 'Dueling DQN + PER 完整训练', link: '#' },
+            { name: '智能问答系统', desc: '轻量中文对话模型预训练', link: '#' },
+            { name: '开悟竞赛', desc: '两个月 DQN/PPO 调参实战', link: '#' }
+        ],
+        exploring: ['分布式训练 (DDP)', '更大规模预训练']
+    },
+    'AI Agent': {
+        icon: 'fas fa-robot',
+        description: '游戏智能体：状态特征、动作空间、奖励设计与策略网络。本站游戏区多个游戏可直接召唤 AI。',
+        level: '熟练',
+        tags: ['智能体', '策略', '游戏 AI'],
+        features: ['状态/动作空间设计', '奖励 shaping', '策略网络推理', '浏览器端部署'],
+        projects: [
+            { name: '开悟竞赛智能体', desc: '寻路 / 道具 / 对战', link: '#' },
+            { name: '本站游戏 AI', desc: '贪吃蛇 BFS · 2048 Expectimax · Flappy DQN', link: '#panel-game' }
+        ],
+        exploring: ['多智能体', 'SAC']
+    },
+    'ONNX 导出': {
+        icon: 'fas fa-wave-square',
+        description: '把 PyTorch checkpoint 导出为 ONNX，在浏览器用 onnxruntime-web 本地推理，静态站无需后端也能召唤 AI。',
+        level: '熟练',
+        tags: ['ONNX', '浏览器推理', '部署'],
+        features: ['PyTorch → ONNX 导出', '逐动作等价性校验', 'wasm 路径与线程配置', 'Flask / 浏览器双通道'],
+        projects: [
+            { name: 'Flappy Bird AI', desc: '本站游戏区浏览器 DQN 推理', link: '#panel-game' }
+        ],
+        exploring: ['量化压缩', 'WebGPU 后端']
+    },
+    'Linux': {
+        icon: 'fas fa-terminal',
+        description: '训练环境与本地开发日常：WSL / 远程服务器、依赖环境、日志排查。',
+        level: '了解',
+        tags: ['训练环境', '开发工具'],
+        features: ['SSH 远程连接', 'WSL 本地开发', '环境与依赖配置', '日志与进程排查'],
+        projects: [{ name: '训练环境', desc: 'WSL / 远程 GPU 日常', link: '#' }],
+        exploring: ['tmux 进阶', 'shell 脚本']
+    },
+    'Flask / FastAPI': {
+        icon: 'fas fa-server',
+        description: '推理 API 与资讯服务后端：Flask 暴露 DQN action，FastAPI 做每日资讯聚合。',
+        level: '熟练',
+        tags: ['API', '推理服务'],
+        features: ['REST 推理接口', 'CORS 本地联调', '请求校验与错误处理', '异步抓取 (FastAPI)'],
+        projects: [
+            { name: 'Flappy Flask API', desc: 'POST /api/ai/action', link: '#' },
+            { name: '每日资讯服务', desc: 'FastAPI + LLM 摘要', link: '#' }
+        ],
+        exploring: ['鉴权与限流', '容器化部署']
+    },
+    'Docker': {
+        icon: 'fas fa-cube',
+        description: '环境隔离与复现：训练依赖、推理服务打包。',
+        level: '了解',
+        tags: ['容器', '环境隔离'],
+        features: ['镜像构建', '依赖锁定', '本地容器运行'],
+        projects: [{ name: '环境复现', desc: '训练/推理依赖隔离', link: '#' }],
+        exploring: ['compose 多服务', 'CI 镜像缓存']
+    },
+    'pandas / numpy': {
+        icon: 'fas fa-chart-line',
+        description: '特征工程与数据处理：竞赛状态特征、日志分析、训练数据清洗。',
+        level: '熟练',
+        tags: ['数据处理', '特征工程'],
+        features: ['向量化计算', '特征构造', '日志/指标分析', '训练数据清洗'],
+        projects: [
+            { name: '开悟竞赛', desc: '状态特征工程', link: '#' },
+            { name: '智能问答', desc: '语料清洗', link: '#' }
+        ],
+        exploring: ['polars', '更大数据量处理']
+    },
+    'Canvas': {
+        icon: 'fas fa-paint-brush',
+        description: '本站 10 个小游戏与星空背景的渲染层。',
+        level: '熟练',
+        tags: ['2D 渲染', '游戏'],
+        features: ['requestAnimationFrame 循环', '碰撞与精灵绘制', '粒子系统', '高分屏适配'],
+        projects: [{ name: '本站游戏中心', desc: '贪吃蛇/Flappy/打飞机/弹幕等', link: '#panel-game' }],
+        exploring: ['WebGL', 'OffscreenCanvas']
+    },
+    'Vite': {
+        icon: 'fas fa-bolt',
+        description: '本站构建工具：ES Modules、代码分割、静态资源拷贝。',
+        level: '熟练',
+        tags: ['构建', 'HMR'],
+        features: ['dev server / HMR', '懒加载 chunk', '静态资源拷贝插件', '相对 base 部署'],
+        projects: [{ name: '本站', desc: 'Vite + 原生 ES Modules', link: '#' }],
+        exploring: ['SSG', '更细粒度拆包']
     }
 };
 
@@ -656,8 +760,8 @@ let _modalBusy = false;
 document.querySelectorAll('.skill-item').forEach(item => {
     item.addEventListener('click', () => {
         if (_modalBusy) return;
-        const nameEl = item.querySelector('span:not([class])');
-        if (nameEl) openSkillModal(nameEl.textContent);
+        const nameEl = item.querySelector('span:not([class])') || item.querySelector('span');
+        if (nameEl) openSkillModal(nameEl.textContent.trim());
     });
 });
 
@@ -668,10 +772,16 @@ function openSkillModal(skillName) {
     const skill = skillData[skillName];
     if (!skill) return;
     const modal = document.getElementById('skillModal');
-    const skillKey = skill.icon.replace(/^icon-/, '');
     const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const escAttr = s => escHtml(s);
-    document.getElementById('cardIcon').innerHTML = `<span class="${skill.icon}" aria-label="${skillName}"><svg viewBox="0 0 24 24"><use href="#i-${skillKey}"/></svg></span>`;
+    // icon-* 走 SVG sprite; font-awesome 类名直接用 <i>
+    const cardIcon = document.getElementById('cardIcon');
+    if (skill.icon && skill.icon.indexOf('icon-') === 0) {
+        const skillKey = skill.icon.replace(/^icon-/, '');
+        cardIcon.innerHTML = `<span class="${escAttr(skill.icon)}" aria-label="${escAttr(skillName)}"><svg viewBox="0 0 24 24"><use href="#i-${escAttr(skillKey)}"/></svg></span>`;
+    } else {
+        cardIcon.innerHTML = `<i class="${escAttr(skill.icon || 'fas fa-cube')}" aria-label="${escAttr(skillName)}"></i>`;
+    }
     document.getElementById('cardTitle').textContent = skillName;
     document.getElementById('cardLevel').textContent = skill.level;
     document.getElementById('detailTitle').textContent = skillName;
@@ -741,7 +851,7 @@ function renderCarousel(screenshots) {
     screenshots.forEach((item, i) => {
         const div = document.createElement('div');
         div.className = 'carousel-slide';
-        if (typeof item === 'string' && (item.startsWith('http') || item.includes('.png') || item.includes('.jpg'))) {
+        if (typeof item === 'string' && (item.startsWith('http') || item.startsWith('images/') || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(item))) {
             const img = document.createElement('img'); img.src = item; div.appendChild(img);
         } else {
             div.innerHTML = `<i class="fas fa-image" style="font-size:2.5rem"></i><span style="margin-left:8px">${item}</span>`;
@@ -768,6 +878,20 @@ document.querySelectorAll('.project-card').forEach(card => {
 document.querySelectorAll('.project-link').forEach(link => {
     link.addEventListener('click', e => e.stopPropagation());
 });
+document.querySelectorAll('.project-cta-soft, .project-cta-play').forEach(btn => {
+    btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const openName = btn.getAttribute('data-open-project');
+        if (openName) { openProjectModal(openName); return; }
+        const game = btn.getAttribute('data-play-game');
+        if (game) {
+            if (window.switchPanel) window.switchPanel('game');
+            setTimeout(() => {
+                document.querySelector(`.game-tab[data-game="${game}"]`)?.click();
+            }, 500);
+        }
+    });
+});
 document.getElementById('projectModalClose').addEventListener('click', closeProjectModal);
 document.getElementById('projectOverlay').addEventListener('click', closeProjectModal);
 document.getElementById('carouselPrev').addEventListener('click', () => goToSlide(currentCarouselIndex - 1));
@@ -789,6 +913,39 @@ function openProjectModal(projectName) {
     const tc = document.getElementById('modalTechTags'); tc.innerHTML = '';
     const techs = project.techStack ? project.techStack.split(',').map(t => t.trim()) : (project.tags || ['创新']);
     techs.forEach(t => { const b = document.createElement('span'); b.className = 'tech-badge'; b.textContent = t; tc.appendChild(b); });
+    // 可量化指标
+    const metricsEl = document.getElementById('modalMetrics');
+    if (metricsEl) {
+        if (project.metrics && project.metrics.length) {
+            metricsEl.innerHTML = project.metrics.map(m =>
+                `<div class="metric-item"><span class="metric-k">${m.k}</span><span class="metric-v">${m.v}</span></div>`
+            ).join('');
+            metricsEl.hidden = false;
+        } else {
+            metricsEl.innerHTML = '';
+            metricsEl.hidden = true;
+        }
+    }
+    // 试玩 CTA
+    const playBtn = document.getElementById('modalPlayBtn');
+    if (playBtn) {
+        if (project.playTarget) {
+            playBtn.hidden = false;
+            playBtn.innerHTML = `<i class="fas fa-gamepad"></i> ${project.playLabel || '立即试玩'}`;
+            playBtn.onclick = () => {
+                closeProjectModal();
+                setTimeout(() => {
+                    if (window.switchPanel) window.switchPanel(project.playTarget);
+                    if (project.playTarget === 'game') {
+                        setTimeout(() => document.querySelector('.game-tab[data-game="flappy"]')?.click(), 600);
+                    }
+                }, 350);
+            };
+        } else {
+            playBtn.hidden = true;
+            playBtn.onclick = null;
+        }
+    }
     renderCarousel(project.screenshots || ['✨','⚙️','📊']);
     modal.classList.remove('active','closing');
     void modal.offsetWidth;
@@ -1667,11 +1824,12 @@ document.addEventListener('keydown', e => {
         setTimeout(function () { hint.remove(); }, 800);
     }
 
-    // 游戏站本身有操作说明,jhint 会叠字;到站/离开时用 inline style 强制开关
+    // 游戏/关于等长内容站有自带说明或时间线,jhint 会叠字:只在首页展示
     function syncHintForPanel(name) {
         if (!hint || hintGone) return;
-        hint.style.opacity = (name === 'game') ? '0' : '';
-        hint.style.visibility = (name === 'game') ? 'hidden' : '';
+        var show = (name === 'home');
+        hint.style.opacity = show ? '' : '0';
+        hint.style.visibility = show ? '' : 'hidden';
     }
     var _origSwitchForHint = window.switchPanel;
     if (typeof _origSwitchForHint === 'function') {
