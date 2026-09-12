@@ -64,7 +64,35 @@ html, body {
     z-index: 0;
 }
 .bg-theme.active { opacity: 1; }
-.bg-stars { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+.bg-stars {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    transition: filter 0.8s ease, opacity 0.35s ease;
+}
+/* CSS 流星: 每条只跑自己的 transform/opacity,不进 JS 主线程循环 */
+.sky-meteors {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+}
+.sky-meteors .meteor {
+    position: absolute;
+    width: 90px; height: 1.5px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(210, 230, 255, 0.95));
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(18deg);
+    will-change: transform, opacity;
+}
+.sky-meteors .m1 { top: 18%; left: 72%; animation: meteorShot 11s ease-in 0.5s infinite; }
+.sky-meteors .m2 { top: 42%; left: 12%; animation: meteorShot 14s ease-in 4.2s infinite; }
+.sky-meteors .m3 { top: 8%; left: 38%; animation: meteorShot 17s ease-in 8.5s infinite; }
+@keyframes meteorShot {
+    0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(18deg); }
+    4%   { opacity: 1; }
+    18%  { opacity: 0; transform: translate3d(-280px, 90px, 0) rotate(18deg); }
+    100% { opacity: 0; transform: translate3d(-280px, 90px, 0) rotate(18deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sky-meteors { display: none; }
+}
 
 /* home: 240° 深蓝紫(主品牌,夜空) */
 .theme-home {

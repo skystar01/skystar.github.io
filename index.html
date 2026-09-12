@@ -66,7 +66,13 @@
     <div class="bg-theme theme-game"></div>
     <div class="bg-theme theme-contact"></div>
     <div class="bg-theme theme-waypoint"></div>
-    <canvas class="bg-stars" id="starsCanvas"></canvas>
+    <canvas class="bg-stars" id="starsCanvas" aria-hidden="true"></canvas>
+    <!-- CSS 流星: 稀疏、无 JS 每帧计算 -->
+    <div class="sky-meteors" aria-hidden="true">
+        <span class="meteor m1"></span>
+        <span class="meteor m2"></span>
+        <span class="meteor m3"></span>
+    </div>
 
     <!-- LEFT SIDEBAR -->
     <aside class="sidebar">
