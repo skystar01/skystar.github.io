@@ -80,12 +80,19 @@ body.journey .panel {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 7px 4px;
+    padding: 10px 8px;
+    min-height: 44px;
     background: none;
     border: none;
     cursor: pointer;
     position: relative;
     font-family: 'Space Mono', monospace;
+    -webkit-tap-highlight-color: transparent;
+}
+.jmap-stop:focus-visible {
+    outline: 2px solid var(--accent2);
+    outline-offset: 2px;
+    border-radius: 8px;
 }
 .jmap-dot {
     width: 15px; height: 15px;
@@ -292,12 +299,31 @@ body[data-active-panel="game"] .jhint {
     animation: jhintFloat 2.4s ease-in-out infinite;
 }
 
-/* ─── 5. 响应式:小屏收窄星图 ─── */
+/* ─── 5. 响应式:小屏收窄星图 + 给内容让出安全边 ─── */
 @media (max-width: 760px) {
-    .jmap { right: 12px; }
+    .jmap {
+        right: 8px;
+        gap: 2px;
+    }
     .jmap-label { display: none; }
+    .jmap-stop { padding: 12px 10px; min-height: 44px; }
+    .jmap-dot { width: 14px; height: 14px; }
+    .jmap::before { left: 10px; }
     .jbrand { font-size: 0.95rem; top: 16px; left: 16px; }
     #fx-gate .gate-hint { letter-spacing: 0.25em; }
+
+    /* 面板右侧留出星图安全区,避免圆点压内容 */
+    body.journey .panel .inner-panel,
+    body.journey .panel#panel-home .hero-left {
+        padding-right: 48px;
+    }
+    body.journey .panel#panel-home .hero-visual {
+        opacity: 0.35;
+        pointer-events: none;
+    }
+    body.journey .panel#panel-home .hero-quick-links {
+        margin-right: 40px;
+    }
 }
 
 /* ─── 6. reduce-motion: journey 模式根本不会被 JS 启用,

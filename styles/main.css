@@ -1199,7 +1199,7 @@ html, body {
         padding: 0 0 20px 0;
         overflow-x: hidden;
     }
-    .inner-panel { padding: 34px 18px 80px; }
+    .inner-panel { padding: 34px 20px 80px 18px; }
 
     /* Home */
     #panel-home {
@@ -1236,8 +1236,9 @@ html, body {
     .hero-quick-links .quick-label { width: 100%; margin-bottom: 4px; }
     .hero-quick-links button {
         flex: 1 1 calc(50% - 4px);
-        padding: 10px 4px;
-        font-size: 0.75rem;
+        padding: 12px 8px;
+        font-size: 0.8rem;
+        min-height: 44px;
         min-width: 0;
         box-sizing: border-box;
         white-space: nowrap;

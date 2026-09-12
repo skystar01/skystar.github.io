@@ -1683,10 +1683,16 @@ document.addEventListener('keydown', e => {
     syncHintForPanel(current);
 
     // ────────────────────────────────────────────
-    // 6. 大门开场(每个会话只看一次)
+    // 6. 大门开场
+    // localStorage 记 30 天:回访不必每次进门;首访/久未访问仍保留仪式感
     // ────────────────────────────────────────────
+    var GATE_KEY = 'skystar:v1:gate:seenAt';
+    var GATE_TTL = 30 * 24 * 60 * 60 * 1000;
     var seen = false;
-    try { seen = sessionStorage.getItem('sj-gate') === 'seen'; } catch (e) { /* 隐私模式静默 */ }
+    try {
+        var ts = parseInt(localStorage.getItem(GATE_KEY) || '0', 10);
+        seen = ts > 0 && (Date.now() - ts) < GATE_TTL;
+    } catch (e) { /* 隐私模式静默 */ }
 
     if (!seen) {
         gatePresent = true;
@@ -1717,7 +1723,7 @@ document.addEventListener('keydown', e => {
                 gate.classList.add('fly');                    // 镜头冲过门框
                 gatePresent = false;
                 targetZ = 0;                                  // 同时滑入首页
-                try { sessionStorage.setItem('sj-gate', 'seen'); } catch (e) { /* 静默 */ }
+                try { localStorage.setItem(GATE_KEY, String(Date.now())); } catch (e) { /* 静默 */ }
                 setTimeout(function () { gate.remove(); }, 1000);
             }, 1050);
         });
