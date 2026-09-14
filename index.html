@@ -74,45 +74,70 @@
         <span class="meteor m3"></span>
     </div>
 
-    <!-- LEFT SIDEBAR -->
-    <aside class="sidebar">
-        <img class="sidebar-logo-img" src="assets/logo.webp" alt="SKY STAR" />
-        <div class="sidebar-logo">SKY STAR</div>
-        <nav class="sidebar-nav">
-            <div class="nav-item active" data-target="home">
-                <i class="fas fa-home"></i>
-                <span class="tip">首页</span>
-            </div>
-            <div class="nav-item" data-target="news">
-                <i class="fas fa-newspaper"></i>
-                <span class="tip">每日资讯</span>
-            </div>
-            <div class="nav-item" data-target="about">
-                <i class="fas fa-user"></i>
-                <span class="tip">关于我</span>
-            </div>
-            <div class="nav-item" data-target="skills">
-                <i class="fas fa-layer-group"></i>
-                <span class="tip">技能矩阵</span>
-            </div>
-            <div class="nav-item" data-target="projects">
-                <i class="fas fa-diagram-project"></i>
-                <span class="tip">精选项目</span>
-            </div>
-            <div class="nav-item" data-target="game">
-                <i class="fas fa-gamepad"></i>
-                <span class="tip">小游戏</span>
-            </div>
-            <div class="nav-item" data-target="contact">
-                <i class="fas fa-envelope"></i>
-                <span class="tip">联系我</span>
-            </div>
-        </nav>
-        <div class="sidebar-sep"></div>
-        <div class="sidebar-socials">
+    <!-- 仪表导轨导航 -->
+    <aside class="sidebar rail" aria-label="空间站导轨">
+        <div class="rail-brand">
+            <img class="rail-brand-mark" src="assets/logo.webp" alt="" />
+            <span>SKY STAR</span>
+        </div>
+        <div class="rail-track">
+            <div class="rail-line" aria-hidden="true"></div>
+            <div class="rail-cursor" id="railCursor" aria-hidden="true"></div>
+            <nav class="sidebar-nav">
+                <button type="button" class="nav-item rail-stop active" data-target="home">
+                    <span class="rail-code">01</span>
+                    <span class="rail-name">
+                        <span class="rail-en">HOME</span>
+                        <span class="rail-zh">首页</span>
+                    </span>
+                </button>
+                <button type="button" class="nav-item rail-stop" data-target="news">
+                    <span class="rail-code">02</span>
+                    <span class="rail-name">
+                        <span class="rail-en">NEWS</span>
+                        <span class="rail-zh">资讯</span>
+                    </span>
+                </button>
+                <button type="button" class="nav-item rail-stop" data-target="about">
+                    <span class="rail-code">03</span>
+                    <span class="rail-name">
+                        <span class="rail-en">ABOUT</span>
+                        <span class="rail-zh">关于</span>
+                    </span>
+                </button>
+                <button type="button" class="nav-item rail-stop" data-target="skills">
+                    <span class="rail-code">04</span>
+                    <span class="rail-name">
+                        <span class="rail-en">SKILLS</span>
+                        <span class="rail-zh">技能</span>
+                    </span>
+                </button>
+                <button type="button" class="nav-item rail-stop" data-target="projects">
+                    <span class="rail-code">05</span>
+                    <span class="rail-name">
+                        <span class="rail-en">WORK</span>
+                        <span class="rail-zh">项目</span>
+                    </span>
+                </button>
+                <button type="button" class="nav-item rail-stop" data-target="game">
+                    <span class="rail-code">06</span>
+                    <span class="rail-name">
+                        <span class="rail-en">GAME</span>
+                        <span class="rail-zh">游戏</span>
+                    </span>
+                </button>
+                <button type="button" class="nav-item rail-stop" data-target="contact">
+                    <span class="rail-code">07</span>
+                    <span class="rail-name">
+                        <span class="rail-en">LINK</span>
+                        <span class="rail-zh">联系</span>
+                    </span>
+                </button>
+            </nav>
+        </div>
+        <div class="rail-foot">
             <a href="https://github.com/skystar01" target="_blank" class="s-icon" title="GitHub"><i class="fab fa-github"></i></a>
-            <a href="#" class="s-icon" title="LinkedIn"><i class="fab fa-linkedin"></i></a>
-            <a href="#" class="s-icon" title="WeChat"><i class="fab fa-weixin"></i></a>
+            <span class="rail-hint">1–7 切换</span>
         </div>
     </aside>
 

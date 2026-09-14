@@ -5,7 +5,7 @@
    ============================================= */
 
 :root {
-    --sidebar-w: 68px;
+    --sidebar-w: 108px;
     --accent: #7c6ef5;
     --accent2: #4ecdc4;
     --navy: #0d1228;
@@ -166,111 +166,159 @@ html, body {
         linear-gradient(160deg, #280608 0%, #380c0c 35%, #481214 60%, #340c10 100%);
 }
 
-/* ─── LEFT SIDEBAR NAV ─── */
-.sidebar {
+/* ─── 仪表导轨导航 ─── */
+.sidebar.rail {
     position: fixed; top: 0; left: 0;
     width: var(--sidebar-w); height: 100vh;
     z-index: 200;
     display: flex; flex-direction: column;
-    align-items: center;
-    padding: 28px 0 24px;
-    background: rgba(10,14,35,0.4);
-    backdrop-filter: blur(18px);
-    border-right: 1px solid var(--border);
+    align-items: stretch;
+    padding: 22px 14px 18px;
+    background: linear-gradient(180deg, rgba(8,10,28,0.72), rgba(8,10,28,0.55));
+    backdrop-filter: blur(16px);
+    border-right: 1px solid rgba(255,255,255,0.06);
 }
 
-.sidebar-logo-img {
-    width: 44px;
-    height: 44px;
+.rail-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    color: rgba(200, 210, 240, 0.7);
+    text-align: center;
+}
+.rail-brand-mark {
+    width: 36px; height: 36px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: 14px;
-    box-shadow: 0 4px 14px rgba(124, 110, 245, 0.4),
-                0 0 0 1px rgba(255, 255, 255, 0.08) inset;
-    flex-shrink: 0;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.sidebar-logo-img:hover {
-    transform: scale(1.08);
-    box-shadow: 0 6px 20px rgba(124, 110, 245, 0.6),
-                0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb, 124,110,245), 0.35),
+                0 6px 16px rgba(var(--accent-rgb, 124,110,245), 0.35);
 }
 
-.sidebar-logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.15rem; letter-spacing: 0.12em;
-    color: rgba(255,255,255,0.85);
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    margin-bottom: 40px;
-    background: linear-gradient(180deg, #fff 0%, var(--accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.rail-track {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.rail-line {
+    position: absolute;
+    left: 21px; top: 8px; bottom: 8px;
+    width: 1px;
+    background: linear-gradient(180deg,
+        transparent,
+        rgba(var(--accent2-rgb, 78,205,196), 0.28) 12%,
+        rgba(var(--accent2-rgb, 78,205,196), 0.28) 88%,
+        transparent);
+}
+.rail-cursor {
+    position: absolute;
+    left: 14px;
+    top: 12px;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--accent2-rgb, 78,205,196), 0.8);
+    background: radial-gradient(circle at 40% 35%, #fff 0 18%, var(--accent2) 45%, transparent 70%);
+    box-shadow: 0 0 12px rgba(var(--accent2-rgb, 78,205,196), 0.7);
+    transform: translateY(0);
+    transition: top 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+    z-index: 2;
 }
 
 .sidebar-nav {
-    flex: 1; display: flex; flex-direction: column;
-    align-items: center; gap: 6px;
-}
-
-.nav-item {
-    position: relative;
-    width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 12px;
-    cursor: pointer;
-    color: rgba(180,190,220,0.5);
-    font-size: 1.05rem;
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-}
-.nav-item:hover {
-    color: #fff;
-    background: rgba(var(--accent-rgb), 0.15);
-    border-color: rgba(var(--accent-rgb), 0.3);
-}
-.nav-item.active {
-    color: #fff;
-    background: rgba(var(--accent-rgb), 0.22);
-    border-color: rgba(var(--accent-rgb), 0.5);
-    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.3);
-}
-.nav-item.active::before {
-    content: '';
-    position: absolute; left: -1px; top: 50%;
-    transform: translateY(-50%);
-    width: 3px; height: 22px;
-    border-radius: 0 3px 3px 0;
-    background: linear-gradient(180deg, var(--accent), var(--accent2));
-}
-
-/* Tooltip */
-.nav-item .tip {
-    position: absolute; left: calc(100% + 14px);
-    white-space: nowrap;
-    background: rgba(15,20,50,0.9);
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    padding: 5px 12px; border-radius: 8px;
-    font-size: 0.78rem; font-family: 'Noto Sans SC', sans-serif;
-    color: #e0e4f8; pointer-events: none;
-    opacity: 0; transform: translateX(-6px);
-    transition: all 0.22s ease;
-}
-.nav-item:hover .tip {
-    opacity: 1; transform: translateX(0);
-}
-
-.sidebar-sep {
-    width: 28px; height: 1px;
-    background: var(--border);
-    margin: 12px 0;
-}
-
-.sidebar-socials {
+    flex: 1;
     display: flex; flex-direction: column;
-    align-items: center; gap: 10px;
+    justify-content: space-between;
+    gap: 4px;
+    position: relative;
+    z-index: 1;
 }
+
+.nav-item.rail-stop {
+    width: 100%;
+    min-height: 52px;
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 4px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: rgba(180, 190, 220, 0.55);
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.22s ease, background 0.22s ease, border-color 0.22s ease;
+}
+.nav-item.rail-stop:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(var(--accent-rgb, 124,110,245), 0.2);
+}
+.nav-item.rail-stop.active {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb, 124,110,245), 0.18), rgba(var(--accent2-rgb, 78,205,196), 0.08));
+    border-color: rgba(var(--accent-rgb, 124,110,245), 0.35);
+}
+.nav-item.rail-stop:focus-visible {
+    outline: 2px solid var(--accent2);
+    outline-offset: 2px;
+}
+
+.rail-code {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: rgba(var(--accent2-rgb, 78,205,196), 0.75);
+    text-align: center;
+}
+.nav-item.rail-stop.active .rail-code {
+    color: var(--accent2);
+    text-shadow: 0 0 10px rgba(var(--accent2-rgb, 78,205,196), 0.55);
+}
+
+.rail-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rail-en {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    line-height: 1.1;
+}
+.rail-zh {
+    font-size: 0.7rem;
+    opacity: 0.72;
+    line-height: 1.2;
+}
+
+.rail-foot {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+.rail-hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    color: rgba(200, 210, 240, 0.4);
+    text-align: center;
+}
+
+/* 兼容: 旧 logo 竖排/tooltip 不再使用 */
+.sidebar-logo-img,
+.sidebar-logo,
+.sidebar-sep,
+.sidebar-socials,
+.nav-item .tip { display: none !important; }
+
 .s-icon {
     width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
@@ -1311,70 +1359,48 @@ html, body {
 @media (max-width: 768px) {
     :root { --sidebar-w: 0px; }
 
-    /* Sidebar → 底部 Dock 导航 */
-    .sidebar {
+    /* 仪表导轨 → 底部 Dock */
+    .sidebar.rail {
         top: auto; bottom: 0; left: 0;
-        width: 100%; height: 64px;
+        width: 100%; height: 68px;
         flex-direction: row;
         justify-content: center;
         align-items: center;
-        padding: 0;
+        padding: 0 6px;
         border-right: none;
-        border-top: 1px solid var(--border);
-        background: rgba(8, 12, 30, 0.82);
+        border-top: 1px solid rgba(255,255,255,0.08);
+        background: rgba(8, 12, 30, 0.88);
     }
-    .sidebar-logo-img,
-    .sidebar-logo,
-    .sidebar-sep,
-    .sidebar-socials { display: none; }
+    .rail-brand,
+    .rail-foot,
+    .rail-line,
+    .rail-cursor { display: none; }
+    .rail-track { flex: 1; width: 100%; }
     .sidebar-nav {
-        flex: 0 1 auto;
         flex-direction: row;
-        align-items: center;
-        justify-content: space-around;
+        align-items: stretch;
+        justify-content: space-between;
+        gap: 2px;
         width: 100%;
-        max-width: 520px;
-        gap: 0;
-        padding: 0 8px;
+        padding: 0 2px;
     }
-    .nav-item {
-        width: auto; height: auto;
-        flex: 1;
-        min-width: 52px; max-width: 80px;
-        flex-direction: column;
-        gap: 3px;
-        padding: 8px 6px;
+    .nav-item.rail-stop {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 2px;
+        min-height: 56px;
+        padding: 8px 2px;
         border-radius: 10px;
-        font-size: 1.15rem;
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
     }
-    .nav-item .tip {
-        position: static;
-        opacity: 1;
-        transform: none;
-        background: transparent;
-        border: none;
-        padding: 0;
-        font-size: 0.6rem;
-        color: rgba(180,190,220,0.6);
-        pointer-events: none;
-        white-space: nowrap;
-    }
-    .nav-item.active .tip { color: #fff; }
-    .nav-item.active::before {
-        left: 50%; top: auto; bottom: 2px;
-        transform: translateX(-50%);
-        width: 18px; height: 3px;
-        border-radius: 2px;
-    }
-    .nav-item:hover .tip { opacity: 1; transform: none; }
+    .rail-code { font-size: 0.58rem; }
+    .rail-en { display: none; }
+    .rail-zh { font-size: 0.62rem; opacity: 0.85; }
 
     /* 主内容区占满除去底部导航的空间 */
     .panels-wrap {
         left: 0;
         width: 100%;
-        height: calc(100vh - 64px);
+        height: calc(100vh - 68px);
     }
     .panel {
         padding: 0 0 20px 0;
@@ -2466,10 +2492,11 @@ html, body {
 @media (max-width: 480px) {
     :root { --sidebar-w: 0px; }
 
-    .sidebar { height: 56px; }
-    .panels-wrap { height: calc(100vh - 56px); }
-    .nav-item { font-size: 1rem; padding: 4px 2px; }
-    .nav-item .tip { font-size: 0.55rem; }
+    .sidebar.rail { height: 60px; }
+    .panels-wrap { height: calc(100vh - 60px); }
+    .nav-item.rail-stop { min-height: 50px; padding: 6px 1px; }
+    .rail-code { font-size: 0.52rem; }
+    .rail-zh { font-size: 0.58rem; }
 
     .inner-panel { padding: 24px 14px 70px; }
     .panel-heading { margin-bottom: 18px; }

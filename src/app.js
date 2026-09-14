@@ -258,6 +258,7 @@ function switchPanel(target) {
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.toggle('active', el.dataset.target === target);
     });
+    updateRailCursor(target);
 
     // 切背景主题 + 切粒子色
     // 大色差跳变(>90°):走 waypoint 中转(0° 红),2 段过渡
@@ -299,6 +300,60 @@ window.switchPanel = switchPanel;
 // Nav item clicks
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => switchPanel(item.dataset.target));
+});
+
+// ─── 仪表导轨: 游标 + 数字键 1–7 ───
+const RAIL_STOPS = ['home', 'news', 'about', 'skills', 'projects', 'game', 'contact'];
+function updateRailCursor(target) {
+    const cursor = document.getElementById('railCursor');
+    const active = document.querySelector(`.nav-item.rail-stop[data-target="${target}"]`);
+    if (!cursor || !active) return;
+    const track = active.closest('.rail-track');
+    if (!track) return;
+    const tRect = track.getBoundingClientRect();
+    const aRect = active.getBoundingClientRect();
+    const top = aRect.top - tRect.top + aRect.height / 2 - cursor.offsetHeight / 2;
+    cursor.style.top = `${Math.max(0, top)}px`;
+}
+window.updateRailCursor = updateRailCursor;
+// 首帧对齐
+requestAnimationFrame(() => updateRailCursor(document.body.dataset.activePanel || 'home'));
+window.addEventListener('resize', () => {
+    updateRailCursor(document.body.dataset.activePanel || 'home');
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.querySelector('.skill-card-modal.active, .project-card-modal.active, .news-modal:not(.hidden)')) return;
+    // 游戏区方向键留给游戏
+    if (document.body.dataset.activePanel === 'game' && /^Arrow/.test(e.key)) return;
+    if (e.key >= '1' && e.key <= '7') {
+        const idx = parseInt(e.key, 10) - 1;
+        if (RAIL_STOPS[idx]) {
+            e.preventDefault();
+            switchPanel(RAIL_STOPS[idx]);
+        }
+        return;
+    }
+    const cur = RAIL_STOPS.indexOf(document.body.dataset.activePanel || 'home');
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown') {
+        if (cur >= 0 && cur < RAIL_STOPS.length - 1) {
+            e.preventDefault();
+            switchPanel(RAIL_STOPS[cur + 1]);
+        }
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        if (cur > 0) {
+            e.preventDefault();
+            switchPanel(RAIL_STOPS[cur - 1]);
+        }
+    } else if (e.key === 'Home') {
+        e.preventDefault();
+        switchPanel(RAIL_STOPS[0]);
+    } else if (e.key === 'End') {
+        e.preventDefault();
+        switchPanel(RAIL_STOPS[RAIL_STOPS.length - 1]);
+    }
 });
 
 // CTA / any [data-target] links
@@ -1156,14 +1211,15 @@ document.addEventListener('keydown', e => {
 
 // ---------- journey.js ----------
 // =============================================
-// journey.js — 全空间叙事模式
-// 把 7 个面板变成 7 个深空「空间站」,相机沿 Z 轴穿越。
-// 内容零改动:复用现有 switchPanel 做主题/星空联动,
-// 本脚本只接管「怎么去」——大门开场 / 滚轮 / 键盘 / 触摸 / 星图。
-// reduce-motion 用户:本模式整体不启用,保持经典翻页。
+// journey.js — 已停用
+// 3D 相机穿越 / 滚到底换站 / 大门开场整体移除，
+// 改由左侧「仪表导轨」直接切换 panel（可控性优先）。
+// 本段代码保留作归档，默认立即 return，不再注册任何监听。
 // =============================================
 (function () {
     'use strict';
+    // 仪表导轨导航生效后,journey 相机与滚轮抢手势,体验差,故整段停用
+    return;
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
