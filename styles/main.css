@@ -226,7 +226,7 @@ html, body {
     background: radial-gradient(circle at 40% 35%, #fff 0 18%, var(--accent2) 45%, transparent 70%);
     box-shadow: 0 0 12px rgba(var(--accent2-rgb, 78,205,196), 0.7);
     transform: translateY(0);
-    transition: top 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: top 0.2s cubic-bezier(0.22, 1, 0.36, 1);
     pointer-events: none;
     z-index: 2;
 }
@@ -312,7 +312,8 @@ html, body {
     text-align: center;
 }
 
-/* 兼容: 旧 logo 竖排/tooltip 不再使用 */
+/* journey 已停用:航行提示永不再出现 */
+.jhint { display: none !important; }
 .sidebar-logo-img,
 .sidebar-logo,
 .sidebar-sep,
@@ -343,17 +344,39 @@ html, body {
 .panel {
     position: absolute; inset: 0;
     opacity: 0; pointer-events: none;
-    transition: opacity 0.55s cubic-bezier(0.4,0,0.2,1),
-                transform 0.55s cubic-bezier(0.4,0,0.2,1);
-    transform: translateY(12px);
+    /* 切站手感: 轻横向微移 + 短淡入,与导轨游标同步 */
+    transition: opacity 0.18s ease,
+                transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translate3d(14px, 0, 0);
     overflow-y: auto;
 }
 .panel.active {
     opacity: 1; pointer-events: all;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
 }
 .panel.exit {
-    opacity: 0; transform: translateY(-10px);
+    opacity: 0;
+    transform: translate3d(-14px, 0, 0);
+}
+/* 向前切换时进出场方向对调 */
+.panels-wrap.dir-bwd .panel {
+    transform: translate3d(-14px, 0, 0);
+}
+.panels-wrap.dir-bwd .panel.exit {
+    transform: translate3d(14px, 0, 0);
+}
+.panels-wrap.dir-bwd .panel.active {
+    transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .panel,
+    .panel.active,
+    .panel.exit,
+    .rail-cursor {
+        transition: none !important;
+    }
+    .panel { transform: none !important; }
 }
 
 /* ─── TOP-RIGHT CORNER BRAND (visible on home) ─── */

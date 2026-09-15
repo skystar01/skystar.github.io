@@ -1,4 +1,7 @@
 // 项目详情数据（展示层只读；改文案/截图/指标改这里即可）
+// 训练曲线/实拍图的可替换空位见 ./metrics.js —— 有真实数据后改 metrics，不必重写本文件结构
+import { flappyTraining, kaiwuEvidence, qaTraining, resolveChart } from './metrics.js';
+
 export const projectData = {
     '智能博弈算法': {
         icon:'icon-chess',
@@ -11,7 +14,7 @@ export const projectData = {
         link:'https://github.com/skystar01/my-created',
         linkLabel:'查看代码',
         metrics:[{k:'初赛全国',v:'#4'},{k:'复赛全国',v:'#9'},{k:'奖项',v:'川渝二等奖'}],
-        screenshots:['images/kaiwu-stats.svg','images/award-kaiwu-final-page1.webp']
+        screenshots:[kaiwuEvidence.statsSrc, kaiwuEvidence.awardSrc].filter(Boolean)
     },
     'Flappy Bird AI': {
         icon:'icon-flappy',
@@ -26,7 +29,10 @@ export const projectData = {
         playTarget:'game',
         playLabel:'在本站试玩 AI',
         metrics:[{k:'算法',v:'Dueling DQN'},{k:'回放',v:'PER'},{k:'推理',v:'ONNX / Flask'}],
-        screenshots:['images/flappy-pipeline.svg','images/flappy-curve.svg']
+        screenshots:[
+            'images/flappy-pipeline.svg',
+            resolveChart(flappyTraining, 'images/flappy-curve.svg')
+        ].filter(Boolean)
     },
     '智能问答系统': {
         icon:'icon-chat',
@@ -39,7 +45,7 @@ export const projectData = {
         link:'https://github.com/skystar01/my-created',
         linkLabel:'查看代码',
         metrics:[{k:'方向',v:'中文对话'},{k:'流程',v:'端到端'},{k:'服务',v:'FastAPI'}],
-        screenshots:['images/qa-pipeline.svg']
+        screenshots:[resolveChart(qaTraining, 'images/qa-pipeline.svg')].filter(Boolean)
     }
 };
 

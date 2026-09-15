@@ -235,6 +235,8 @@ let currentPanel = 'home';
 // 初始化 body 主题色 (与 switchPanel 内保持一致,保证首屏渲染就有正确 accent)
 document.body.dataset.activePanel = currentPanel;
 
+const PANEL_ORDER = ['home', 'news', 'about', 'skills', 'projects', 'game', 'contact'];
+
 function switchPanel(target) {
     if (target === currentPanel) return;
     const oldPanel = document.getElementById('panel-' + currentPanel);
@@ -244,10 +246,20 @@ function switchPanel(target) {
     // 记录"上一个 active 背景"用(因为 currentPanel 后面会改)
     const prevBgPanel = window.activeBgPanel || currentPanel;
 
+    // 导轨序号决定进出场方向: 向后站从右进,向前站从左进
+    const fromIdx = PANEL_ORDER.indexOf(currentPanel);
+    const toIdx = PANEL_ORDER.indexOf(target);
+    const dir = toIdx > fromIdx ? 'fwd' : 'bwd';
+    const wrap = document.querySelector('.panels-wrap');
+    if (wrap) {
+        wrap.classList.remove('dir-fwd', 'dir-bwd');
+        wrap.classList.add('dir-' + dir);
+    }
+
     oldPanel.classList.add('exit');
     setTimeout(() => {
         oldPanel.classList.remove('active', 'exit');
-    }, 300);
+    }, 220);
 
     newPanel.classList.add('active');
     currentPanel = target;
@@ -281,7 +293,7 @@ function switchPanel(target) {
             if (wpEl) wpEl.classList.remove('active');
             if (bgEl) bgEl.classList.add('active');
             window.activeBgPanel = target;
-        }, 400);
+        }, 260);
     } else {
         if (curBgEl) curBgEl.classList.remove('active');
         if (bgEl) bgEl.classList.add('active');

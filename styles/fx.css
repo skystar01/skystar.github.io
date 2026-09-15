@@ -35,29 +35,29 @@ body.fx-ready .corner-brand {
     animation: fxRise 0.8s ease 0.2s both;
 }
 
-/* ─── 3. 每次切换面板时,标题/卡片重新「活」一遍 ─── */
+/* ─── 3. 切换面板时,标题/卡片重新「活」一遍(缩短 stagger,避免拖沓) ─── */
 .panel.active .panel-heading > * {
-    animation: fxRise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: fxRise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
-.panel.active .panel-heading > *:nth-child(2) { animation-delay: 0.08s; }
-.panel.active .panel-heading > *:nth-child(3) { animation-delay: 0.16s; }
+.panel.active .panel-heading > *:nth-child(2) { animation-delay: 0.04s; }
+.panel.active .panel-heading > *:nth-child(3) { animation-delay: 0.08s; }
 
 .panel.active .project-card,
 .panel.active .skill-item {
-    animation: fxRise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: fxRise 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 .panel.active .project-card:nth-of-type(2),
-.panel.active .skill-item:nth-child(2)  { animation-delay: 0.06s; }
+.panel.active .skill-item:nth-child(2)  { animation-delay: 0.04s; }
 .panel.active .project-card:nth-of-type(3),
-.panel.active .skill-item:nth-child(3)  { animation-delay: 0.12s; }
+.panel.active .skill-item:nth-child(3)  { animation-delay: 0.08s; }
 .panel.active .project-card:nth-of-type(4),
-.panel.active .skill-item:nth-child(4)  { animation-delay: 0.18s; }
-.panel.active .skill-item:nth-child(5)  { animation-delay: 0.24s; }
-.panel.active .skill-item:nth-child(6)  { animation-delay: 0.30s; }
-.panel.active .skill-item:nth-child(7)  { animation-delay: 0.36s; }
-.panel.active .skill-item:nth-child(8)  { animation-delay: 0.42s; }
-.panel.active .skill-item:nth-child(9)  { animation-delay: 0.48s; }
-.panel.active .skill-item:nth-child(10) { animation-delay: 0.54s; }
+.panel.active .skill-item:nth-child(4)  { animation-delay: 0.12s; }
+.panel.active .skill-item:nth-child(5)  { animation-delay: 0.14s; }
+.panel.active .skill-item:nth-child(6)  { animation-delay: 0.16s; }
+.panel.active .skill-item:nth-child(7)  { animation-delay: 0.18s; }
+.panel.active .skill-item:nth-child(8)  { animation-delay: 0.20s; }
+.panel.active .skill-item:nth-child(9)  { animation-delay: 0.22s; }
+.panel.active .skill-item:nth-child(10) { animation-delay: 0.24s; }
 
 /* ─── 4. hero 大标题:流光渐变(AI ENGINEER) ─── */
 .hero-heading .line2 {
