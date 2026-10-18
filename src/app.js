@@ -237,6 +237,13 @@ let currentPanel = 'home';
 document.body.dataset.activePanel = currentPanel;
 
 const PANEL_ORDER = ['home', 'news', 'about', 'skills', 'projects', 'game', 'contact'];
+const panelExitTimers = new Map();
+const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+const isStudio = document.body.classList.contains('studio');
+const modalDuration = () => motionPreference.matches ? 0 : (isStudio ? 180 : 520);
+document.querySelectorAll('.panel').forEach(panel => {
+    panel.inert = panel.id !== 'panel-home';
+});
 
 function switchPanel(target) {
     if (target === currentPanel) return;
@@ -257,12 +264,24 @@ function switchPanel(target) {
         wrap.classList.add('dir-' + dir);
     }
 
+    clearTimeout(panelExitTimers.get(oldPanel));
+    clearTimeout(panelExitTimers.get(newPanel));
+    oldPanel.classList.remove('active');
     oldPanel.classList.add('exit');
-    setTimeout(() => {
-        oldPanel.classList.remove('active', 'exit');
-    }, 220);
+    oldPanel.inert = true;
+    panelExitTimers.set(oldPanel, setTimeout(() => {
+        oldPanel.classList.remove('exit');
+        panelExitTimers.delete(oldPanel);
+    }, motionPreference.matches ? 0 : 300));
 
+    newPanel.classList.remove('exit');
+    newPanel.inert = false;
     newPanel.classList.add('active');
+    // Keep focus out of the departing panel without moving the viewport.
+    if (oldPanel.contains(document.activeElement)) {
+        newPanel.setAttribute('tabindex', '-1');
+        newPanel.focus({ preventScroll: true });
+    }
     currentPanel = target;
     // 同步 body 主题色,触发 CSS [data-active-panel] 切换 --accent / --accent2
     document.body.dataset.activePanel = target;
@@ -270,6 +289,8 @@ function switchPanel(target) {
     // Update nav items
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.toggle('active', el.dataset.target === target);
+        if (el.dataset.target === target) el.setAttribute('aria-current', 'page');
+        else el.removeAttribute('aria-current');
     });
     updateRailCursor(target);
 
@@ -321,6 +342,16 @@ function updateRailCursor(target) {
     const cursor = document.getElementById('railCursor');
     const active = document.querySelector(`.nav-item.rail-stop[data-target="${target}"]`);
     if (!cursor || !active) return;
+    if (isStudio) {
+        const nav = active.closest('.sidebar-nav');
+        nav.style.setProperty('--nav-x', `${active.offsetLeft}px`);
+        nav.style.setProperty('--nav-y', `${active.offsetTop}px`);
+        nav.style.setProperty('--nav-w', `${active.offsetWidth}px`);
+        nav.style.setProperty('--nav-h', `${active.offsetHeight}px`);
+        nav.classList.add('indicator-ready');
+        active.setAttribute('aria-current', 'page');
+        return;
+    }
     const track = active.closest('.rail-track');
     if (!track) return;
     const tRect = track.getBoundingClientRect();
@@ -334,13 +365,14 @@ requestAnimationFrame(() => updateRailCursor(document.body.dataset.activePanel |
 window.addEventListener('resize', () => {
     updateRailCursor(document.body.dataset.activePanel || 'home');
 });
+document.fonts.ready.then(() => updateRailCursor(currentPanel));
 
 document.addEventListener('keydown', (e) => {
     if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (document.querySelector('.skill-card-modal.active, .project-card-modal.active, .news-modal:not(.hidden)')) return;
-    // 游戏区方向键留给游戏
-    if (document.body.dataset.activePanel === 'game' && /^Arrow/.test(e.key)) return;
+    // Game shortcuts include number keys (Maze items), not just arrows.
+    if (document.body.dataset.activePanel === 'game' && !e.target.closest?.('.sidebar-nav')) return;
     if (e.key >= '1' && e.key <= '7') {
         const idx = parseInt(e.key, 10) - 1;
         if (RAIL_STOPS[idx]) {
@@ -349,6 +381,9 @@ document.addEventListener('keydown', (e) => {
         }
         return;
     }
+    // Arrow/Home/End keys navigate only when the navigation itself has focus.
+    // Elsewhere keep native reading/scrolling and game controls intact.
+    if (isStudio && !e.target.closest?.('.sidebar-nav')) return;
     const cur = RAIL_STOPS.indexOf(document.body.dataset.activePanel || 'home');
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'PageDown') {
         if (cur >= 0 && cur < RAIL_STOPS.length - 1) {
@@ -367,6 +402,9 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         switchPanel(RAIL_STOPS[RAIL_STOPS.length - 1]);
     }
+    if (isStudio && e.defaultPrevented) {
+        document.querySelector(`.nav-item[data-target="${currentPanel}"]`)?.focus({ preventScroll: true });
+    }
 });
 
 // CTA / any [data-target] links
@@ -379,11 +417,13 @@ document.querySelectorAll('[data-target]').forEach(el => {
 });
 
 // ─── TOAST ───
+let toastTimer;
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 // 阶段2: 挂到 window 总线, 供被拆出的 games-bundle.js 模块调用 (拆模块后不再共享词法作用域)
 window.showToast = showToast;
@@ -495,7 +535,7 @@ function openSkillModal(skillName) {
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
     _modalBusy = true;
-    setTimeout(() => { _modalBusy = false; }, 800);
+    setTimeout(() => { _modalBusy = false; }, isStudio ? 0 : 800);
     // focus trap: 转移焦点 + Tab 循环 + 关闭还原
     activateFocusTrap(modal);
 }
@@ -510,7 +550,7 @@ function closeSkillModal() {
         modal.classList.remove('active','closing');
         document.body.style.overflow = '';
         _modalBusy = false;
-    }, 520);
+    }, modalDuration());
 }
 
 // ─── PROJECT MODAL ───
@@ -626,7 +666,10 @@ function openProjectModal(projectName) {
     void modal.offsetWidth;
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => { pf.style.transition = ''; pf.style.width = project.progress + '%'; }, 900);
+    setTimeout(() => {
+        if (!modal.classList.contains('active') || modal.classList.contains('closing')) return;
+        pf.style.transition = ''; pf.style.width = project.progress + '%';
+    }, isStudio ? 100 : 900);
     activateFocusTrap(modal);
 }
 
@@ -640,7 +683,7 @@ function closeProjectModal() {
         document.body.style.overflow = '';
         const pf = document.getElementById('modalProgressFill');
         if (pf) { pf.style.transition = 'none'; pf.style.width = '0%'; }
-    }, 480);
+    }, modalDuration());
 }
 
 // Escape key closes modals
@@ -1598,7 +1641,8 @@ document.addEventListener('keydown', e => {
     let totalGroupCount = 5;
 
     const MOBILE_BREAKPOINT = 900;
-    function isMobile() { return window.innerWidth <= MOBILE_BREAKPOINT; }
+    // Studio uses one stable, native-scrolling directory at every width.
+    function isMobile() { return isStudio || window.innerWidth <= MOBILE_BREAKPOINT; }
 
     function resetTabVisual(tab) {
         tab.classList.remove('active', 'is-center');
@@ -1751,6 +1795,21 @@ document.addEventListener('keydown', e => {
     function fitTetris(container) {
         const canvas = document.getElementById('tetrisCanvas');
         if (!canvas) return;
+        if (isStudio) {
+            const style = getComputedStyle(container);
+            const available = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            const compact = window.innerWidth <= 900;
+            const height = container.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+            const statsHeight = compact ? container.querySelector('.tetris-side-panel').offsetHeight + 12 : 0;
+            const width = Math.max(80, Math.min( compact ? 230 : 300, available - (compact ? 128 : 332), (height - statsHeight) * canvas.width / canvas.height));
+            canvas.style.width = `${Math.floor(width)}px`;
+            canvas.style.height = `${Math.floor(width * canvas.height / canvas.width)}px`;
+            container.querySelectorAll('.tetris-info-panel, .tetris-side-panel').forEach(panel => {
+                panel.style.height = 'auto';
+                panel.style.overflowY = 'visible';
+            });
+            return;
+        }
         const cs = getComputedStyle(container);
         const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
         const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
@@ -1913,7 +1972,9 @@ document.addEventListener('keydown', e => {
         if (g && typeof g.resume === 'function') g.resume();
     }
 
+    let gameSwitchVersion = 0;
     async function setActiveByGame(gameName, opts) {
+        if (!GAMES.includes(gameName)) return;
         const force = opts && opts.force;
         let changed = force;
         realTabs.forEach(t => {
@@ -1921,8 +1982,12 @@ document.addEventListener('keydown', e => {
             const has  = t.classList.contains('active');
             if (want && !has) { t.classList.add('active'); changed = true; }
             else if (!want && has) { t.classList.remove('active'); changed = true; }
+            t.setAttribute('aria-pressed', String(want));
         });
         if (!changed) return;
+        const version = ++gameSwitchVersion;
+        const picker = document.getElementById('gamePicker');
+        if (picker) picker.value = gameName;
 
         // 阶段2: 懒加载游戏代码, 首屏不下载(~302KB); 仅在真正切换时才触发
         if (gameName === 'plane') {
@@ -1930,14 +1995,19 @@ document.addEventListener('keydown', e => {
         } else {
             await ensureGamesBundle();
         }
+        if (version !== gameSwitchVersion) return;
 
         // 切换前暂停所有游戏 (停止后台 RAF/setTimeout 循环)
         pauseAllGames();
 
-        document.querySelectorAll('.game-container').forEach(gc => gc.classList.remove('active'));
+        document.querySelectorAll('.game-container').forEach(gc => {
+            gc.classList.remove('active');
+            gc.inert = true;
+        });
         const targetGc = document.querySelector(`.game-container.game-${gameName}`);
         if (targetGc) {
             targetGc.classList.add('active');
+            targetGc.inert = false;
             fitGame(gameName, targetGc);
         }
         // 切换后恢复目标游戏 (重启渲染循环)
@@ -2054,6 +2124,7 @@ document.addEventListener('keydown', e => {
 
     if (tabsSidebar && tabsTrack && realTabs.length) {
         tabsSidebar.addEventListener('wheel', (e) => {
+            if (isMobile()) return;
             e.preventDefault();
             if (e.deltaY > 0)      moveBy(1);
             else if (e.deltaY < 0) moveBy(-1);
@@ -2064,9 +2135,11 @@ document.addEventListener('keydown', e => {
             touchStartY = e.touches[0].clientY;
         }, { passive: true });
         tabsSidebar.addEventListener('touchmove', (e) => {
+            if (isMobile()) return;
             e.preventDefault();
         }, { passive: false });
         tabsSidebar.addEventListener('touchend', (e) => {
+            if (isMobile()) return;
             const endY = e.changedTouches[0].clientY;
             const dy = endY - touchStartY;
             if (Math.abs(dy) < 28) return;
@@ -2081,6 +2154,7 @@ document.addEventListener('keydown', e => {
 
             const clickedIndex = allTrackTabs.indexOf(btn);
             switchTo(btn.dataset.game);
+            if (isStudio) return;
             if (clickedIndex >= 0) {
                 setTargetIndex(clickedIndex);
             } else {
@@ -2102,6 +2176,22 @@ document.addEventListener('keydown', e => {
             if (!isMobile()) requestAnimationFrame(rafLoop);
         });
     }
+
+    const picker = document.getElementById('gamePicker');
+    if (picker) {
+        realTabs.forEach(tab => picker.add(new Option(tab.textContent.trim(), tab.dataset.game)));
+        picker.addEventListener('change', () => switchTo(picker.value));
+    }
+    const focusToggle = document.getElementById('gameFocusToggle');
+    if (focusToggle) focusToggle.addEventListener('click', () => {
+        const panel = document.getElementById('panel-game');
+        const focused = panel.classList.toggle('game-focused');
+        focusToggle.setAttribute('aria-pressed', String(focused));
+        focusToggle.textContent = focused ? '退出专注 ↙' : '专注游玩 ↗';
+        panel.scrollTop = 0;
+        const active = document.querySelector('.game-tab.active');
+        fitGame(active?.dataset.game, document.querySelector('.game-container.active'));
+    });
 
     // 窗口大小变化时，重新适配当前激活的游戏
     let resizeTimeout;
@@ -2449,18 +2539,25 @@ document.addEventListener('keydown', e => {
         modalSummary.innerHTML = escapeHtml(it.summary || '').replace(/\n/g, '<br>');
         modalLink.href = it.url || '#';
 
-        modal.classList.remove('hidden');
+        clearTimeout(newsCloseTimer);
+        modal.classList.remove('hidden', 'closing');
         modal.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
         // focus trap: 转移焦点 + Tab 循环 + 关闭还原
         if (window.activateFocusTrap) window.activateFocusTrap(modal);
     }
 
+    let newsCloseTimer;
     function closeNewsModal() {
+        if (modal.classList.contains('hidden') || modal.classList.contains('closing')) return;
         if (window.deactivateFocusTrap) window.deactivateFocusTrap();
-        modal.classList.add('hidden');
+        modal.classList.add('closing');
         modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
+        newsCloseTimer = setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('closing');
+            document.body.style.overflow = '';
+        }, isStudio ? modalDuration() : 0);
     }
 
     // 事件绑定

@@ -4884,13 +4884,17 @@ whenDomReady(() => {
                 const el = children[i];
                 if (el === this.canvas) continue;
                 if (el === this.overlay) continue;
-                if (getComputedStyle(el).position === 'absolute') continue;
-                h += el.offsetHeight;
+                const style = getComputedStyle(el);
+                if (style.position === 'absolute' || style.display === 'none') continue;
+                h += el.offsetHeight + (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0);
             }
+            const canvasStyle = getComputedStyle(this.canvas);
+            h += (parseFloat(canvasStyle.marginTop) || 0) + (parseFloat(canvasStyle.marginBottom) || 0);
             return h;
         }
 
         setupListeners() {
+            document.querySelector('.maze-help')?.addEventListener('toggle', () => this.fitMaze());
             // 键盘控制 (全局监听, 但仅在迷宫游戏激活时生效)
             window.addEventListener('keydown', (e) => {
                 if (!this.isGameActive()) return;

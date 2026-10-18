@@ -715,13 +715,16 @@
                             <div class="underline"></div>
                         </div>
                         <div class="tabs-hint">
-                            <i class="fas fa-arrows-up-down"></i>
-                            <span>滚轮切换游戏</span>
+                            <span>选择游戏 · 即刻体验</span>
+                            <button type="button" id="gameFocusToggle" aria-pressed="false">专注游玩 ↗</button>
                         </div>
                     </header>
 
                     <!-- 主体: sidebar (竖向 carousel) + game-stage -->
                     <div class="games-layout">
+                    <label class="game-mobile-picker">游戏目录
+                        <select id="gamePicker" aria-label="选择游戏"></select>
+                    </label>
                     <nav class="tabs-sidebar">
                         <div class="tabs-track">
                             <!-- 真实 tab 列表；JS 会按当前数量自动生成无限轮播副本 -->
@@ -935,12 +938,13 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="tetris-tip">
+                                <details class="tetris-tip game-help">
+                                    <summary>操作说明</summary>
                                     ◀ A/←  &nbsp;&nbsp; ▶ D/→<br>
                                     ▼ S/↓  &nbsp;&nbsp; 🔄 W/↑<br>
                                     ␣ 硬降落 &nbsp;&nbsp; P 暂停<br>
                                     ⇧ Shift / C &nbsp;暂存方块
-                                </div>
+                                </details>
                             </div>
                         </div>
                         
@@ -1154,9 +1158,12 @@
                         <div class="maze-danger-overlay" id="mazeDangerOverlay"></div>
                         <div class="maze-floating-texts" id="mazeFloatingTexts"></div>
 
+                        <details class="maze-help game-help">
+                            <summary>玩法与快捷键</summary>
                         <p class="maze-instructions">
                             <strong>操作说明：</strong> WASD 或 方向键 移动 | 空格键 暂停/继续 | R 键 重开本关 | <strong>数字键 1-4 使用道具</strong> | 收集钥匙解锁出口逃生 | <span style="color:#ef4444">被怪物撞到扣 1 生命，3 命用完游戏结束</span> | <span style="color:#a855f7">紫色漩涡是传送门</span>
                         </p>
+                        </details>
 
                         <div class="maze-item-bar">
                             <div class="maze-item-slot empty" id="mazeSlot0">
