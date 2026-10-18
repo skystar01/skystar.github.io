@@ -33,10 +33,11 @@
     <link rel="stylesheet" href="styles/game-center.css">
     <link rel="stylesheet" href="styles/fx.css">
     <link rel="stylesheet" href="styles/journey.css">
+    <link rel="stylesheet" href="styles/studio.css">
     <!-- 游戏专属样式改为懒加载: 由 src/games-bundle.js / src/game-plane.js 动态 import, 仅进游戏时下载 -->
 
 </head>
-<body>
+<body class="studio">
 <!-- SVG 图标 sprite (弹窗里通过 <use href="#i-xxx"> 引用) -->
 <svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
   <symbol id="i-rl" viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="5" r="2.2"/><circle cx="19" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M7 11 10.2 6.8M13.8 6.8 17 11M17 13 13.8 17.2M10.2 17.2 7 13"/><path d="M8 12h8M12 8v8" opacity=".7"/></symbol>
@@ -85,49 +86,42 @@
             <div class="rail-cursor" id="railCursor" aria-hidden="true"></div>
             <nav class="sidebar-nav">
                 <button type="button" class="nav-item rail-stop active" data-target="home">
-                    <span class="rail-code">01</span>
                     <span class="rail-name">
                         <span class="rail-en">HOME</span>
                         <span class="rail-zh">首页</span>
                     </span>
                 </button>
                 <button type="button" class="nav-item rail-stop" data-target="news">
-                    <span class="rail-code">02</span>
                     <span class="rail-name">
                         <span class="rail-en">NEWS</span>
                         <span class="rail-zh">资讯</span>
                     </span>
                 </button>
                 <button type="button" class="nav-item rail-stop" data-target="about">
-                    <span class="rail-code">03</span>
                     <span class="rail-name">
                         <span class="rail-en">ABOUT</span>
                         <span class="rail-zh">关于</span>
                     </span>
                 </button>
                 <button type="button" class="nav-item rail-stop" data-target="skills">
-                    <span class="rail-code">04</span>
                     <span class="rail-name">
                         <span class="rail-en">SKILLS</span>
                         <span class="rail-zh">技能</span>
                     </span>
                 </button>
                 <button type="button" class="nav-item rail-stop" data-target="projects">
-                    <span class="rail-code">05</span>
                     <span class="rail-name">
                         <span class="rail-en">WORK</span>
                         <span class="rail-zh">项目</span>
                     </span>
                 </button>
                 <button type="button" class="nav-item rail-stop" data-target="game">
-                    <span class="rail-code">06</span>
                     <span class="rail-name">
                         <span class="rail-en">GAME</span>
                         <span class="rail-zh">游戏</span>
                     </span>
                 </button>
                 <button type="button" class="nav-item rail-stop" data-target="contact">
-                    <span class="rail-code">07</span>
                     <span class="rail-name">
                         <span class="rail-en">LINK</span>
                         <span class="rail-zh">联系</span>
@@ -137,7 +131,7 @@
         </div>
         <div class="rail-foot">
             <a href="https://github.com/skystar01" target="_blank" class="s-icon" title="GitHub"><i class="fab fa-github"></i></a>
-            <span class="rail-hint">1–7 切换</span>
+            <span class="rail-hint">数字键切换</span>
         </div>
     </aside>
 
@@ -164,10 +158,33 @@
                     我正在从算法落地走向模型训练。<br>
                     这里记录我的强化学习竞赛、自学训练项目和前端 AI Demo。
                 </p>
-                <a class="hero-cta" data-target="projects">
+                <button type="button" class="hero-cta" data-target="projects">
                     查看项目
                     <span class="arrow"><i class="fas fa-chevron-right"></i></span>
-                </a>
+                </button>
+            </div>
+
+            <div class="studio-art" aria-hidden="true">
+                <div class="studio-art-meta"><span>FIG. 01 / LEARNING IN MOTION</span><span>↗</span></div>
+                <svg class="studio-sculpture" viewBox="0 0 520 480" fill="none">
+                    <path d="M32 240H488M260 28V452" stroke="#d6d5ce" stroke-dasharray="3 7"/>
+                    <circle cx="260" cy="240" r="177" stroke="#c5c7c6"/>
+                    <circle cx="260" cy="240" r="119" stroke="#c5c7c6"/>
+                    <g class="studio-orbit">
+                        <circle cx="260" cy="63" r="9" fill="#cf714c"/>
+                        <circle cx="260" cy="417" r="5" fill="#262b30"/>
+                    </g>
+                    <g class="studio-fold">
+                        <path d="M126 126H274V274H126Z" fill="#2d55d4"/>
+                        <path d="M274 126C356 126 422 192 422 274H274V126Z" fill="#7192ec"/>
+                        <path d="M126 274H274V422C192 422 126 356 126 274Z" fill="#b8c8ed"/>
+                        <path d="M274 274H422V422H274Z" fill="#272c30"/>
+                        <circle cx="274" cy="274" r="46" fill="#f6f5f0"/>
+                        <circle cx="274" cy="274" r="13" fill="#cf714c"/>
+                    </g>
+                    <path d="M36 44H56M46 34V54M464 426H484M474 416V436" stroke="#737970"/>
+                </svg>
+                <div class="studio-art-foot"><span>STATE → POLICY → ACTION</span><span class="studio-live">持续探索中</span></div>
             </div>
 
             <!-- RL neural network visualization (signature moment) -->

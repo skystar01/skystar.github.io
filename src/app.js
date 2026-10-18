@@ -15,6 +15,7 @@ import { skillData } from './data/skills.js';
 // 仍暴露 window.setStarTheme / PANEL_HUES / currentPanelHue / activeBgPanel 供 ui.js 使用。
 (function() {
     const canvas = document.getElementById('starsCanvas');
+    if (document.body.classList.contains('studio')) return;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
@@ -792,6 +793,7 @@ document.addEventListener('keydown', e => {
 (function () {
     'use strict';
 
+    if (document.body.classList.contains('studio')) return;
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var coarsePointer = window.matchMedia('(pointer: coarse)').matches;
 

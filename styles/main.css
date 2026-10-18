@@ -5,7 +5,7 @@
    ============================================= */
 
 :root {
-    --sidebar-w: 108px;
+    --sidebar-w: 96px;
     --accent: #7c6ef5;
     --accent2: #4ecdc4;
     --navy: #0d1228;
@@ -173,10 +173,11 @@ html, body {
     z-index: 200;
     display: flex; flex-direction: column;
     align-items: stretch;
-    padding: 22px 14px 18px;
+    padding: 22px 8px 18px 8px;
     background: linear-gradient(180deg, rgba(8,10,28,0.72), rgba(8,10,28,0.55));
     backdrop-filter: blur(16px);
     border-right: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
 }
 
 .rail-brand {
@@ -186,10 +187,18 @@ html, body {
     gap: 8px;
     margin-bottom: 22px;
     font-family: 'Space Mono', monospace;
-    font-size: 0.62rem;
-    letter-spacing: 0.18em;
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
     color: rgba(200, 210, 240, 0.7);
     text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+}
+.rail-brand span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 .rail-brand-mark {
     width: 36px; height: 36px;
@@ -208,7 +217,7 @@ html, body {
 }
 .rail-line {
     position: absolute;
-    left: 21px; top: 8px; bottom: 8px;
+    left: 7px; top: 8px; bottom: 8px;
     width: 1px;
     background: linear-gradient(180deg,
         transparent,
@@ -218,7 +227,7 @@ html, body {
 }
 .rail-cursor {
     position: absolute;
-    left: 14px;
+    left: 0;
     top: 12px;
     width: 15px; height: 15px;
     border-radius: 50%;
@@ -238,16 +247,18 @@ html, body {
     gap: 4px;
     position: relative;
     z-index: 1;
+    padding-left: 18px;
 }
 
 .nav-item.rail-stop {
     width: 100%;
     min-height: 52px;
-    display: grid;
-    grid-template-columns: 28px 1fr;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 8px 8px 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 6px 10px 16px;
     border: 1px solid transparent;
     border-radius: 12px;
     background: transparent;
@@ -255,6 +266,7 @@ html, body {
     font-family: inherit;
     cursor: pointer;
     text-align: left;
+    overflow: hidden;
     transition: color 0.22s ease, background 0.22s ease, border-color 0.22s ease;
 }
 .nav-item.rail-stop:hover {
@@ -272,29 +284,25 @@ html, body {
     outline-offset: 2px;
 }
 
-.rail-code {
+.rail-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; width: 100%; }
+.rail-en {
     font-family: 'Space Mono', monospace;
     font-size: 0.68rem;
     letter-spacing: 0.08em;
-    color: rgba(var(--accent2-rgb, 78,205,196), 0.75);
-    text-align: center;
-}
-.nav-item.rail-stop.active .rail-code {
-    color: var(--accent2);
-    text-shadow: 0 0 10px rgba(var(--accent2-rgb, 78,205,196), 0.55);
-}
-
-.rail-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.rail-en {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    line-height: 1.1;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 .rail-zh {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     opacity: 0.72;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .rail-foot {
@@ -306,10 +314,14 @@ html, body {
 }
 .rail-hint {
     font-family: 'Space Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.08em;
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
     color: rgba(200, 210, 240, 0.4);
     text-align: center;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* journey 已停用:航行提示永不再出现 */
@@ -1408,14 +1420,13 @@ html, body {
         padding: 0 2px;
     }
     .nav-item.rail-stop {
-        grid-template-columns: 1fr;
         justify-items: center;
+        align-items: center;
         gap: 2px;
         min-height: 56px;
         padding: 8px 2px;
         border-radius: 10px;
     }
-    .rail-code { font-size: 0.58rem; }
     .rail-en { display: none; }
     .rail-zh { font-size: 0.62rem; opacity: 0.85; }
 
@@ -2518,7 +2529,6 @@ html, body {
     .sidebar.rail { height: 60px; }
     .panels-wrap { height: calc(100vh - 60px); }
     .nav-item.rail-stop { min-height: 50px; padding: 6px 1px; }
-    .rail-code { font-size: 0.52rem; }
     .rail-zh { font-size: 0.58rem; }
 
     .inner-panel { padding: 24px 14px 70px; }
