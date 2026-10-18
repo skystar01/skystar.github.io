@@ -3590,7 +3590,7 @@ class PlaneShooterGame {
 
     const startPlaneGame = () => {
         if (_planeGameInstance) {
-            _planeGameInstance.restartGame();
+            _planeGameInstance.resume();
         } else {
             _planeGameInstance = new PlaneShooterGame();
         }
@@ -3599,6 +3599,18 @@ class PlaneShooterGame {
 
     // 暴露 pause/resume 给 shell 生命周期管理
     window.planeGame = {
+        getSession() {
+            const game = _planeGameInstance;
+            if (!game) return null;
+            return { state: !game.gameStarted ? 'ready' : !game.gameRunning ? 'ended' : game.paused ? 'paused' : 'playing', score: game.score };
+        },
+        togglePause() {
+            const game = _planeGameInstance;
+            if (!game || !game.gameStarted || !game.gameRunning) return;
+            game.paused = !game.paused;
+            game.resetKeys();
+            game.lastTime = performance.now() / 1000;
+        },
         pause()  { if (_planeGameInstance) _planeGameInstance.pause(); },
         resume() { if (_planeGameInstance) _planeGameInstance.resume(); }
     };

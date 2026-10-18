@@ -16,6 +16,7 @@ import '../styles/game-survivor.css';
 
 // Flappy AI 浏览器端推理(静态站无 Flask 时的降级路径,内部仍是动态 import,不增首屏成本)
 import { loadFlappyAi, predictAction } from './flappy-onnx.js';
+import { createProjectileArt, drawProjectile } from './survivor-projectiles.js';
 
 // 阶段2 修复: 本模块通过动态 import() 懒加载, 此时 DOMContentLoaded 早已触发,
 // 若仍用 document.addEventListener('DOMContentLoaded', ...) 包裹初始化, 回调永远不会执行,
@@ -846,14 +847,14 @@ class SnakeGame {
             }
             this.finalScoreEl.textContent = `你 ${this.playerScore} : ${this.aiScore} AI`;
         } else {
-            titleEl.textContent = 'Game Over';
+            titleEl.textContent = '本局结束';
             titleEl.style.color = '';
             if (this.score > this.bestScore) {
                 this.bestScore = this.score;
                 SkyStorage.setInt('skystar:v1:snake:best', this.bestScore);
-                this.finalScoreEl.textContent = `Final Score: ${this.score}  🏆 Best: ${this.bestScore}`;
+                this.finalScoreEl.textContent = `本局得分 ${this.score} · 新纪录 ${this.bestScore}`;
             } else {
-                this.finalScoreEl.textContent = `Final Score: ${this.score}  (Best: ${this.bestScore})`;
+                this.finalScoreEl.textContent = `本局得分 ${this.score} · 最佳 ${this.bestScore}`;
             }
         }
         this.overlay.classList.add('visible');
@@ -3375,6 +3376,7 @@ class TicTacToeGame {
 
 whenDomReady(() => {
     const game = new TicTacToeGame();
+    window.ticTacToeGame = game;
     game.initDOM();
 });
 
@@ -3922,7 +3924,7 @@ whenDomReady(() => {
             const cw = container.clientWidth - padX;
             const ch = container.clientHeight - padY;
             // 减去其他元素占用
-            const others = container.querySelectorAll('.gomoku-header, .gomoku-status, .gomoku-controls, .gomoku-instructions');
+            const others = container.querySelectorAll('.gomoku-header, .gomoku-mode-toggle, .gomoku-status, .gomoku-controls, .gomoku-help');
             let otherH = 0;
             others.forEach(el => {
                 const s = getComputedStyle(el);
@@ -6464,6 +6466,11 @@ whenDomReady(() => {
     // 暴露接口给 game-shell.js 轮播适配 + 生命周期管理
     let game = null;
     window.mazeGame = {
+        getSession() {
+            if (!game) return null;
+            const result = game.overlay.classList.contains('visible');
+            return { state: result ? (game.overlay.dataset.type === 'level-clear' ? 'complete' : 'ended') : !game.running ? 'ready' : game.paused ? 'paused' : 'playing' };
+        },
         fitMaze() { if (game) game.fitMaze(); },
         pause()   { if (game) game.pause(); },
         resume()  { if (game) game.resume(); }
@@ -6490,7 +6497,7 @@ const BULLET_DEFS = {
     dart:    { name:'飞镖', icon:'➤', color:'#60a5fa', desc:'直射穿透', baseCD:0.8 },
     bomb:    { name:'爆破', icon:'💥', color:'#f97316', desc:'范围爆炸', baseCD:1.2 },
     poison:  { name:'毒气', icon:'☣', color:'#84cc16', desc:'持续毒区', baseCD:1.5 },
-    scatter: { name:'散射', icon:'※', color:'#f43f5e', desc:'扇形多发', baseCD:0.9 },
+    scatter: { name:'散射', icon:'※', color:'#b9a0ff', desc:'扇形多发', baseCD:0.9 },
     snow:    { name:'雪花', icon:'❄', color:'#22d3ee', desc:'冰冻减速', baseCD:1.0 },
 };
 const BULLET_KEYS = Object.keys(BULLET_DEFS);
@@ -6533,16 +6540,20 @@ function getFuseRecipe(t1, t2) {
 // ─── 怪物类型 ───
 const ENEMY_TYPES = ['normal', 'bomb', 'poison', 'shield', 'blackhole'];
 
+const SURVIVOR_SIZES = { player: 104, normal: 64, elite: 104, boss: 160 };
+const SURVIVOR_HIT_RADII = { normal: 28, elite: 46, boss: 56 };
+
 class SurvivorGame {
     constructor() {
-        this.W = 900;
-        this.H = 700;
+        this.W = 600;
+        this.H = 900;
         this.CELL = 40;
 
         this.canvas = document.getElementById('survivorCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.canvas.width = this.W;
         this.canvas.height = this.H;
+        this.projectileArt = createProjectileArt();
 
         this.paused = false;
         this.gameRunning = false;
@@ -6624,8 +6635,16 @@ class SurvivorGame {
         // 注册生命周期
         if (window.registerGame) {
             window.registerGame('survivor', {
-                pause: () => this.pause(),
-                resume: () => this.resume()
+                pause: () => {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                    this.keys = {};
+                },
+                resume: () => {
+                    // Switching tabs must preserve the player's pause/start state.
+                    this.lastTime = performance.now();
+                    if (!this.animationId) this.animationId = requestAnimationFrame(this._loop);
+                }
             });
         }
 
@@ -6695,7 +6714,10 @@ class SurvivorGame {
         this.enemyKillCount = 0;
         this.gameOver = false;
         this.levelupPending = false;
-        this.paused = false; // 重启后立即可玩 (避免 gameOver 状态卡住 paused)
+        this.paused = !this.gameStarted;
+        this._pendingChoices = null;
+        const pauseBtn = document.getElementById('survivorPauseBtn');
+        if (pauseBtn) pauseBtn.textContent = '⏸ 暂停';
 
         // 重置飘雪位置 (避免开局顶部空白)
         if (this.snowFar) {
@@ -6714,6 +6736,7 @@ class SurvivorGame {
     _bindInput() {
         this._keyHandler = (e) => {
             if (!this.gameRunning) return;
+            if (document.body.dataset.activePanel !== 'game' || !document.querySelector('.game-survivor.active')) return;
             const code = e.code;
             if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',
                  'KeyA','KeyD','KeyW','KeyS','Space'].includes(code)) {
@@ -6781,7 +6804,7 @@ class SurvivorGame {
         if (!this.gameRunning) return;
 
         // paused / 升级选择中 / gameOver: 仍渲染一帧 (背景+玩家), 但跳过 _update
-        if (this.paused || this.levelupPending || this.gameOver) {
+        if (!this.gameStarted || this.paused || this.levelupPending || this.gameOver) {
             this.lastTime = now;
             this._render();
             return;
@@ -6800,13 +6823,17 @@ class SurvivorGame {
     // ─── 更新逻辑 ───
     _update(dt) {
         this._updatePlayer(dt);
+        if (this.gameOver) return;
         this._updateWeapons(dt);
         this._updatePlayerBullets(dt);
+        if (this.gameOver) return;
         this._updateEnemies(dt);
         this._updateEnemyBullets(dt);
+        if (this.gameOver) return;
         this._updateCrystals(dt);
         this._updatePoisonZones(dt);
         this._updateEffects(dt);
+        if (this.gameOver) return;
         this._updateFloatingTexts(dt);
         this._updateParticles(dt);
         this._updateSkill(dt);
@@ -6872,6 +6899,8 @@ class SurvivorGame {
 
     _updatePlayer(dt) {
         const p = this.player;
+        p.damageTimer = Math.max(0, (p.damageTimer || 0) - dt);
+        p.feedbackCooldown = Math.max(0, (p.feedbackCooldown || 0) - dt);
         if (p.invincible > 0) p.invincible -= dt;
 
         // 击退 (boss 冲刺击中): 应用 knock 速度, 自然衰减, 期间短无敌防连击
@@ -6899,6 +6928,10 @@ class SurvivorGame {
             p.dirX = dx;
             p.dirY = dy;
         }
+        p.facing = dx ? Math.sign(dx) : (p.facing || 1);
+        p.lean = (p.lean || 0) + (dx * .10 - (p.lean || 0)) * Math.min(1, dt * 12);
+        p.walkPhase = (p.walkPhase || 0) + dt * 12;
+        p.bob = (dx || dy) && !matchMedia('(prefers-reduced-motion: reduce)').matches ? Math.sin(p.walkPhase) * 2 : 0;
         // 边界 (含两侧墙: wallW=32, 玩家不进入墙内)
         p.x = Math.max(p.r + this.wallW, Math.min(this.W - p.r - this.wallW, p.x));
         p.y = Math.max(p.r, Math.min(this.H - p.r, p.y));
@@ -6907,7 +6940,7 @@ class SurvivorGame {
         for (const z of this.poisonZones) {
             if (z.team === 'enemy' && Math.abs(p.x - z.x) < z.half + p.r && Math.abs(p.y - z.y) < z.half + p.r) {
                 if (p.invincible <= 0) {
-                    p.hp -= 8 * dt;
+                    this._damagePlayer(8 * dt, z.x, z.y, 0);
                 }
             }
         }
@@ -6915,6 +6948,22 @@ class SurvivorGame {
         if (p.hp <= 0) {
             this._doGameOver();
         }
+    }
+
+    _damagePlayer(amount, x, y, immunity = .8) {
+        const p = this.player;
+        if (p.invincible > 0 || this.gameOver) return false;
+        p.hp = Math.max(0, p.hp - amount);
+        p.invincible = immunity;
+        if (!p.feedbackCooldown) {
+            p.damageDirection = Math.atan2(y - p.y, x - p.x);
+            p.damageTimer = .32;
+            p.feedbackCooldown = .25;
+            this._floatingText(p.x, p.y - 38, immunity ? '-' + amount : '毒蚀', '#fca5a5');
+            if (amount >= 20 && !matchMedia('(prefers-reduced-motion: reduce)').matches) this._triggerShake(3, .12);
+        }
+        if (p.hp <= 0) this._doGameOver();
+        return true;
     }
 
     // ─── 武器/自动射击 ───
@@ -7097,6 +7146,7 @@ class SurvivorGame {
 
     _hitEnemy(e, dmg, bullet) {
         if (e.dead) return;
+        e.hitFlash = .09;
         // 护盾怪
         if (e.shield > 0) {
             e.shield -= dmg;
@@ -7115,6 +7165,7 @@ class SurvivorGame {
         }
         // 命中火花
         const sparkColor = (bullet && bullet.color) || '#bae6fd';
+        if (this.effects.length < 180) this.effects.push({ type: 'impact', x: e.x, y: e.y, color: sparkColor, life: .16, maxLife: .16 });
         this._spawnParticles(e.x, e.y, { kind: 'bulletHit', color: sparkColor, count: 4 });
         if (e.hp <= 0) {
             this._killEnemy(e);
@@ -7224,16 +7275,16 @@ class SurvivorGame {
     // ─── 敌人 ───
     _updateEnemies(dt) {
         // 生成
-        if (!this.bossSpawned) {
+        if (!this.bossSpawned && this.gameTime < this.bossSpawnTime - 8 && this.gameTime % 30 < 24) {
             this.spawnTimer -= dt;
             if (this.spawnTimer <= 0) {
                 // 一次生成 1~2 只 (随时间缓慢增加), 后期不失控
-                const batch = 1 + Math.floor(this.gameTime / 75); // 75s后2只, 150s后3只
-                for (let i = 0; i < Math.min(batch, 3); i++) {
+                const batch = this.gameTime >= 90 ? 2 : 1;
+                for (let i = 0; i < batch && this.enemies.length < 18; i++) {
                     this._spawnEnemy();
                 }
                 // 间隔随时间递减 (下限 0.5s, 防止后期过密)
-                this.spawnInterval = Math.max(0.5, 1.2 - this.gameTime * 0.004);
+                this.spawnInterval = Math.max(.8, 1.2 - this.gameTime * .002);
                 this.spawnTimer = this.spawnInterval;
             }
         }
@@ -7242,6 +7293,7 @@ class SurvivorGame {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const e = this.enemies[i];
             if (e.dead) { this.enemies.splice(i, 1); continue; }
+            e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt);
 
             // 减速
             const sf = e.slowTimer > 0 ? e.slowFactor : 1;
@@ -7273,20 +7325,18 @@ class SurvivorGame {
                         e.y = e.chargeTarget.y;
                     }
                     // 撞到玩家 → 35 伤害 + 200 px 击退 + 屏幕震动
-                    if (!e.chargeHit && this._dist(e.x, e.y, p.x, p.y) < e.r + p.r) {
+                    if (!e.chargeHit && p.invincible <= 0 && this._dist(e.x, e.y, p.x, p.y) < e.r + p.r) {
                         e.chargeHit = true;
-                        p.hp -= 35;
+                        this._damagePlayer(35, e.x, e.y);
                         const ka = Math.atan2(p.y - e.y, p.x - e.x);
                         p.knockX = Math.cos(ka) * 200;
                         p.knockY = Math.sin(ka) * 200;
                         p.knockTimer = 0.2;
-                        this._triggerShake(6, 0.3);
-                        this._floatingText(p.x, p.y - 30, '-35', '#ef4444');
                     }
                     e.chargeTimer -= dt;
                     if (e.chargeTimer <= 0) {
                         e.chargeState = 'returning';
-                        e.chargeTimer = 0.4;
+                        e.chargeTimer = 1.2;
                     }
                 } else if (e.chargeState === 'returning') {
                     // 0.4s 慢速返回驻场点 (方案 2: 沿路返回)
@@ -7305,7 +7355,7 @@ class SurvivorGame {
                     e.chargeTimer -= dt;
                     if (e.chargeTimer <= 0) {
                         e.chargeState = 'idle';
-                        e.chargeTimer = 4.3;  // 6s 周期 - 0.8 charging - 0.5 dashing - 0.4 returning
+                        e.chargeTimer = 3.8;
                     }
                 } else {
                     // idle: 驻场 + 倒计时到 charging
@@ -7314,7 +7364,7 @@ class SurvivorGame {
                     e.chargeTimer -= dt;
                     if (e.chargeTimer <= 0) {
                         e.chargeState = 'charging';
-                        e.chargeTimer = 0.8;
+                        e.chargeTimer = 1.1;
                         e.chargeTarget = { x: p.x, y: p.y };  // 锁定目标
                     }
                 }
@@ -7326,7 +7376,7 @@ class SurvivorGame {
             e.dirY = Math.sin(ang);
 
             // 怪物射击
-            if (e.shootTimer !== undefined) {
+            if (e.shootTimer !== undefined && (!e.isBoss || e.chargeState === 'idle')) {
                 e.shootTimer -= dt;
                 if (e.shootTimer <= 0) {
                     e.shootTimer = e.shootInterval;
@@ -7336,10 +7386,7 @@ class SurvivorGame {
 
             // 碰撞玩家
             if (this._dist(e.x, e.y, p.x, p.y) < e.r + p.r && p.invincible <= 0) {
-                p.hp -= e.contactDmg;
-                p.invincible = 0.8;
-                this._floatingText(p.x, p.y - 20, '-' + e.contactDmg, '#ef4444');
-                this._triggerShake(4, 0.15);
+                this._damagePlayer(e.contactDmg, e.x, e.y);
                 this._spawnParticles(p.x, p.y, { kind: 'bulletHit', color: '#ef4444', count: 6 });
             }
 
@@ -7351,34 +7398,19 @@ class SurvivorGame {
     }
 
     _spawnEnemy() {
-        const p = this.player;
-        const weaponCount = p.weapons.length;
-        // 武器槽 >= 3 后解锁更强怪种
-        const allowStrong = weaponCount >= 3;
-        const allowElite = this.gameTime > 60; // 1分钟后可出精英
-
-        let type = 'normal';
-        if (allowStrong && !this.bossSpawned) {
-            const r = Math.random();
-            if (r < 0.35) type = 'normal';
-            else if (r < 0.5) type = 'bomb';
-            else if (r < 0.65) type = 'poison';
-            else if (r < 0.8) type = 'shield';
-            else type = 'blackhole';
-        }
-
-        const isElite = allowElite && Math.random() < 0.12;
+        const unlocked = ['normal', 'bomb', 'poison', 'shield', 'blackhole'].slice(0, Math.min(5, 1 + Math.floor(this.gameTime / 30)));
+        const type = Math.random() < .4 ? 'normal' : unlocked[Math.floor(Math.random() * unlocked.length)];
+        const isElite = this.gameTime >= 90 && Math.random() < .1;
         this._createEnemy(type, isElite);
     }
 
     _createEnemy(type, isElite, isBoss) {
         // Boss 出生在屏上中央, 不从屏外进入
         // 敌怪 spawn x 限制在墙内 (考虑 e.r, 留 10px 缓冲, 防止 elite 画到墙里)
-        const enemyR = isElite ? 44 : 22;
+        const kind = isBoss ? 'boss' : isElite ? 'elite' : 'normal';
+        const enemyR = SURVIVOR_SIZES[kind] / 2;
         const x = isBoss ? this.W / 2 : this.wallW + enemyR + 10 + Math.random() * (this.W - 2 * this.wallW - 2 * enemyR - 20);
         const y = isBoss ? this.H * 0.3 : -30;
-        const mult = isElite ? 1.0 : 1.0;
-        const sizeMult = isElite ? 2.0 : 1.0;
 
         const base = {
             normal:    { hp: 25, speed: 35, color:'#94a3b8', contactDmg: 6,  shootInterval: 3.0, bulletSpeed: 120 },
@@ -7397,7 +7429,7 @@ class SurvivorGame {
         const hpFinal = Math.round(base.hp * hpScale * timeHpMult);
         const e = {
             x, y,
-            r: (isBoss ? 40 : 22) * sizeMult,
+            r: SURVIVOR_HIT_RADII[kind],
             hp: hpFinal,
             maxHp: hpFinal,
             speed: base.speed * (isBoss ? 0.6 : 1),
@@ -7541,10 +7573,7 @@ class SurvivorGame {
             }
             // 碰撞玩家
             if (this._dist(b.x, b.y, p.x, p.y) < b.r + p.r && p.invincible <= 0) {
-                p.hp -= b.dmg;
-                p.invincible = 0.8;
-                this._floatingText(p.x, p.y - 20, '-' + Math.floor(b.dmg), '#ef4444');
-                this._triggerShake(3, 0.12);
+                this._damagePlayer(b.dmg, b.x, b.y);
                 this._spawnParticles(p.x, p.y, { kind: 'bulletHit', color: b.color, count: 4 });
                 this.enemyBullets.splice(i, 1);
             }
@@ -7632,7 +7661,8 @@ class SurvivorGame {
             if (e.life <= 0) {
                 // 定点轰炸: 标记时间到, 触发爆炸
                 if (e.willExplode) {
-                    this._explode(e.x, e.y, e.r, e.explodeDmg || 15, false, 0, false);
+                    this.effects.push({ type: 'explode', x: e.x, y: e.y, r: e.r, life: .35, maxLife: .35, color: '#fb923c' });
+                    if (this._dist(e.x, e.y, this.player.x, this.player.y) < e.r + this.player.r) this._damagePlayer(e.explodeDmg || 15, e.x, e.y);
                 }
                 this.effects.splice(i, 1);
             }
@@ -7665,7 +7695,7 @@ class SurvivorGame {
         this._renderLevelup(choices);
     }
 
-    _generateChoices() {
+    _generateChoices(all = false) {
         const p = this.player;
         const weapons = p.weapons;
         const slots = weapons.length;
@@ -7684,7 +7714,7 @@ class SurvivorGame {
             const avail = BULLET_KEYS.filter(k => !owned.has(k));
             if (avail.length > 0) {
                 const shuffled = avail.slice().sort(() => Math.random() - 0.5);
-                const pick = shuffled.slice(0, Math.min(2, shuffled.length));
+                const pick = all ? shuffled : shuffled.slice(0, Math.min(2, shuffled.length));
                 for (const t of pick) {
                     const def = BULLET_DEFS[t];
                     events.push({
@@ -7722,7 +7752,7 @@ class SurvivorGame {
                 kind: 'upgradeBurst',
                 icon: '⬆',
                 name: '强化冲击',
-                desc: `随机升级已有子弹 3~5 次`,
+                desc: `随机强化 3–5 次，最多 ${upgradable.reduce((sum, w) => sum + 3 - w.level, 0)} 次有效提升；每把上限 3 级`,
                 tierLabel: '',
             });
         }
@@ -7745,7 +7775,8 @@ class SurvivorGame {
 
         // 从事件池中随机选2个
         const shuffled = events.sort(() => Math.random() - 0.5);
-        const choices = shuffled.slice(0, 2);
+        if (shuffled.length < 2) shuffled.push({ kind: 'recover', name: '战地补给', icon: '✚', desc: '恢复 50 生命与 30 能量，不超过各自上限', tierLabel: '' });
+        const choices = all ? shuffled : shuffled.slice(0, 2);
         // 给每个选择附带"已刷新"标记
         choices.forEach(c => c.refreshed = false);
         return choices;
@@ -7758,7 +7789,7 @@ class SurvivorGame {
         // 找2个满级同级同类（B或A）的子弹
         const tierGroups = {};
         for (const w of weapons) {
-            if (w.level >= 3) {
+            if (w.level >= 3 && w.tier !== 'S') {
                 const k = w.tier;
                 if (!tierGroups[k]) tierGroups[k] = [];
                 tierGroups[k].push(w);
@@ -7781,10 +7812,9 @@ class SurvivorGame {
         if (choices[idx].refreshed) return;
 
         // 重新生成
-        const newEvents = this._generateChoices();
+        const newEvents = this._generateChoices(true);
         const filtered = newEvents.filter(e => {
-            // 排除与另一个 choice 重复的
-            return true;
+            return !choices.some(c => c.kind === e.kind && c.type === e.type && c.name === e.name && c.tier === e.tier);
         });
         if (filtered.length > 0) {
             const pick = filtered[Math.floor(Math.random() * filtered.length)];
@@ -7796,10 +7826,15 @@ class SurvivorGame {
 
     _applyChoice(idx) {
         const p = this.player;
-        const c = this._pendingChoices[idx];
+        const c = this._pendingChoices?.[idx];
         if (!c) return;
 
         switch (c.kind) {
+            case 'recover': {
+                p.hp = Math.min(p.maxHp, p.hp + 50);
+                p.mana = Math.min(p.maxMana, p.mana + 30);
+                break;
+            }
             case 'new': {
                 p.weapons.push({ type: c.type, tier: 'B', level: 1, timer: 0 });
                 break;
@@ -7891,6 +7926,11 @@ class SurvivorGame {
         if (expFill) expFill.style.width = (this.exp / expToNext(this.level) * 100) + '%';
         if (timeEl) timeEl.textContent = Math.floor(this.gameTime) + 's';
         if (killEl) killEl.textContent = this.enemyKillCount;
+        const waveEl = document.getElementById('survWaveStatus');
+        if (waveEl) {
+            const remaining = Math.max(0, Math.ceil(this.bossSpawnTime - this.gameTime));
+            waveEl.textContent = this.bossSpawned ? '首领战 · 留意冲刺预警' : remaining <= 8 ? `首领接近 · ${remaining}s` : this.gameTime % 30 >= 24 ? `增援暂停 · ${Math.ceil(30 - this.gameTime % 30)}s` : `第 ${1 + Math.floor(this.gameTime / 30)} 波 · ${['斥候', '爆破', '毒蚀', '护盾', '混合攻势'][Math.min(4, Math.floor(this.gameTime / 30))]}`;
+        }
 
         // 武器槽
         this._renderWeaponBar();
@@ -7924,7 +7964,21 @@ class SurvivorGame {
                 <div class="surv-weapon-dots">${dotHtml}</div>
             </div>`;
         }
-        bar.innerHTML = html;
+        if (this._weaponBarHTML !== html) {
+            bar.innerHTML = html;
+            this._weaponBarHTML = html;
+        }
+    }
+
+    _choicePreview(c) {
+        const stats = w => `${this._weaponDamage(w) * (w.type === 'poison' ? .5 : 1)} 直击 / ${cooldownFor(w.tier, w.level).toFixed(2)}s`;
+        if (c.kind === 'new') return stats({ type: c.type, tier: 'B', level: 1 }) + ' · 新增一把武器';
+        if (c.kind === 'upgrade') {
+            const w = this.player.weapons.find(w => w.type === c.type && w.tier === c.tier && w.level === c.level);
+            if (w) return `${stats(w)} → ${stats({ ...w, level: w.level + 1 })}${w.type === 'scatter' ? ` · 弹数 ${2 + w.level} → ${3 + w.level}` : ''}`;
+        }
+        if (c.kind === 'fuse') return c.pair.map(w => (BULLET_DEFS[w.type] || w._meta || {}).name || '融合弹').join(' + ') + ` → ${c.name} · 释放一个武器槽`;
+        return c.kind === 'recover' ? `生命 +${Math.ceil(Math.min(50, this.player.maxHp - this.player.hp))} · 能量 +${Math.floor(Math.min(30, this.player.maxMana - this.player.mana))}` : '随机分配到未满级武器';
     }
 
     _renderLevelup(choices) {
@@ -7937,17 +7991,21 @@ class SurvivorGame {
 
         let html = '';
         choices.forEach((c, i) => {
+            const canRefresh = !c.refreshed && this._generateChoices(true).some(e => !choices.some(other => other.kind === e.kind && other.type === e.type && other.name === e.name && other.tier === e.tier));
             const tierBadge = c.tierLabel ? `<div class="ev-tier-badge tier-${c.tierLabel}">${c.tierLabel}级</div>` : '';
             html += `<div class="surv-event-card" data-idx="${i}">
-                <button class="ev-refresh ${c.refreshed ? 'used' : ''}" data-refresh="${i}" title="刷新">↻</button>
+                <button class="ev-refresh ${canRefresh ? '' : 'used'}" data-refresh="${i}" ${canRefresh ? '' : 'disabled'} title="${canRefresh ? '刷新此选项（一次）' : '暂无可用刷新'}" aria-label="刷新${c.name}">↻</button>
                 ${tierBadge}
                 <div class="ev-icon" style="color:${c.icon === '↻' ? '#bae6fd' : ''}">${c.icon}</div>
                 <div class="ev-name">${c.name}</div>
                 <div class="ev-desc">${c.desc}</div>
+                <div class="ev-preview">${this._choicePreview(c)}</div>
+                <button class="ev-select" type="button">选择强化</button>
             </div>`;
         });
         cardsEl.innerHTML = html;
         overlay.classList.add('active');
+        cardsEl.querySelector('.ev-select')?.focus({ preventScroll: true });
 
         // 绑定点击
         cardsEl.querySelectorAll('.surv-event-card').forEach(card => {
@@ -7967,6 +8025,11 @@ class SurvivorGame {
     _hideLevelup() {
         const overlay = document.getElementById('survLevelupOverlay');
         if (overlay) overlay.classList.remove('active');
+        const stage = this.canvas.closest('.game-container');
+        if (stage && overlay?.contains(document.activeElement)) {
+            stage.tabIndex = -1;
+            stage.focus({ preventScroll: true });
+        }
     }
 
     _showGameover(win) {
@@ -7975,7 +8038,15 @@ class SurvivorGame {
         const stats = document.getElementById('survGameoverStats');
         if (overlay) overlay.classList.add('active');
         if (title) title.textContent = win ? '🏆 胜利！' : '☠ 游戏结束';
-        if (stats) stats.innerHTML = `等级: ${this.level}<br>击杀: ${this.enemyKillCount}<br>存活: ${Math.floor(this.gameTime)}s`;
+        const seconds = Math.floor(this.gameTime);
+        const oldKills = SkyStorage.getInt('survivor-best-kills', 0);
+        const oldTime = SkyStorage.getInt('survivor-best-time', 0);
+        const wins = SkyStorage.getInt('survivor-wins', 0) + (win ? 1 : 0);
+        SkyStorage.setInt('survivor-best-kills', Math.max(oldKills, this.enemyKillCount));
+        SkyStorage.setInt('survivor-best-time', Math.max(oldTime, seconds));
+        SkyStorage.setInt('survivor-wins', wins);
+        const loadout = this.player.weapons.map(w => `${(BULLET_DEFS[w.type] || w._meta || {}).name || '融合弹'} ${w.tier}·Lv${w.level}`).join(' / ');
+        if (stats) stats.textContent = `Lv${this.level} · 击杀 ${this.enemyKillCount} · 存活 ${seconds}s\n\n最终武装\n${loadout}\n\n个人纪录${this.enemyKillCount > oldKills ? ' · 新击杀纪录' : ''}\n最高击杀 ${Math.max(oldKills, this.enemyKillCount)} · 最长生存 ${Math.max(oldTime, seconds)}s · 通关 ${wins} 次`;
     }
 
     _hideGameover() {
@@ -7998,6 +8069,7 @@ class SurvivorGame {
 
     // ─── 屏幕震动 ───
     _triggerShake(mag, time) {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         if (mag > this.shakeMag) this.shakeMag = mag;
         if (time > this.shakeTime) this.shakeTime = time;
     }
@@ -8005,18 +8077,13 @@ class SurvivorGame {
     // ─── Sprite 预加载 ───
     _loadSprites() {
         const list = [
-            ['player',           'assets/survivor/player.png'],
+            ['player',           'assets/survivor/player-clean.png'],
             ['boss',             'assets/survivor/boss.png'],
             ['enemy-normal',     'assets/survivor/enemy-normal.png'],
             ['enemy-bomb',       'assets/survivor/enemy-bomb.png'],
             ['enemy-poison',     'assets/survivor/enemy-poison.png'],
             ['enemy-shield',     'assets/survivor/enemy-shield.png'],
             ['enemy-blackhole',  'assets/survivor/enemy-blackhole.png'],
-            ['bullet-dart',      'assets/survivor/bullet-dart.png'],
-            ['bullet-bomb',      'assets/survivor/bullet-bomb.png'],
-            ['bullet-poison',    'assets/survivor/bullet-poison.png'],
-            ['bullet-scatter',   'assets/survivor/bullet-scatter.png'],
-            ['bullet-snow',      'assets/survivor/bullet-snow.png'],
         ];
         for (const [key, src] of list) {
             const img = new Image();
@@ -8258,47 +8325,30 @@ class SurvivorGame {
             this._drawEnemy(e);
         }
 
-        // 敌人子弹 (程序化发光圆, 红色/紫色保留)
+        // Pre-rendered textures keep enemy rounds distinct from player spells.
         for (const b of this.enemyBullets) {
-            ctx.fillStyle = b.color;
-            ctx.shadowColor = b.color;
-            ctx.shadowBlur = 6;
-            ctx.beginPath();
-            ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
+            drawProjectile(ctx, this.projectileArt, b, true);
         }
 
-        // 玩家子弹 (5 种 sprite + 融合弹金色圆)
+        // Each weapon has a different core silhouette and directional wake.
         for (const b of this.playerBullets) {
-            const baseType = (b.type || '').replace('_fused', '');
-            const spriteKey = 'bullet-' + baseType;
-            const img = this._sprite(spriteKey);
-            if (img && BULLET_KEYS.includes(baseType)) {
-                // sprite 渲染
-                const ang = Math.atan2(b.vy, b.vx);
-                const size = 22;
-                ctx.save();
-                ctx.translate(b.x, b.y);
-                ctx.rotate(ang);
-                ctx.drawImage(img, -size / 2, -size / 2, size, size);
-                ctx.restore();
-            } else {
-                // 融合弹 (A/S) 保留金色发光圆
-                ctx.fillStyle = b.color;
-                ctx.shadowColor = b.color;
-                ctx.shadowBlur = 10;
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.r + 2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
-            }
+            drawProjectile(ctx, this.projectileArt, b);
         }
 
         // 特效
         for (const e of this.effects) {
             const t = 1 - e.life / e.maxLife;
-            if (e.type === 'explode') {
+            if (e.type === 'impact') {
+                ctx.save();
+                ctx.globalAlpha = 1 - t;
+                ctx.strokeStyle = e.color; ctx.lineWidth = 2 * (1-t) + .5;
+                const radius = 5 + t * 17;
+                ctx.beginPath(); ctx.arc(e.x,e.y,radius,0,Math.PI*2); ctx.stroke();
+                ctx.strokeStyle = '#effaff';
+                ctx.beginPath();
+                for(let i=0;i<4;i++) { const a=i*Math.PI/2+.4; ctx.moveTo(e.x+Math.cos(a)*radius,e.y+Math.sin(a)*radius); ctx.lineTo(e.x+Math.cos(a)*(radius+5),e.y+Math.sin(a)*(radius+5)); }
+                ctx.stroke(); ctx.restore();
+            } else if (e.type === 'explode') {
                 ctx.strokeStyle = e.color;
                 ctx.globalAlpha = 1 - t;
                 ctx.lineWidth = 3;
@@ -8370,20 +8420,20 @@ class SurvivorGame {
             tctx.fillStyle = 'rgba(186, 230, 253, 0.05)';
             tctx.fillRect(2, 2, tileSize - 4, tileSize - 4);
             // 顶 + 左 高光 (冰蓝)
-            tctx.strokeStyle = 'rgba(125, 211, 252, 0.4)';
+            tctx.strokeStyle = 'rgba(125, 211, 252, 0.14)';
             tctx.lineWidth = 1;
             tctx.beginPath();
             tctx.moveTo(0.5, 0.5); tctx.lineTo(tileSize - 0.5, 0.5);
             tctx.moveTo(0.5, 0.5); tctx.lineTo(0.5, tileSize - 0.5);
             tctx.stroke();
             // 底 + 右 阴影 (深冰蓝)
-            tctx.strokeStyle = 'rgba(2, 132, 199, 0.3)';
+            tctx.strokeStyle = 'rgba(2, 132, 199, 0.12)';
             tctx.beginPath();
             tctx.moveTo(0.5, tileSize - 0.5); tctx.lineTo(tileSize - 0.5, tileSize - 0.5);
             tctx.moveTo(tileSize - 0.5, 0.5); tctx.lineTo(tileSize - 0.5, tileSize - 0.5);
             tctx.stroke();
             // 内部小雪点 (deterministic 几个, 让 tile 有细节不单调)
-            tctx.fillStyle = 'rgba(224, 242, 254, 0.5)';
+            tctx.fillStyle = 'rgba(224, 242, 254, 0.16)';
             const dots = [[14, 22, 2], [38, 12, 2], [28, 42, 2], [48, 32, 2], [10, 48, 2], [44, 50, 2]];
             for (const [dx, dy, r] of dots) {
                 tctx.fillRect(dx, dy, r, r);
@@ -8470,7 +8520,7 @@ class SurvivorGame {
 
         // ── 飘雪 (动态层, 批 fill 优化) ──
         // 远景: 50 个一起 beginPath + 1 次 fill (减少 fillStyle/beginPath 切换)
-        ctx.fillStyle = 'rgba(186, 230, 253, 0.4)';
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.18)';
         ctx.beginPath();
         for (const s of this.snowFar) {
             ctx.moveTo(s.x + s.r, s.y);
@@ -8478,7 +8528,7 @@ class SurvivorGame {
         }
         ctx.fill();
         // 近景: 30 个一起
-        ctx.fillStyle = 'rgba(224, 242, 254, 0.75)';
+        ctx.fillStyle = 'rgba(224, 242, 254, 0.35)';
         ctx.beginPath();
         for (const s of this.snowNear) {
             ctx.moveTo(s.x + s.r, s.y);
@@ -8508,7 +8558,7 @@ class SurvivorGame {
         const ctx = this.ctx;
         const p = this.player;
         const img = this._sprite('player');
-        const size = 64;
+        const size = SURVIVOR_SIZES.player;
 
         // 无敌闪烁
         if (p.invincible > 0 && Math.floor(p.invincible * 10) % 2 === 0) {
@@ -8517,11 +8567,16 @@ class SurvivorGame {
 
         if (img) {
             // 朝向: dir 默认 (0, -1) 表示朝上, sprite 通常以 "上" 为正面
-            const ang = Math.atan2(p.dirY, p.dirX) + Math.PI / 2;
             ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(ang);
-            ctx.drawImage(img, -size / 2, -size / 2, size, size);
+            ctx.fillStyle = 'rgba(8, 18, 30, .28)';
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y + size * .39, size * .23, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.translate(p.x, p.y + (p.bob || 0));
+            ctx.rotate(p.lean || 0);
+            ctx.scale(p.facing || 1, 1);
+            // Exclude the empty outermost texel to avoid alpha-fringe sampling.
+            ctx.drawImage(img, 1, 1, img.naturalWidth - 2, img.naturalHeight - 2, -size / 2, -size / 2, size, size);
             ctx.restore();
         } else {
             // 降级: 冰蓝光球
@@ -8534,21 +8589,25 @@ class SurvivorGame {
             ctx.shadowBlur = 0;
         }
 
-        // 朝向指示 (白色短线, 即使有 sprite 也保留一点视觉提示)
-        ctx.strokeStyle = 'rgba(186, 230, 253, 0.7)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x + p.dirX * p.r * 1.5, p.y + p.dirY * p.r * 1.5);
-        ctx.stroke();
         ctx.globalAlpha = 1;
+        if (p.damageTimer > 0) {
+            ctx.save();
+            ctx.globalAlpha = p.damageTimer / .32;
+            ctx.strokeStyle = '#fca5a5';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, size * .55, p.damageDirection - .5, p.damageDirection + .5);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
 
     _drawEnemy(e) {
         const ctx = this.ctx;
         const spriteKey = e.isBoss ? 'boss' : 'enemy-' + e.type;
         const img = this._sprite(spriteKey);
-        const size = e.isBoss ? 128 : (e.isElite ? 88 : 44);
+        const size = SURVIVOR_SIZES[e.isBoss ? 'boss' : e.isElite ? 'elite' : 'normal'];
+        const visualRadius = img ? size / 2 : e.r;
 
         if (img) {
             // 朝向玩家
@@ -8556,6 +8615,7 @@ class SurvivorGame {
             ctx.save();
             ctx.translate(e.x, e.y);
             ctx.rotate(ang);
+            if (e.hitFlash > 0) ctx.filter = 'brightness(2.5)';
             ctx.drawImage(img, -size / 2, -size / 2, size, size);
             ctx.restore();
         } else {
@@ -8575,7 +8635,7 @@ class SurvivorGame {
             ctx.lineWidth = 3;
             ctx.globalAlpha = 0.7;
             ctx.beginPath();
-            ctx.arc(e.x, e.y, e.r + 5, 0, Math.PI * 2);
+            ctx.arc(e.x, e.y, visualRadius + 5, 0, Math.PI * 2);
             ctx.stroke();
             ctx.globalAlpha = 1;
         }
@@ -8585,17 +8645,21 @@ class SurvivorGame {
             ctx.strokeStyle = '#22d3ee';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(e.x, e.y, e.r + 2, 0, Math.PI * 2);
+            ctx.arc(e.x, e.y, visualRadius + 2, 0, Math.PI * 2);
             ctx.stroke();
         }
 
         // Boss 血条
         if (e.isBoss) {
-            const bw = 80;
+            const bw = size * 0.75;
+            ctx.font = '600 13px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = e.chargeState === 'returning' ? '#bae6fd' : '#fca5a5';
+            ctx.fillText(({ charging: '蓄力 · 离开红色路径', dashing: '冲刺', returning: '恢复 · 反击时机', idle: '霜境守卫' })[e.chargeState], e.x, e.y - visualRadius - 23);
             ctx.fillStyle = 'rgba(0,0,0,0.6)';
-            ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw, 7);
+            ctx.fillRect(e.x - bw / 2, e.y - visualRadius - 14, bw, 7);
             ctx.fillStyle = '#ef4444';
-            ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw * (e.hp / e.maxHp), 7);
+            ctx.fillRect(e.x - bw / 2, e.y - visualRadius - 14, bw * (e.hp / e.maxHp), 7);
 
             // ── 冲刺状态视觉 ──
             if (e.chargeState === 'charging') {
@@ -8604,10 +8668,18 @@ class SurvivorGame {
                 ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.arc(e.x, e.y, e.r + 12 + pulse, 0, Math.PI * 2);
+                ctx.arc(e.x, e.y, visualRadius + 12 + pulse, 0, Math.PI * 2);
                 ctx.stroke();
                 // 警告线 (虚线, 指向锁定目标)
                 ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+                ctx.lineWidth = e.r * 2;
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.12)';
+                ctx.beginPath();
+                ctx.moveTo(e.x, e.y);
+                const distance = Math.hypot(e.chargeTarget.x - e.x, e.chargeTarget.y - e.y);
+                const reach = Math.min(1, 250 / Math.max(1, distance));
+                ctx.lineTo(e.x + (e.chargeTarget.x - e.x) * reach, e.y + (e.chargeTarget.y - e.y) * reach);
+                ctx.stroke();
                 ctx.lineWidth = 2;
                 ctx.setLineDash([8, 6]);
                 ctx.beginPath();
@@ -8626,7 +8698,7 @@ class SurvivorGame {
                         const nx = -dx / d, ny = -dy / d;
                         for (let i = 1; i <= 3; i++) {
                             ctx.globalAlpha = 0.35 - i * 0.1;
-                            ctx.drawImage(img2, e.x + nx * i * 18 - e.r / 2, e.y + ny * i * 18 - e.r / 2, e.r, e.r);
+                            ctx.drawImage(img2, e.x + nx * i * 18 - size / 2, e.y + ny * i * 18 - size / 2, size, size);
                         }
                         ctx.globalAlpha = 1;
                     }
@@ -8639,13 +8711,13 @@ class SurvivorGame {
             ctx.fillStyle = '#fbbf24';
             ctx.font = 'bold 12px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('★', e.x, e.y - e.r - 4);
+            ctx.fillText('★', e.x, e.y - visualRadius - 4);
         }
     }
 }
 
 // ─── 启动 ───
-window.addEventListener('DOMContentLoaded', () => {
+whenDomReady(() => {
     if (document.getElementById('survivorCanvas')) {
         window.survivorGame = new SurvivorGame();
     }

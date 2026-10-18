@@ -765,8 +765,8 @@
                                 <span>AI迷宫逃生</span>
                             </button>
                             <button class="game-tab" data-game="survivor">
-                                <span class="icon-survivor" aria-label="弹幕幸存者"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 4v3M12 17v3M4 12h3M17 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M6.3 17.7l2.1-2.1M15.6 8.4l2.1-2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></span>
-                                <span>弹幕幸存者</span>
+                                <span class="icon-survivor" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3 6 7-6 11-6-11Z"/><path d="M10 3v18M4 10h12"/><path class="frost-spark" d="m19 2 1 3 3 1-3 1-1 3-1-3-3-1 3-1Z"/></svg></span>
+                                <span>霜境星火</span>
                             </button>
                         </div>
                     </nav>
@@ -841,10 +841,12 @@
                                 <svg class="ico" viewBox="0 0 24 24"><use href="#i-redo"/></svg> 重新开始
                             </button>
                         </div>
+                        <details class="flappy-help game-help"><summary>操作说明与 AI 模式</summary>
                         <p class="game-instructions">
-                            <strong>操作说明：</strong> 点击屏幕 / 空格 / ↑ / W 飞行 · P / ESC 暂停 · <strong style="color:#4ade80">A 键召唤 AI</strong>（优先浏览器 ONNX，本地也可起 Flask）<br>
+                            <strong>操作说明：</strong> 点击屏幕 / 空格 / ↑ / W 飞行 · P / ESC 暂停 · <strong style="color:#4ade80">A 键召唤 AI</strong><br>
                             <span style="font-size:0.82rem;opacity:0.75">模型来自 Dueling DQN + PER 训练项目，首次召唤会下载约 13MB 权重，之后本地推理。</span>
                         </p>
+                        </details>
                     </div>
                     
                     <!-- 2048 Game Container -->
@@ -1032,9 +1034,11 @@
                             <button class="gomoku-btn" id="gomokuUndo">↩ 悔棋</button>
                         </div>
 
+                        <details class="gomoku-help game-help"><summary>玩法与 AI 说明</summary>
                         <p class="gomoku-instructions">
-                            <strong>操作说明：</strong> 点击棋盘落子 | 五子连成一线获胜 | 人机模式下 AI 使用 minimax + alpha-beta + 棋型评估(活四/冲四/活三…)| 思考时显示候选点热力图
+                            <strong>操作说明：</strong> 点击棋盘落子，五子连成一线获胜。人机模式下 AI 使用 Minimax 搜索与棋型评估，思考时显示候选点热力图。
                         </p>
+                        </details>
                     </div>
 
                     <!-- Memory Game Container -->
@@ -1211,25 +1215,16 @@
                     <!-- Survivor Game Container -->
                     <div class="game-container game-survivor">
                         <div class="survivor-canvas-wrapper">
-                            <canvas id="survivorCanvas" width="900" height="700" class="game-survivor-canvas"></canvas>
+                            <canvas id="survivorCanvas" width="600" height="900" class="game-survivor-canvas"></canvas>
 
                             <!-- 开始游戏面板 -->
                             <div class="survivor-start-overlay" id="survivorStartOverlay">
                                 <div class="survivor-start-panel">
-                                    <img class="survivor-start-portrait" src="assets/survivor/player.png" alt="雪地小法师">
-                                    <div class="survivor-start-title">弹幕幸存者</div>
-                                    <div class="survivor-start-sub">在地图持续下推中存活, 击败最终 Boss</div>
+                                    <img class="survivor-start-portrait" src="assets/survivor/player-clean.png" alt="雪地小法师">
+                                    <div class="survivor-start-title">霜境星火</div>
+                                    <div class="survivor-start-sub">穿越霜雪，拾取晶石，在围攻中成长。</div>
                                     <button class="survivor-start-btn" id="survivorStartBtn">▶ 开始游戏</button>
                                     <div class="survivor-start-tip">WASD / 方向键 移动 · 自动射击</div>
-                                </div>
-                            </div>
-
-                            <!-- 升级事件面板 -->
-                            <div class="surv-levelup-overlay" id="survLevelupOverlay">
-                                <div class="surv-levelup-panel">
-                                    <div class="surv-levelup-title">⬆ 升级！</div>
-                                    <div class="surv-levelup-sub">已达到 <strong id="survLevelupLevel">2</strong> 级，选择一项强化（每张卡可单独刷新 1 次）</div>
-                                    <div class="surv-event-cards" id="survLevelupCards"></div>
                                 </div>
                             </div>
 
@@ -1275,6 +1270,7 @@
                                     <span class="label">TIME</span>
                                     <span class="value" id="survTimeValue">0s</span>
                                 </div>
+                                <div class="surv-wave-status" id="survWaveStatus" role="status">第 1 波 · 斥候</div>
                                 <div class="surv-stat">
                                     <span class="label">KILL</span>
                                     <span class="value" id="survKillValue">0</span>
@@ -1284,11 +1280,22 @@
                             </div>
                         </div>
 
+                        <aside class="survivor-loadout" aria-label="武器与操作说明">
+                        <div class="survivor-side-heading">星火武装 <span>LOADOUT</span></div>
                         <div class="surv-weapon-bar" id="survWeaponBar"></div>
 
                         <p class="surv-instructions">
-                            <strong>操作：</strong> WASD / 方向键 移动（自动锁定最近敌人射击） | 拾取晶石升级 | 空格键释放<span style="color:#67e8f9">冰霜新星</span>（消耗蓝量） | <span style="color:#ef4444">约 3 分钟后 Boss 出现</span>
+                            <strong>霜境指引</strong><br>WASD / 方向键移动<br>自动锁定最近敌人射击<br>拾取晶石，选择强化<br>空格释放<span style="color:#67e8f9">冰霜新星</span>，消耗蓝量<br><span style="color:#dca28e">3 分 20 秒后首领出现</span>
                         </p>
+                        </aside>
+                        <!-- Upgrade choices use the full stage, independent of the portrait canvas. -->
+                        <div class="surv-levelup-overlay" id="survLevelupOverlay">
+                            <div class="surv-levelup-panel">
+                                <div class="surv-levelup-title">⬆ 升级！</div>
+                                <div class="surv-levelup-sub">已达到 <strong id="survLevelupLevel">2</strong> 级，选择一项强化（每张卡可单独刷新 1 次）</div>
+                                <div class="surv-event-cards" id="survLevelupCards"></div>
+                            </div>
+                        </div>
                     </div>
                     </div>
                 </div>

@@ -12,6 +12,7 @@ if (typeof window !== 'undefined') {
 
 // 载入全部应用脚本（星空背景 / UI / 特效 / 叙事 / 游戏外壳 / 各游戏）
 import './app.js';
+import './game-feedback.js';
 
 // ─── AI 算法标签联动 ───
 // 让 .ai-algo-tag 在游戏 AI 激活时进入"脉动态"(加 .ai-algo-tag--active),

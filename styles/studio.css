@@ -300,6 +300,10 @@ body.studio {
 .studio .carousel-dots .dot { background: #cdd6ec; border: 0; box-shadow: none; }
 .studio .carousel-dots .dot.active { background: #2d55d4; }
 /* Arcade shell: stable directory + independent, proportionate play surfaces. */
+.icon-survivor { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: 0 0 20px; color: inherit; }
+.icon-survivor svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.icon-survivor .frost-spark { transform-origin: 19px 6px; transition: transform 220ms ease; }
+.game-tab:hover .icon-survivor .frost-spark { transform: scale(1.15); }
 .game-mobile-picker { display: none; }
 .studio #panel-game .inner-panel { max-width: 1480px; padding: 32px 4% 40px; gap: 20px; }
 .studio .games-header { max-width: none; padding: 0 0 20px; border-color: #d5d8d0; }
@@ -337,6 +341,118 @@ body.studio {
 .studio .game-focused .game-stage { height: max(570px, calc(100dvh - 235px)); }
 .studio .game-focused .tabs-hint > span { display: none; }
 /* Keep supporting information quiet and the playfield prominent. */
+.studio .survivor-side-heading { color: #cfdbef; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.studio .survivor-side-heading span { display: block; color: #8b9bb0; font: 9px 'Space Mono', monospace; letter-spacing: .12em; margin-top: 5px; }
+.studio .survivor-loadout { width: 100%; }
+@media (min-width: 901px) {
+    .studio .game-container.game-survivor.active { display: grid !important; grid-template-columns: 160px minmax(0, var(--survivor-field-width, 400px)) 180px; justify-content: center; align-items: start; align-content: center; gap: 20px; }
+    .studio .game-survivor .survivor-canvas-wrapper { grid-column: 2; grid-row: 1; width: fit-content; max-width: 100%; justify-self: center; }
+    .studio .game-survivor .survivor-hud { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; align-items: stretch; width: 160px; margin: 0; padding: 16px 12px; gap: 18px; box-shadow: none; }
+    .studio .game-survivor .survivor-hud::before { content: '战斗状态 / STATUS'; font-size: 10px; letter-spacing: .05em; color: #a6b8d1; }
+    .studio .game-survivor .surv-hud-group { display: grid; grid-template-columns: 1fr; gap: 12px; width: 100%; }
+    .studio .game-survivor .surv-stat { align-items: stretch; gap: 4px; }
+    .studio .game-survivor .surv-stat .value { font-size: 24px; }
+    .studio .game-survivor :is(.surv-exp-bar, .surv-hp-bar, .surv-mp-bar) { width: 100%; }
+    .studio .game-survivor .surv-hud-group:last-child { grid-template-columns: 1fr 1fr; }
+    .studio .game-survivor :is(.surv-pause-btn, .surv-restart-btn) { grid-column: 1 / -1; width: 100%; min-height: 40px; border-radius: 5px; font-size: 12px; }
+    .studio .game-survivor .survivor-loadout { grid-column: 3; grid-row: 1; width: 180px; padding: 16px 12px; border: 1px solid #3b4655; border-radius: 8px; background: #ffffff06; }
+    .studio .game-survivor .surv-weapon-bar { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 7px; width: 100%; margin: 0; padding: 0; border: 0; background: none; }
+    .studio .game-survivor .surv-weapon-slot { display: grid; grid-template-columns: 26px 1fr; width: 100%; min-height: 50px; padding: 13px 8px 5px; gap: 2px 6px; border-radius: 5px; }
+    .studio .game-survivor .surv-weapon-name { text-align: left; margin: 0; }
+    .studio .game-survivor .surv-weapon-dots { grid-column: 2; justify-content: flex-start; margin-top: 0; }
+    .studio .game-survivor .surv-instructions { margin: 16px 0 0; padding: 12px 0 0; border: 0; border-top: 1px solid #3b4655; background: none; border-radius: 0; text-align: left; line-height: 1.9; font-size: 11px; }
+    .studio .game-survivor .surv-instructions strong { display: inline-block; margin-bottom: 6px; color: #d2def1; }
+    .studio .game-survivor .survivor-start-panel { padding: 20px 12px; }
+    .studio .game-survivor .survivor-start-sub { line-height: 1.8; }
+    .studio .game-survivor .surv-levelup-overlay { z-index: 50; border-radius: 10px; }
+    .studio .game-survivor .surv-levelup-title { text-shadow: none; }
+}
+.studio .game-session { display: flex; align-items: center; gap: 12px; }
+.studio .game-session[hidden] { display: none; }
+.studio .game-session-state { display: inline-flex; align-items: center; gap: 7px; max-width: 240px; font-size: 12px; color: #59636c; }
+.studio .game-session-state::before { content: ''; width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: #7f8995; }
+.studio .game-session[data-state="playing"] .game-session-state::before { background: #44866a; }
+.studio .game-session[data-state="paused"] .game-session-state::before { background: #c28a45; }
+.studio .game-session[data-state="ended"] .game-session-state::before { background: #b66b53; }
+.studio .game-session-action { min-height: 44px; padding: 10px 16px; border: 1px solid #2d55d4; border-radius: 5px; background: #2d55d4; color: #fff; cursor: pointer; font: inherit; font-size: 12px; }
+.studio .game-session-action:hover { background: #2346b6; }
+.studio .game-session-action:disabled { opacity: .6; cursor: default; }
+.studio .game-container button:disabled { opacity: .45; cursor: default; transform: none; }
+.studio .game-session-overlay { position: absolute; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; background: #151c29c9; backdrop-filter: blur(4px); animation: studio-arrive 180ms var(--ease-out) both; }
+.studio .game-session-card { width: min(340px, 100%); padding: 30px; border: 1px solid #d9dfeb; border-radius: 10px; background: #f6f5f0; color: #252a30; text-align: center; box-shadow: 0 18px 48px #0003; }
+.studio .game-session-eyebrow { font: 10px 'Space Mono', monospace; letter-spacing: .12em; color: #697384; }
+.studio .game-session-card h3 { margin: 12px 0; font-size: 25px; color: #252a30; }
+.studio .game-session-card p { margin: 0 0 22px; font-size: 13px; line-height: 1.7; color: #68717d; }
+.studio .game-feedback-covered :is(.game-over-overlay, .surv-gameover-overlay) { visibility: hidden; }
+.studio .surv-wave-status { grid-column: 1 / -1; color: #a8c7df; font-size: 11px; line-height: 1.6; border-left: 2px solid #769ec4; padding-left: 8px; }
+.studio .game-survivor .ev-preview { margin: 16px 0; padding: 12px; border-block: 1px solid #ffffff18; color: #c4def2; font-size: 12px; line-height: 1.8; min-height: 68px; }
+.studio .game-survivor .surv-event-card { width: 230px; display: flex; flex-direction: column; }
+.studio .game-survivor .ev-select { margin-top: auto; }
+.studio .game-survivor .ev-select { width: 100%; padding: 10px 16px; border: 1px solid #7896bf66; border-radius: 5px; background: #365681; color: #fff; cursor: pointer; }
+.studio .game-survivor .ev-select:hover { background: #476b9a; }
+.studio .game-survivor :is(.ev-select, .ev-refresh):focus-visible { outline: 2px solid #b9def9; outline-offset: 4px; }
+.studio .game-survivor .game-session-card { width: min(460px, 100%); max-height: 100%; overflow-y: auto; }
+.studio .game-survivor :is(.game-session-card p, #survGameoverStats) { white-space: pre-line; overflow-wrap: anywhere; }
+.studio .game2048-overlay { position: absolute; }
+.studio .game2048-overlay-card { border-radius: 10px; background: #f6f5f0; border-color: #d9dfeb; box-shadow: 0 18px 48px #0003; }
+.studio .game2048-overlay-card h2 { color: #252a30; }
+.studio .game2048-overlay-card p { color: #68717d; }
+.studio .game-session-card button { min-height: 44px; padding: 10px 24px; border: 0; border-radius: 5px; font: inherit; font-size: 13px; background: #2d55d4; color: white; cursor: pointer; }
+.studio :is(.game-session-action, .game-session-card button):focus-visible { outline: 3px solid #a8bbf3; outline-offset: 3px; }
+.studio :is(.game-over-overlay, .game2048-overlay, .surv-gameover-overlay) { background: #151c29e8; backdrop-filter: blur(4px); }
+.studio :is(.game-over-title, .surv-gameover-title) { color: #e1e9f8; text-shadow: none; font-size: 28px; }
+.studio :is(.game-over-score, .surv-gameover-stats) { color: #b8c7dc; font-size: 15px; }
+.studio .surv-gameover-btn { background: #4c70d8; color: #fff; border-radius: 6px; box-shadow: none; min-height: 44px; }
+.studio :is(.game2048-btn, .game2048-restart-btn, .tic-tac-toe-btn, .gomoku-btn, .memory-btn, .plane-restart-btn) { border-radius: 6px; box-shadow: none; min-height: 40px; white-space: nowrap; }
+.studio :is(.game2048-grid-container, .tic-tac-toe-board) { border-radius: 8px; background: #182130; border-color: #485870; box-shadow: none; }
+.studio .tic-tac-toe-cell { border-radius: 6px; border-color: #485870; background: #263347; box-shadow: none; }
+.studio .tic-tac-toe-cell:hover { background: #354867; }
+.studio .game2048-title { background: none; color: #c8d6f2; -webkit-text-fill-color: currentColor; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-header { margin-bottom: 10px; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-title { font-size: 22px; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-score-box { padding: 4px 10px; min-width: 44px; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-board { margin-bottom: 0; border-radius: 8px; background: #182130; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-cell { background: #263347; border-color: #485870; border-radius: 6px; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-cell.winning-cell { background: #20513e; border-color: #4ade80; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-status { margin: 8px 0; font-size: 15px; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-controls { gap: 8px; flex-wrap: wrap; margin: 0; }
+.studio .game-container.game-tic-tac-toe .tic-tac-toe-btn { padding: 8px 12px; font-size: 12px; box-shadow: none; }
+.studio .game-tic-tac-toe .game-instructions { margin: 10px 0 0; font-size: 11px; }
+.studio .gomoku-header { margin-bottom: 8px; gap: 8px; }
+.studio .gomoku-title { font-size: 22px; }
+.studio .gomoku-score-box { padding: 5px 10px; }
+.studio .gomoku-mode-toggle { margin-bottom: 10px; border-radius: 6px; box-shadow: none; }
+.studio .gomoku-status { margin: 8px 0; font-size: 15px; }
+.studio .gomoku-controls { margin: 0; gap: 8px; }
+.studio .gomoku-help { margin-top: 4px; width: 100%; text-align: center; }
+.studio .gomoku-instructions { margin: 0; padding: 4px; border: 0; font-size: 11px; }
+.studio .memory-card-front { background: #283950; border-color: #617896; box-shadow: 0 3px 8px #0002; }
+.studio .memory-card-front::before { border-color: #8ca6cb40; background: none; border-radius: 4px; }
+.studio .memory-card-front::after { color: #a6bee3; text-shadow: none; animation: none; }
+.studio .memory-card:hover .memory-card-front { background: #344b68; border-color: #a6bee3; box-shadow: 0 4px 12px #0003; }
+.studio .memory-title-icon { filter: none; text-shadow: none; }
+.studio .memory-progress { background: #182130; }
+.studio .memory-progress-bar { background: #6283e0; box-shadow: none; }
+.studio .game-memory.active { gap: 8px; }
+.studio .memory-instructions { margin-bottom: 0; font-size: 11px; }
+.studio .game-flappy .game-header { margin-bottom: 10px; gap: 10px; }
+.studio .game-flappy .game-title { font-size: 22px; }
+.studio .game-flappy .score-box { padding: 4px 12px; }
+.studio .game-flappy .score-value { font-size: 20px; }
+.studio .game-flappy .game-controls { gap: 8px; margin-top: 10px; }
+.studio .game-flappy .game-controls .game-btn { padding: 9px 12px; font-size: 12px; }
+.studio .flappy-help { margin-top: 6px; text-align: center; width: 100%; max-width: 700px; }
+.studio .flappy-help .game-instructions { margin: 0; font-size: 11px; }
+.studio .plane-hud { gap: 10px; padding: 8px 12px; box-shadow: none; }
+.studio .plane-hud .hud-value { white-space: nowrap; text-shadow: none; }
+.studio :is(.game-plane-canvas, #survivorCanvas) { border-radius: 6px; box-shadow: 0 0 0 1px #526784; }
+.studio .survivor-start-panel { padding: 14px 18px; }
+.studio .survivor-start-portrait { width: 100px; height: 100px; filter: none; }
+.studio .survivor-start-title { font-size: 24px; text-shadow: none; letter-spacing: 0; }
+.studio .survivor-start-sub { margin-bottom: 12px; }
+.studio .survivor-start-btn { border-radius: 6px; background: #4c70d8; color: #fff; box-shadow: none; font-size: 14px; padding: 10px 24px; }
+.studio .survivor-start-tip { margin-top: 10px; }
+.studio .survivor-start-overlay { border-radius: 6px; }
 .studio .game-help { color: #aebdd2; font-size: 12px; line-height: 1.7; border-radius: 6px; }
 .studio .game-help summary { cursor: pointer; padding: 8px 4px; min-height: 36px; }
 .studio .game-help summary:focus-visible { outline: 2px solid #9cb8ff; outline-offset: 2px; }
@@ -372,6 +488,39 @@ body.studio {
 .studio .maze-controls { gap: 8px; margin-top: 8px; }
 .studio .maze-status { font-size: 10px; padding: 5px 8px; border-radius: 5px; }
 @media (max-width: 900px) {
+    .studio .game-flappy .game-header { flex-direction: row; flex-wrap: wrap; justify-content: space-between; width: 100%; }
+    .studio .game-flappy .game-title { font-size: 16px; }
+    .studio .game-flappy .game-score { gap: 6px; }
+    .studio .game-flappy .game-status { padding: 5px 8px; font-size: 10px; }
+    .studio .game-flappy .game-controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+    .studio .game-flappy .game-controls .ai-algo-tag { grid-column: 1 / -1; grid-row: 2; justify-self: center; padding: 2px 8px; font-size: 9px; box-shadow: none; }
+    .studio .game-container.game-tic-tac-toe .tic-tac-toe-controls { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+    .studio .tic-tac-toe-controls .ai-algo-tag { grid-column: 1 / -1; justify-self: center; font-size: 9px; padding: 2px 8px; }
+    .studio .gomoku-header { flex-direction: row; flex-wrap: wrap; justify-content: space-between; }
+    .studio .gomoku-title { font-size: 18px; }
+    .studio .gomoku-scores { gap: 4px; }
+    .studio .gomoku-score-box { padding: 4px 6px; font-size: 12px; }
+    .studio .gomoku-score-value { font-size: 15px; }
+    .studio .gomoku-mode-toggle .ai-algo-tag { font-size: 9px; padding: 3px 6px; box-shadow: none; }
+    .studio .plane-hud { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .studio .plane-hud .hud-value { font-size: 15px; letter-spacing: 0; }
+    .studio .plane-restart-btn { grid-column: 1 / -1; justify-self: center; padding: 7px 16px; }
+    .studio .survivor-start-portrait { width: 50px; height: 50px; margin-bottom: 4px; }
+    .studio .survivor-start-title { font-size: 18px; margin-bottom: 4px; }
+    .studio .survivor-start-sub { font-size: 10px; margin-bottom: 6px; }
+    .studio .survivor-start-tip { font-size: 9px; margin-top: 5px; }
+    .studio .survivor-hud { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; }
+    .studio .surv-hud-group { gap: 8px; }
+    .studio .surv-hud-group:nth-child(2) { flex-wrap: nowrap; gap: 4px; }
+    .studio .surv-hud-group:last-child { grid-column: 1 / -1; justify-content: space-between; }
+    .studio :is(.surv-exp-bar, .surv-hp-bar, .surv-mp-bar) { width: 64px; }
+    .studio .surv-weapon-bar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 5px; }
+    .studio .surv-weapon-slot { width: auto; min-width: 0; padding: 14px 2px 4px; border-radius: 4px; }
+    .studio .surv-weapon-icon { font-size: 18px; }
+    .studio .surv-weapon-tier { padding: 0 2px; left: 2px; }
+    .studio .surv-weapon-level { right: 2px; }
+    .studio .surv-levelup-overlay, .studio .surv-gameover-overlay { overflow-y: auto; align-items: safe center; }
+    .studio .surv-instructions { font-size: 10px; padding: 6px 8px; }
     .studio .games-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
     .studio .tabs-sidebar { display: none; }
     .studio .game-mobile-picker { display: flex; align-items: center; gap: 16px; color: #697078; font-size: 12px; }

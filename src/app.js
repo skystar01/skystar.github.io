@@ -1871,6 +1871,16 @@ document.addEventListener('keydown', e => {
         const hud = container.querySelector('.survivor-hud');
         const weaponBar = container.querySelector('.surv-weapon-bar');
         const instructions = container.querySelector('.surv-instructions');
+        if (isStudio && window.innerWidth > 900) {
+            const gap = parseFloat(cs.columnGap) || 0;
+            const loadout = container.querySelector('.survivor-loadout');
+            const availableWidth = cw - hud.offsetWidth - loadout.offsetWidth - gap * 2;
+            const height = Math.max(1, Math.min(ch, availableWidth * canvas.height / canvas.width, canvas.height));
+            canvas.style.width = `${Math.floor(height * canvas.width / canvas.height)}px`;
+            canvas.style.height = `${Math.floor(height)}px`;
+            container.style.setProperty('--survivor-field-width', canvas.style.width);
+            return;
+        }
         let extraH = 0;
         [hud, weaponBar, instructions].forEach(el => {
             if (el) {
@@ -1932,6 +1942,15 @@ document.addEventListener('keydown', e => {
             }
         });
     }
+
+    document.querySelector('.gomoku-help')?.addEventListener('toggle', () => {
+        const container = document.querySelector('.game-gomoku.active');
+        if (container) fitGame('gomoku', container);
+    });
+    document.querySelector('.flappy-help')?.addEventListener('toggle', () => {
+        const container = document.querySelector('.game-flappy.active');
+        if (container) fitGame('flappy', container);
+    });
 
     // 切换 active (active 只落在中间真实 tab 上；副本只负责视觉和点击)
 
