@@ -7,6 +7,7 @@
 
 import { projectData } from './data/projects.js';
 import { skillData } from './data/skills.js';
+import { enhanceProjectLinks, enhanceSkillLinks } from './portfolio-tools.js';
 
 // ---------- stars-bg.js ----------
 // ─── 静态星图 ───
@@ -197,6 +198,12 @@ function createFocusTrap(modalEl) {
             }
         };
         modalEl.addEventListener('keydown', keydownHandler);
+        // Visibility transitions can reject the first focus call during dialog swaps.
+        requestAnimationFrame(() => {
+            if (!keydownHandler || !modalEl.classList.contains('active') || modalEl.classList.contains('closing') || modalEl.contains(document.activeElement)) return;
+            const target = modalEl.querySelector('[aria-label*="关闭"]') || getFocusableChildren(modalEl)[0] || modalEl;
+            target.focus({preventScroll:true});
+        });
     }
 
     function deactivate() {
@@ -207,7 +214,7 @@ function createFocusTrap(modalEl) {
         modalEl.setAttribute('aria-hidden', 'true');
         if (lastFocused && typeof lastFocused.focus === 'function') {
             // 用 setTimeout 避免在 closing 动画期间焦点被夺走
-            setTimeout(() => lastFocused.focus(), 0);
+            if (lastFocused.isConnected && !lastFocused.closest('[inert]')) lastFocused.focus({preventScroll:true});
         }
     }
 
@@ -285,6 +292,7 @@ function switchPanel(target) {
     currentPanel = target;
     // 同步 body 主题色,触发 CSS [data-active-panel] 切换 --accent / --accent2
     document.body.dataset.activePanel = target;
+    window.siteNavigation?.record({ panel: target });
 
     // Update nav items
     document.querySelectorAll('.nav-item').forEach(el => {
@@ -429,32 +437,41 @@ function showToast(msg) {
 window.showToast = showToast;
 
 // ─── CONTACT COPY ───
-function copyContactText(txt) {
-    const done = () => showToast('已复制到剪贴板');
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(done).catch(() => {
-            const ta = document.createElement('textarea');
-            ta.value = txt;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            done();
-        });
-    } else {
+async function copyContactText(txt, item) {
+    const fallback = () => {
+        const focused = document.activeElement;
         const ta = document.createElement('textarea');
         ta.value = txt;
+        ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
         document.body.appendChild(ta);
         ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        done();
+        let copied = false;
+        try { copied = document.execCommand('copy'); } finally { ta.remove(); focused?.focus({preventScroll:true}); }
+        if (!copied) throw new Error('copy unavailable');
+    };
+    try {
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(txt).catch(fallback);
+        else fallback();
+        showToast('已复制到剪贴板');
+        const hint = item?.querySelector('.contact-hint');
+        if (hint) {
+            hint.dataset.original ||= hint.textContent;
+            hint.textContent = '✓ 已复制';
+            item.classList.add('copied');
+            clearTimeout(item.copyTimer);
+            item.copyTimer = setTimeout(() => { hint.textContent = hint.dataset.original; item.classList.remove('copied'); }, 2400);
+        }
+    } catch {
+        showToast('复制未成功，请手动选择并复制');
     }
 }
 document.querySelectorAll('.contact-item-copy').forEach(item => {
     const txt = item.getAttribute('data-copy') || item.querySelector('p')?.textContent || '';
     item.style.cursor = 'pointer';
-    item.addEventListener('click', () => copyContactText(txt.trim()));
+    item.tabIndex = 0;
+    item.setAttribute('role', 'button');
+    item.addEventListener('click', () => copyContactText(txt.trim(), item));
+    item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); } });
 });
 document.querySelectorAll('.contact-item').forEach(item => {
     if (item.classList.contains('contact-item-copy')) return;
@@ -483,10 +500,13 @@ document.querySelectorAll('.skill-item').forEach(item => {
 document.getElementById('modalClose').addEventListener('click', closeSkillModal);
 document.getElementById('modalOverlay').addEventListener('click', closeSkillModal);
 
+let skillCloseTimer;
 function openSkillModal(skillName) {
     const skill = skillData[skillName];
     if (!skill) return;
     const modal = document.getElementById('skillModal');
+    clearTimeout(skillCloseTimer);
+    window.siteNavigation?.record({panel:'skills', skill:skillName});
     const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const escAttr = s => escHtml(s);
     // icon-* 走 SVG sprite; font-awesome 类名直接用 <i>
@@ -537,25 +557,31 @@ function openSkillModal(skillName) {
     _modalBusy = true;
     setTimeout(() => { _modalBusy = false; }, isStudio ? 0 : 800);
     // focus trap: 转移焦点 + Tab 循环 + 关闭还原
+    enhanceSkillLinks(skillName);
     activateFocusTrap(modal);
 }
 
-function closeSkillModal() {
+function closeSkillModal(immediate = false) {
     const modal = document.getElementById('skillModal');
     if (!modal.classList.contains('active') || modal.classList.contains('closing')) return;
+    if (window.siteNavigation?.closeSkill()) return;
     _modalBusy = true;
     deactivateFocusTrap();
     modal.classList.add('closing');
-    setTimeout(() => {
+    const finish = () => {
         modal.classList.remove('active','closing');
         document.body.style.overflow = '';
         _modalBusy = false;
-    }, modalDuration());
+    };
+    if (immediate === true) finish();
+    else skillCloseTimer = setTimeout(finish, modalDuration());
 }
+window.skillDialog = {open:openSkillModal, close:closeSkillModal};
 
 // ─── PROJECT MODAL ───
 let currentCarouselIndex = 0;
 let currentProjectScreenshots = [];
+let projectCloseTimer;
 
 function renderCarousel(screenshots) {
     const slides = document.getElementById('carouselSlides');
@@ -567,12 +593,16 @@ function renderCarousel(screenshots) {
         const div = document.createElement('div');
         div.className = 'carousel-slide';
         if (typeof item === 'string' && (item.startsWith('http') || item.startsWith('images/') || /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(item))) {
-            const img = document.createElement('img'); img.src = item; div.appendChild(img);
+            const button = document.createElement('button'); button.type = 'button'; button.className = 'preview-expand'; button.setAttribute('aria-label', `放大查看项目预览 ${i + 1}`);
+            const img = document.createElement('img'); img.alt = `项目效果预览 ${i + 1}`; img.src = item; button.append(img); div.appendChild(button);
+            img.addEventListener('error', () => { div.textContent = '预览暂时无法加载，可查看项目说明'; }, {once:true});
         } else {
             div.innerHTML = `<i class="fas fa-image" style="font-size:2.5rem"></i><span style="margin-left:8px">${item}</span>`;
         }
         slides.appendChild(div);
-        const dot = document.createElement('div');
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.setAttribute('aria-label', `查看第 ${i + 1} 张预览`);
         dot.className = 'dot' + (i === 0 ? ' active' : '');
         dot.addEventListener('click', () => goToSlide(i));
         dots.appendChild(dot);
@@ -584,7 +614,12 @@ function goToSlide(i) {
     i = Math.max(0, Math.min(i, currentProjectScreenshots.length - 1));
     currentCarouselIndex = i;
     document.getElementById('carouselSlides').style.transform = `translateX(-${i * 100}%)`;
-    document.querySelectorAll('#carouselDots .dot').forEach((d, j) => d.classList.toggle('active', j === i));
+    document.querySelectorAll('#carouselDots .dot').forEach((d, j) => {
+        d.classList.toggle('active', j === i);
+        d.setAttribute('aria-pressed', String(j === i));
+    });
+    document.getElementById('carouselPrev').disabled = i === 0;
+    document.getElementById('carouselNext').disabled = i === currentProjectScreenshots.length - 1;
 }
 
 document.querySelectorAll('.project-card').forEach(card => {
@@ -600,6 +635,7 @@ document.querySelectorAll('.project-cta-soft, .project-cta-play').forEach(btn =>
         if (openName) { openProjectModal(openName); return; }
         const game = btn.getAttribute('data-play-game');
         if (game) {
+            if (window.siteNavigation) { window.siteNavigation.go({ panel: 'game', game }, { returnProject: btn.closest('.project-card')?.querySelector('h3')?.textContent }); return; }
             if (window.switchPanel) window.switchPanel('game');
             setTimeout(() => {
                 document.querySelector(`.game-tab[data-game="${game}"]`)?.click();
@@ -616,6 +652,11 @@ function openProjectModal(projectName) {
     const project = projectData[projectName];
     if (!project) return;
     const modal = document.getElementById('projectModal');
+    clearTimeout(projectCloseTimer);
+    window.siteNavigation?.record({ panel: 'projects', project: projectName });
+    const source = [...document.querySelectorAll('.project-card')].find(card => card.querySelector('h3')?.textContent === projectName);
+    const rect = source?.getBoundingClientRect();
+    modal.querySelector('.project-modal-layout').style.transformOrigin = rect ? `${Math.max(0, Math.min(100, (rect.x + rect.width / 2) / innerWidth * 100))}% 50%` : '50% 50%';
     const projKey = project.icon.replace(/^icon-/, '');
     document.getElementById('projCardIcon').innerHTML = `<span class="${project.icon}" aria-label="${projectName}"><svg viewBox="0 0 24 24"><use href="#i-${projKey}"/></svg></span>`;
     document.getElementById('projMainCardName').textContent = projectName;
@@ -648,6 +689,7 @@ function openProjectModal(projectName) {
             playBtn.hidden = false;
             playBtn.innerHTML = `<i class="fas fa-gamepad"></i> ${project.playLabel || '立即试玩'}`;
             playBtn.onclick = () => {
+                if (window.siteNavigation) { window.siteNavigation.go({ panel: project.playTarget, ...(project.playTarget === 'game' ? {game:'flappy'} : {}) }, {returnProject:projectName}); return; }
                 closeProjectModal();
                 setTimeout(() => {
                     if (window.switchPanel) window.switchPanel(project.playTarget);
@@ -662,6 +704,7 @@ function openProjectModal(projectName) {
         }
     }
     renderCarousel(project.screenshots || ['✨','⚙️','📊']);
+    enhanceProjectLinks(projectName);
     modal.classList.remove('active','closing');
     void modal.offsetWidth;
     modal.classList.add('active');
@@ -673,18 +716,22 @@ function openProjectModal(projectName) {
     activateFocusTrap(modal);
 }
 
-function closeProjectModal() {
+function closeProjectModal(immediate = false) {
     const modal = document.getElementById('projectModal');
     if (!modal.classList.contains('active') || modal.classList.contains('closing')) return;
+    if (window.siteNavigation?.closeProject()) return;
     deactivateFocusTrap();
     modal.classList.add('closing');
-    setTimeout(() => {
+    const finish = () => {
         modal.classList.remove('active','closing');
         document.body.style.overflow = '';
         const pf = document.getElementById('modalProgressFill');
         if (pf) { pf.style.transition = 'none'; pf.style.width = '0%'; }
-    }, modalDuration());
+    };
+    if (immediate === true) finish();
+    else projectCloseTimer = setTimeout(finish, modalDuration());
 }
+window.projectDialog = { open: openProjectModal, close: closeProjectModal };
 
 // Escape key closes modals
 document.addEventListener('keydown', e => {
@@ -1959,7 +2006,7 @@ document.addEventListener('keydown', e => {
     function ensureGamesBundle() {
         if (gamesBundlePromise) return gamesBundlePromise;
         gamesBundlePromise = import('./games-bundle.js')
-            .catch((e) => { gamesBundlePromise = null; console.error('[game-shell] 游戏包加载失败', e); });
+            .catch((e) => { gamesBundlePromise = null; throw e; });
         return gamesBundlePromise;
     }
 
@@ -1970,7 +2017,7 @@ document.addEventListener('keydown', e => {
         if (planeScriptPromise) return planeScriptPromise;
         planeScriptPromise = import('./game-plane.js')
             .then(() => {})
-            .catch((e) => { planeScriptPromise = null; console.error('[game-shell] 飞机游戏模块加载失败', e); });
+            .catch((e) => { planeScriptPromise = null; throw e; });
         return planeScriptPromise;
     }
 
@@ -2005,16 +2052,29 @@ document.addEventListener('keydown', e => {
         });
         if (!changed) return;
         const version = ++gameSwitchVersion;
+        if (!opts?.route && document.body.dataset.activePanel === 'game') window.siteNavigation?.record({panel:'game', game:gameName});
+        const stage = document.querySelector('.game-stage');
+        pauseAllGames();
+        stage.dataset.loadState = 'loading';
+        stage.setAttribute('aria-busy', 'true');
         const picker = document.getElementById('gamePicker');
         if (picker) picker.value = gameName;
 
         // 阶段2: 懒加载游戏代码, 首屏不下载(~302KB); 仅在真正切换时才触发
-        if (gameName === 'plane') {
-            await ensurePlaneScript();
-        } else {
-            await ensureGamesBundle();
+        try {
+            if (gameName === 'plane') await ensurePlaneScript();
+            else await ensureGamesBundle();
+        } catch (error) {
+            if (version === gameSwitchVersion) {
+                stage.dataset.loadState = 'error';
+                stage.setAttribute('aria-busy', 'false');
+                window.showToast('游戏加载失败，请点击重试');
+            }
+            return;
         }
         if (version !== gameSwitchVersion) return;
+        stage.dataset.loadState = 'ready';
+        stage.setAttribute('aria-busy', 'false');
 
         // 切换前暂停所有游戏 (停止后台 RAF/setTimeout 循环)
         pauseAllGames();
@@ -2030,9 +2090,9 @@ document.addEventListener('keydown', e => {
             fitGame(gameName, targetGc);
         }
         // 切换后恢复目标游戏 (重启渲染循环)
-        resumeGame(gameName);
+        if (document.body.dataset.activePanel === 'game') resumeGame(gameName);
 
-        if (gameName === 'plane' && window.startPlaneGame) {
+        if (gameName === 'plane' && window.startPlaneGame && document.body.dataset.activePanel === 'game') {
             window.startPlaneGame();
         }
     }
@@ -2040,6 +2100,7 @@ document.addEventListener('keydown', e => {
     function switchTo(gameName) {
         setActiveByGame(gameName);
     }
+    window.selectSiteGame = setActiveByGame;
 
     function getOffsetForIndex(index) {
         const tab = allTrackTabs[index];
@@ -2184,13 +2245,13 @@ document.addEventListener('keydown', e => {
 
         requestAnimationFrame(() => {
             buildInfiniteTrack();
-            const initialGame = GAMES[0];
+            const initialGame = realTabs.find(tab => tab.classList.contains('active'))?.dataset.game || GAMES[0];
             if (!isMobile()) {
                 setTargetIndex(middleStartIndex());
                 trackOffset = targetOffset;
                 applyTransform();
             }
-            setActiveByGame(initialGame, { force: true });
+            if (gameSwitchVersion === 0 && document.body.dataset.activePanel === 'game') setActiveByGame(initialGame, { force: true, route: true });
             detectCenterTab();
             if (!isMobile()) requestAnimationFrame(rafLoop);
         });

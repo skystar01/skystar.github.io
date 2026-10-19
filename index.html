@@ -6,7 +6,7 @@
     <title>Sky Star - AI Developer & Innovator</title>
     <meta name="description" content="Sky Star 个人主页：强化学习 / 模型训练 / AI 游戏智能体。含开悟竞赛、Flappy DQN 端到端 Demo 与可玩 AI 游戏中心。">
     <meta name="author" content="Sky Star">
-    <meta name="theme-color" content="#0d1228">
+    <meta name="theme-color" content="#f6f5f0">
     <link rel="canonical" href="https://skystar01.github.io/">
     <!-- Open Graph / 分享卡片 -->
     <meta property="og:type" content="website">
@@ -14,21 +14,25 @@
     <meta property="og:title" content="Sky Star · RL-focused AI Engineer">
     <meta property="og:description" content="强化学习 / 模型训练 / AI 游戏智能体。竞赛成果 + Flappy DQN 浏览器推理 + 可玩 Demo。">
     <meta property="og:url" content="https://skystar01.github.io/">
-    <meta property="og:image" content="https://skystar01.github.io/assets/logo.webp">
-    <meta property="og:image:alt" content="Sky Star">
+    <meta property="og:image" content="https://skystar01.github.io/assets/share-cover.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:alt" content="Sky Star · 强化学习、模型训练与 AI 游戏智能体作品集">
     <meta property="og:locale" content="zh_CN">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Sky Star · RL-focused AI Engineer">
     <meta name="twitter:description" content="强化学习 / 模型训练 / AI 游戏智能体。竞赛成果 + Flappy DQN 浏览器推理 + 可玩 Demo。">
-    <meta name="twitter:image" content="https://skystar01.github.io/assets/logo.webp">
+    <meta name="twitter:image" content="https://skystar01.github.io/assets/share-cover.png">
+    <meta name="twitter:image:alt" content="Sky Star · AI 工程作品集">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/game-center.css">
     <link rel="stylesheet" href="styles/fx.css">
@@ -183,6 +187,14 @@
                         <circle cx="274" cy="274" r="13" fill="#cf714c"/>
                     </g>
                     <path d="M36 44H56M46 34V54M464 426H484M474 416V436" stroke="#737970"/>
+                    <g class="studio-policy-path">
+                        <path d="M100 454H420" stroke="#c5c7c6"/>
+                        <circle cx="100" cy="454" r="4" fill="#2d55d4"/>
+                        <circle cx="260" cy="454" r="4" fill="#2d55d4"/>
+                        <circle cx="420" cy="454" r="4" fill="#cf714c"/>
+                        <circle class="studio-policy-signal" cx="100" cy="454" r="5" fill="#cf714c"/>
+                        <g fill="#737970" font-size="9" font-family="monospace" text-anchor="middle"><text x="100" y="476">STATE</text><text x="260" y="476">POLICY</text><text x="420" y="476">ACTION</text></g>
+                    </g>
                 </svg>
                 <div class="studio-art-foot"><span>STATE → POLICY → ACTION</span><span class="studio-live">持续探索中</span></div>
             </div>
@@ -607,7 +619,7 @@
                     <div class="underline"></div>
                 </div>
                 <div class="projects-grid">
-                    <div class="project-card">
+                    <div class="project-card project-card-featured">
                         <div class="project-card-visual" aria-hidden="true">
                             <img src="images/kaiwu-stats.svg" alt="" loading="lazy" />
                         </div>
@@ -667,6 +679,7 @@
                                 查看代码 <i class="fas fa-external-link-alt"></i>
                             </a>
                             <button type="button" class="project-cta-play" data-play-game="flappy">在本站试玩 <i class="fas fa-gamepad"></i></button>
+                            <button type="button" class="project-cta-soft" data-open-project="Flappy Bird AI">项目详情 <i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
                     <div class="project-card">
@@ -1220,7 +1233,7 @@
                             <!-- 开始游戏面板 -->
                             <div class="survivor-start-overlay" id="survivorStartOverlay">
                                 <div class="survivor-start-panel">
-                                    <img class="survivor-start-portrait" src="assets/survivor/player-clean.png" alt="雪地小法师">
+                                    <img class="survivor-start-portrait" src="assets/survivor/player-clean.png" alt="雪地小法师" loading="lazy" decoding="async" width="1254" height="1254">
                                     <div class="survivor-start-title">霜境星火</div>
                                     <div class="survivor-start-sub">穿越霜雪，拾取晶石，在围攻中成长。</div>
                                     <button class="survivor-start-btn" id="survivorStartBtn">▶ 开始游戏</button>
@@ -1367,7 +1380,7 @@
     <div class="project-card-modal" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="modalProjectTitle" aria-hidden="true">
         <div class="modal-overlay" id="projectOverlay"></div>
         <div class="project-modal-layout">
-            <div class="close-modal-btn" id="projectModalClose" role="button" tabindex="0" aria-label="关闭项目详情弹窗"><i class="fas fa-times"></i></div>
+            <button type="button" class="close-modal-btn" id="projectModalClose" aria-label="关闭项目详情弹窗"><i class="fas fa-times"></i></button>
             <div class="left-card-stack">
                 <div class="proj-card-stack-3d">
                     <div class="stacked-proj-card back-2" id="projBackCard2"></div>
@@ -1399,8 +1412,8 @@
                 <div class="carousel-section">
                     <div class="carousel-container" id="carouselContainer">
                         <div class="carousel-slides" id="carouselSlides"></div>
-                        <div class="carousel-btn carousel-prev" id="carouselPrev"><i class="fas fa-chevron-left"></i></div>
-                        <div class="carousel-btn carousel-next" id="carouselNext"><i class="fas fa-chevron-right"></i></div>
+                        <button type="button" class="carousel-btn carousel-prev" id="carouselPrev" aria-label="上一张预览"><i class="fas fa-chevron-left"></i></button>
+                        <button type="button" class="carousel-btn carousel-next" id="carouselNext" aria-label="下一张预览"><i class="fas fa-chevron-right"></i></button>
                     </div>
                     <div class="carousel-dots" id="carouselDots"></div>
                 </div>

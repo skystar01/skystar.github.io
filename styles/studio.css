@@ -595,3 +595,84 @@ body.studio {
     .studio :is(.project-card-modal, .skill-card-modal).active :is(.stacked-proj-card.main-card, .stacked-card.main-card) { animation: none !important; }
     .studio *, .studio *::before, .studio *::after { animation: none !important; transition: none !important; }
 }
+
+/* Portfolio hierarchy and continuity, shared with the existing studio palette. */
+.studio .projects-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.studio .project-card { display: flex; flex-direction: column; gap: 8px; }
+.studio .project-card .project-ctas { margin-top: auto; padding-top: 12px; }
+.studio .project-card-visual { aspect-ratio: 16 / 9; height: auto; overflow: hidden; background: #e9edf3; }
+.studio .project-card-visual img { width: 100%; height: 100%; object-fit: contain; transition: transform 300ms var(--ease-out); }
+.studio .project-card-visual { position: relative; }
+.studio .project-card-visual:is([data-preview="loading"], [data-preview="error"])::after { content: '预览加载中…'; position: absolute; inset: 0; display: grid; place-items: center; color: #697384; background: #e9edf3; font-size: 12px; }
+.studio .project-card-visual[data-preview="error"]::after { content: '预览暂不可用 · 点击查看项目说明'; }
+.studio .carousel-btn:disabled { opacity: .35; cursor: default; }
+.studio .preview-expand { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; position: relative; }
+.studio .preview-expand::after { content: '↗ 放大查看'; position: absolute; right: 16px; bottom: 12px; background: #f6f5f0; border: 1px solid #d5dce8; padding: 6px 10px; border-radius: 4px; color: #3152b5; font: 12px sans-serif; }
+.studio .skill-link { text-decoration: none; cursor: pointer; }
+.studio .skill-link:hover { background: #dde6f8; border-color: #829aca; }
+.studio :is(.detail-close, .close-modal-btn) { transition-property: background-color, color, border-color, transform; }
+.studio .detail-project { display: block; text-decoration: none; color: #343b43; }
+.studio a.detail-project:hover { background: #e5ebf6; }
+.studio .detail-section-label, .studio .studio-art-meta, .studio .studio-art-foot { color: #5f6874; }
+.studio .image-viewer { position: fixed; inset: 0; margin: auto; padding: 0; width: min(1440px, 96vw); height: 92dvh; max-width: none; max-height: none; border: 1px solid #455364; border-radius: 12px; background: #202630; color: #ecf1f7; overflow: hidden; }
+.studio .image-viewer[open] { display: flex; flex-direction: column; }
+.studio .image-viewer::backdrop { background: #10151ee8; }
+.studio .image-viewer :is(header, footer) { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; flex-shrink: 0; font-size: 12px; }
+.studio .image-viewer header { border-bottom: 1px solid #455364; }
+.studio .image-viewer footer { border-top: 1px solid #455364; color: #b9c4d2; }
+.studio .viewer-tools { display: flex; gap: 8px; }
+.studio .image-viewer button { min-height: 40px; padding: 8px 14px; border: 1px solid #586779; border-radius: 5px; background: #303b49; color: #f3f6fa; cursor: pointer; font: inherit; }
+.studio .image-viewer button:disabled { opacity: .4; cursor: default; }
+.studio .image-viewer :focus-visible { outline: 2px solid #9cbdff; outline-offset: 3px; }
+.studio .viewer-stage { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; cursor: grab; }
+.studio .viewer-stage:active { cursor: grabbing; }
+.studio .viewer-surface { min-width: 100%; min-height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
+.studio .viewer-surface img { flex: none; max-width: none; max-height: none; object-fit: contain; user-select: none; }
+.studio .viewer-surface img[hidden] { display: none; }
+.studio .viewer-status { position: absolute; color: #c9d4e3; }
+.studio .project-card:hover .project-card-visual img { transform: scale(1.025); }
+.studio .project-card-featured { grid-column: 1 / -1; display: grid; grid-template-columns: 1.15fr 1fr; column-gap: 32px; padding: 28px; align-items: start; }
+.studio .project-card-featured > * { grid-column: 2; margin-block: 0; }
+.studio .project-card-featured .project-card-visual { grid-column: 1; grid-row: 1 / 9; align-self: stretch; aspect-ratio: auto; min-height: 320px; display: grid; place-items: center; }
+.studio .project-card-featured .project-card-visual img { height: auto; }
+.studio .project-card-featured h3 { font-size: 27px; }
+.studio .project-card-featured .project-badges { display: none; }
+.studio .project-card-featured .project-level { color: #3152b5; background: #e6ebf7; }
+.studio .project-card-featured .project-ctas { align-self: end; }
+.studio .project-modal-layout { height: min(780px, calc(100dvh - 64px)); overflow: hidden; }
+.studio .project-modal-layout .left-card-stack { align-self: center; }
+.studio .project-modal-layout .right-content-area { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.studio .project-modal-layout .project-info-panel { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin: 0; flex: 1; min-height: 0; padding: 26px; }
+.studio .project-info-panel .carousel-section { padding: 12px 0; margin: 20px 0; border: 0; background: transparent; box-shadow: none; }
+.studio .project-info-panel .carousel-container { height: clamp(180px, 30vh, 280px); background: #e8ecf2; border-radius: 6px; }
+.studio .project-info-panel :is(.carousel-slides, .carousel-slide) { height: 100%; aspect-ratio: auto; }
+.studio .project-info-panel .carousel-slide img { width: 100%; height: 100%; object-fit: contain; }
+.studio .detail-section-label { font-size: 11px; letter-spacing: .1em; color: #7b8390; margin: 24px 0 10px; }
+.studio .project-modal-layout .modal-cta-row { flex-shrink: 0; padding: 16px 20px; margin: 0; display: flex; gap: 12px; border-top: 1px solid #d9dfe7; background: #f6f5f0; border-radius: 0 0 8px 8px; }
+.studio .project-modal-layout .modal-play-btn { background: #3152b5; border: 1px solid #3152b5; border-radius: 5px; box-shadow: none; color: #fff; }
+.studio .project-modal-layout .modal-play-btn[hidden] { display: none; }
+.studio .project-modal-layout .right-content-area { gap: 0; }
+.studio :is(.project-detail-back, .project-return) { border: 1px solid #cdd5e1; border-radius: 5px; padding: 10px 14px; min-height: 40px; background: #f6f5f0; color: #3152b5; font: inherit; font-size: 12px; cursor: pointer; }
+.studio .project-return[hidden] { display: none; }
+.studio .games-header:has(.project-return:not([hidden])) { flex-wrap: wrap; }
+.studio .studio-sculpture { transform: translate(var(--art-x, 0px), var(--art-y, 0px)); transition: transform 300ms ease-out; }
+.studio-art .studio-art-foot > :first-child { background: linear-gradient(90deg, #3152b5, #cf714c, #3152b5); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; color: transparent; }
+.studio-art:hover .studio-art-foot > :first-child { animation: studio-signal 3s ease-in-out infinite; }
+@keyframes studio-signal { to { background-position: -200% 0; } }
+.studio-policy-signal { opacity: 0; }
+.studio-art:hover .studio-policy-signal { animation: studio-policy 2.4s ease-in-out infinite; }
+@keyframes studio-policy { 0% { opacity: 0; transform: translateX(0); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateX(320px); } }
+.studio .contact-item.copied { border-color: #6c9a84; }
+.studio .contact-item.copied .contact-hint { color: #39765a; }
+.studio .game-load-feedback { display: none; position: absolute; inset: 0; z-index: 80; align-items: center; justify-content: center; background: #252c36ed; color: #d6e1f0; font-size: 13px; }
+.studio .game-stage:is([data-load-state="loading"], [data-load-state="error"]) .game-load-feedback { display: flex; }
+.studio .game-load-feedback button { display: none; padding: 12px 18px; color: #fff; background: #3152b5; border: 1px solid #8da6e8; border-radius: 6px; cursor: pointer; }
+.studio .game-stage[data-load-state="error"] .game-load-feedback span { display: none; }
+.studio .game-stage[data-load-state="error"] .game-load-feedback button { display: block; }
+.studio #news-list { min-height: 220px; }
+@media (max-width: 900px) {
+    .studio .project-card-featured { display: flex; }
+    .studio .project-card-featured .project-card-visual { min-height: 0; aspect-ratio: 16 / 9; }
+    .studio .project-modal-layout { height: calc(100dvh - 32px); }
+}
+@media (max-width: 640px) { .studio .projects-grid { grid-template-columns: 1fr; } }

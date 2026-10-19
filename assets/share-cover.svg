@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f6f5f0"/>
+  <path d="M64 112H1136M64 546H1136" stroke="#d0d4d2"/>
+  <g font-family="Arial, sans-serif">
+    <text x="64" y="78" fill="#272c30" font-size="24" letter-spacing="5">SKY STAR</text>
+    <text x="64" y="205" fill="#68717b" font-size="16" letter-spacing="3">PROJECTS / EXPERIMENTS / PLAY</text>
+    <text x="60" y="300" fill="#272c30" font-size="74" font-weight="700" letter-spacing="-3">LEARNING</text>
+    <text x="60" y="388" fill="#3152b5" font-size="74" font-weight="700" letter-spacing="-3">IN MOTION.</text>
+    <text x="64" y="455" fill="#525d68" font-size="21">Reinforcement Learning · Model Training · AI Agents</text>
+    <text x="64" y="588" fill="#68717b" font-size="16">skystar01.github.io</text>
+  </g>
+  <g transform="translate(880 310)">
+    <circle r="174" fill="none" stroke="#bfc8d4"/>
+    <circle r="125" fill="none" stroke="#cdd3d9"/>
+    <g transform="rotate(-12)"><path d="M-110-110H0V0H-110Z" fill="#3152b5"/><path d="M0-110A110 110 0 0 1 110 0H0Z" fill="#7996e1"/><path d="M-110 0H0V110A110 110 0 0 1-110 0Z" fill="#bbcbed"/><path d="M0 0H110V110H0Z" fill="#272c30"/></g>
+    <circle r="36" fill="#f6f5f0"/><circle r="10" fill="#cf714c"/>
+    <circle cx="0" cy="-174" r="8" fill="#cf714c"/>
+  </g>
+</svg>
