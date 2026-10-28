@@ -103,6 +103,38 @@ npm run preview    # 本地预览构建产物
 > 注意：开发态用 `npm run dev`，不要再用 `python -m http.server` 直接开 `index.html`——
 > 模块入口 `<script type="module" src="/src/main.js">` 需要 Vite 的模块解析与转换。
 
+### 后端 A：Flappy Bird AI 推理（Flask + PyTorch）
+
+```bash
+cd backend
+pip install -r requirements.txt
+# 把训练好的 best_flappy.pth 或 final_flappy.pth 放到 backend/ 目录
+python app.py
+# 服务启动在 http://127.0.0.1:5000
+```
+
+详细 API 与 12 维 state 格式见 [backend/README.md](backend/README.md)。
+
+### 后端 B：每日资讯服务（FastAPI + LLM）
+
+```bash
+# 1. 创建 .env（同 news_server.py 目录）
+cat > .env <<EOF
+LLM_API_KEY=your_minimax_key_here
+LLM_BASE_URL=https://api.MiniMax.chat/v1
+LLM_MODEL=MiniMax-Text-01
+PORT=8000
+MAX_ITEMS=25
+EOF
+
+# 2. 安装依赖并启动
+pip install -r requirements.txt
+python news_server.py
+# 或 Windows 直接双击 start-news.bat
+```
+
+服务启动在 `http://localhost:8000`，前端 `index.html` 会自动读取 `news/news-data.js`。
+
 ## 线上地址与部署
 
 **线上地址：<https://skystar01.github.io/skystar.github.io/>**
@@ -148,38 +180,6 @@ push 后约 1–2 分钟线上生效。
 - 唯一必须写死绝对地址的是 `<link rel="canonical">` 和 og / twitter 的分享图元信息
   （社交平台抓取需要完整 URL），这些已经指向上面的子路径地址
 
-### 后端 A：Flappy Bird AI 推理（Flask + PyTorch）
-
-```bash
-cd backend
-pip install -r requirements.txt
-# 把训练好的 best_flappy.pth 或 final_flappy.pth 放到 backend/ 目录
-python app.py
-# 服务启动在 http://127.0.0.1:5000
-```
-
-详细 API 与 12 维 state 格式见 [backend/README.md](backend/README.md)。
-
-### 后端 B：每日资讯服务（FastAPI + LLM）
-
-```bash
-# 1. 创建 .env（同 news_server.py 目录）
-cat > .env <<EOF
-LLM_API_KEY=your_minimax_key_here
-LLM_BASE_URL=https://api.MiniMax.chat/v1
-LLM_MODEL=MiniMax-Text-01
-PORT=8000
-MAX_ITEMS=25
-EOF
-
-# 2. 安装依赖并启动
-pip install -r requirements.txt
-python news_server.py
-# 或 Windows 直接双击 start-news.bat
-```
-
-服务启动在 `http://localhost:8000`，前端 `index.html` 会自动读取 `news/news-data.js`。
-
 ## 依赖说明
 
 项目有三套独立的 Python 依赖：
@@ -201,3 +201,5 @@ python news_server.py
 - `.env` 已在 `.gitignore` 中，不会提交
 - 模型文件（`.pth` / `.onnx`）已在 `.gitignore` 中，需自行训练或下载后放到 `backend/`
 - `news/*.json` 为自动生成的快照，可删除后由后端重新抓取
+- **改资源引用前先读「[路径铁律](#路径铁律踩过的坑)」**：子路径部署下写了绝对路径必然 404，
+  而且本地 `npm run dev` 看不出来，只有线上才炸
