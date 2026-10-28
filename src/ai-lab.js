@@ -232,9 +232,10 @@ function renderBody() {
 
     const presetName = api.presetOf(openGameKey);
     presetEl.innerHTML = '';
-    const chips = ['弱', '标准', '强'];
+    // 预设名由各游戏自己定（扫雷是 慢/标准/快，迷宫是 温和/标准/凶狠），不能写死
+    const chipNames = Object.keys(entry.presets || {});
     const custom = presetName === '自定义';
-    for (const name of chips) {
+    for (const name of chipNames) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'ailab-chip' + (presetName === name ? ' is-active' : '');
@@ -249,6 +250,7 @@ function renderBody() {
     if (custom) presetEl.appendChild(customChip);
 
     const values = effectiveValues(openGameKey);
+    const noteText = typeof entry.note === 'function' ? entry.note(values) : entry.note;
     bodyEl.innerHTML = entry.spec.map(item => `
         <div class="ailab-row" data-key="${item.key}">
             <div class="ailab-row-head">
@@ -259,7 +261,7 @@ function renderBody() {
                    min="${item.min}" max="${item.max}" step="${item.step}"
                    value="${values[item.key]}">
             ${item.hint ? `<p class="ailab-hint">${item.hint}</p>` : ''}
-        </div>`).join('') + (entry.note ? `<p class="ailab-note">${entry.note}</p>` : '') + `
+        </div>`).join('') + (noteText ? `<p class="ailab-note" id="ailabNote">${noteText}</p>` : '') + `
         <button type="button" class="ailab-reset" id="ailabReset">恢复默认</button>`;
 
     bodyEl.querySelectorAll('input[type="range"]').forEach(input => {
@@ -284,6 +286,11 @@ function syncRowValue(gameKey, key) {
     if (!item) return;
     const out = bodyEl?.querySelector(`#ailab-out-${key}`);
     if (out) out.textContent = fmt(item, effectiveValues(gameKey)[key]);
+    // 评估式随权重实时变化，让「参数 → 公式」的关系看得见
+    if (typeof entry.note === 'function') {
+        const noteEl = bodyEl?.querySelector('#ailabNote');
+        if (noteEl) noteEl.textContent = entry.note(effectiveValues(gameKey));
+    }
 }
 
 // ─── 启动 ───
@@ -337,9 +344,59 @@ api.register('2048', [
         key: 'searchDepth', label: '搜索深度', min: 1, max: 5, step: 1, def: 3,
         hint: '实测单步计算：深度 1 约 0.2ms、深度 3 约 2ms、深度 5 约 25ms。越深越强，代价接近指数上涨。',
     },
+    {
+        key: 'wEmpty', label: '空格权重', min: 0, max: 500, step: 10, def: 200,
+        hint: '空格越多越安全。调太高会让 AI 只顾着留空地，迟迟不肯合并，容易堆死。',
+    },
+    {
+        key: 'wSmooth', label: '平滑度权重', min: 0, max: 10, step: 0.1, def: 1.5,
+        hint: '相邻格数值差之和（取负计入）。越大越倾向于让相邻数字接近，便于连锁合并。',
+    },
+    {
+        key: 'wMono', label: '单调性权重', min: 0, max: 10, step: 0.1, def: 2,
+        hint: '一行/一列是否朝同一方向递增。权重高时 AI 会把大数锁在一角，稳但保守。',
+    },
+    {
+        key: 'wCorner', label: '角落奖励', min: 0, max: 2000, step: 50, def: 1000,
+        hint: '最大块留在四角的额外奖励。设为 0 后 AI 可能把最大块挪到棋盘中间。',
+    },
 ], {
-    presets: { 弱: { searchDepth: 2 }, 标准: { searchDepth: 3 }, 强: { searchDepth: 4 } },
-    note: '这是典型的「思考预算」参数：越深越强，但耗时指数上涨，值得亲手感受一下权衡曲线。',
+    presets: {
+        保守: { searchDepth: 3, wEmpty: 400, wSmooth: 1.5, wMono: 1, wCorner: 800 },
+        标准: { searchDepth: 3, wEmpty: 200, wSmooth: 1.5, wMono: 2, wCorner: 1000 },
+        激进: { searchDepth: 4, wEmpty: 150, wSmooth: 2, wMono: 5, wCorner: 1200 },
+    },
+    note: (v) => `当前评分 = (${v.wEmpty})·空格 + (${v.wSmooth.toFixed(1)})·平滑 + (${v.wMono.toFixed(1)})·单调 + 角落 ${v.wCorner}`,
+});
+
+api.register('tetris', [
+    {
+        key: 'wHeight', label: '总高度惩罚', min: -1, max: 0, step: 0.01, def: -0.51,
+        format: (v) => v.toFixed(2),
+        hint: '经典值 -0.51。越负越怕堆高，AI 会更积极地把方块摊平。',
+    },
+    {
+        key: 'wLines', label: '消行奖励', min: 0, max: 2, step: 0.01, def: 0.76,
+        format: (v) => v.toFixed(2),
+        hint: '经典值 0.76。调高会让 AI 优先凑消行；调成 0 就完全不看消行了。',
+    },
+    {
+        key: 'wHoles', label: '空洞惩罚', min: -2, max: 0, step: 0.01, def: -0.36,
+        format: (v) => v.toFixed(2),
+        hint: '经典值 -0.36。空洞＝被方块盖住的空格，永久填不上，所以通常是重惩罚。',
+    },
+    {
+        key: 'wBump', label: '凹凸惩罚', min: -1, max: 0, step: 0.01, def: -0.18,
+        format: (v) => v.toFixed(2),
+        hint: '经典值 -0.18。相邻列高度差之和，惩罚越重越追求平整的地形。',
+    },
+], {
+    presets: {
+        平整优先: { wHeight: -0.9, wLines: 0.76, wHoles: -0.36, wBump: -0.6 },
+        标准: { wHeight: -0.51, wLines: 0.76, wHoles: -0.36, wBump: -0.18 },
+        消行优先: { wHeight: -0.3, wLines: 1.6, wHoles: -0.36, wBump: -0.1 },
+    },
+    note: (v) => `当前评分 = (${v.wHeight.toFixed(2)})·总高度 + (${v.wLines.toFixed(2)})·消行 + (${v.wHoles.toFixed(2)})·空洞 + (${v.wBump.toFixed(2)})·凹凸`,
 });
 
 api.register('gomoku', [

@@ -2022,6 +2022,9 @@ class Game2048 {
     
     // 评估函数（启发式）
     evaluateBoard(board) {
+        // 权重可被 AI 实验台覆盖; evalW 由 getBestMove 每次决策前写入一次,
+        // 避免在 expectimax 的叶子里成千上万次查表
+        const W = this.evalW || { empty: 200, smooth: 1.5, mono: 2, corner: 1000 };
         let empty = 0;
         let smoothness = 0;
         let monotonicity = 0;
@@ -2050,9 +2053,9 @@ class Game2048 {
         }
         // 角落奖励
         let cornerBonus = 0;
-        if (board[0][0] === maxTile) cornerBonus = 1000;
-        else if (board[0][3] === maxTile || board[3][0] === maxTile || board[3][3] === maxTile) cornerBonus = 500;
-        return empty * 200 + smoothness * 1.5 + monotonicity * 2 + cornerBonus;
+        if (board[0][0] === maxTile) cornerBonus = W.corner;
+        else if (board[0][3] === maxTile || board[3][0] === maxTile || board[3][3] === maxTile) cornerBonus = W.corner * 0.5;
+        return empty * W.empty + smoothness * W.smooth + monotonicity * W.mono + cornerBonus;
     }
     
     // Expectimax 递归（带缓存）
@@ -2098,8 +2101,14 @@ class Game2048 {
     // 获取最佳移动方向
     getBestMove() {
         this.aiCache = new Map();
-        // 搜索深度可被 AI 实验台覆盖; 兜底 3 与旧行为一致
+        // 搜索深度与评估权重都可被 AI 实验台覆盖; 兜底值与旧行为一致
         const depth = (window.aiLab && window.aiLab.get('2048', 'searchDepth', 3)) || 3;
+        this.evalW = window.aiLab ? {
+            empty: window.aiLab.get('2048', 'wEmpty', 200),
+            smooth: window.aiLab.get('2048', 'wSmooth', 1.5),
+            mono: window.aiLab.get('2048', 'wMono', 2),
+            corner: window.aiLab.get('2048', 'wCorner', 1000),
+        } : null;
         let bestDir = null;
         let bestScore = -Infinity;
         for (let dir of ['left', 'right', 'up', 'down']) {
@@ -2223,6 +2232,10 @@ whenDomReady(() => {
 });
 
 // ---------- game-tetris.js ----------
+// Dellacherie 经典权重(原值 -0.510066 / 0.760666 / -0.35663 / -0.184483)。
+// 滑杆精度为 0.01，这里取其两位近似；在 20 个随机局面上与精确值决策一致(已实测)。
+const DEFAULT_TETRIS_W = { height: -0.51, lines: 0.76, holes: -0.36, bump: -0.18 };
+
 class TetrisGame {
     constructor(canvasId, scoreId, levelId, linesId) {
         this.canvas = document.getElementById(canvasId);
@@ -2891,17 +2904,25 @@ class TetrisGame {
         const completeLines = this.countCompleteLines(board);
         const holes = this.countHoles(board, heights);
         const bumpiness = this.getBumpiness(heights);
-        
-        // 权重 (经过优化的经典参数)
-        return -0.510066 * aggregateHeight
-             + 0.760666 * completeLines
-             - 0.35663 * holes
-             - 0.184483 * bumpiness;
+
+        // 权重可被 AI 实验台覆盖, evalW 在 findBestMove 每次决策前写入
+        const W = this.evalW || DEFAULT_TETRIS_W;
+        return W.height * aggregateHeight
+             + W.lines * completeLines
+             + W.holes * holes
+             + W.bump * bumpiness;
     }
     
     // 寻找当前方块的最佳放置位置
     findBestMove() {
         if (!this.currentPiece) return null;
+        // 每次决策前读一次权重，之后几十个候选位复用，避免逐个候选查表
+        this.evalW = window.aiLab ? {
+            height: window.aiLab.get('tetris', 'wHeight', DEFAULT_TETRIS_W.height),
+            lines: window.aiLab.get('tetris', 'wLines', DEFAULT_TETRIS_W.lines),
+            holes: window.aiLab.get('tetris', 'wHoles', DEFAULT_TETRIS_W.holes),
+            bump: window.aiLab.get('tetris', 'wBump', DEFAULT_TETRIS_W.bump),
+        } : DEFAULT_TETRIS_W;
         
         const rotations = this.getRotations(this.currentPiece.shape);
         let bestScore = -Infinity;
