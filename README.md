@@ -19,7 +19,9 @@
 ├── assets/                # 图标 / 卡牌图
 ├── images/                # 项目截图 / 证书
 ├── news/                  # 资讯数据（自动生成）
+├── public/models/         # ONNX 模型与 onnxruntime wasm（原样拷进 dist 根）
 ├── tools/                 # 本地工具脚本（证书转图 / 求解器校验，不参与构建）
+├── .github/workflows/     # deploy-pages.yml：push main 后自动构建并发布 Pages
 ├── backend/               # Flappy Bird DQN 推理后端（Flask + PyTorch）
 │   ├── app.py
 │   ├── requirements.txt
@@ -100,6 +102,51 @@ npm run preview    # 本地预览构建产物
 
 > 注意：开发态用 `npm run dev`，不要再用 `python -m http.server` 直接开 `index.html`——
 > 模块入口 `<script type="module" src="/src/main.js">` 需要 Vite 的模块解析与转换。
+
+## 线上地址与部署
+
+**线上地址：<https://skystar01.github.io/skystar.github.io/>**
+
+注意是**带仓库名的子路径**，不是根域名。
+
+### 为什么根域名打不开
+
+仓库 `skystar01/skystar.github.io` 的仓库名不等于 `skystar01.github.io`，
+GitHub 因此把它当作 **project page**，只发布在 `/<repo>/` 子路径下。
+根域名 `https://skystar01.github.io/` 背后没有任何内容，
+访问会得到 GitHub Pages 的 **"Site not found" 404**。
+
+这个 404 极容易误判成「部署失败」——实际上仓库 `has_pages` 为 true、
+Actions 显示 success。**判断部署是否成功别看根域名**，看这两处：
+
+```bash
+# 1. 最近一次部署的 run 状态
+curl -s "https://api.github.com/repos/skystar01/skystar.github.io/actions/runs?per_page=1"
+
+# 2. 部署记录里登记的真实访问地址（environment_url）
+curl -s "https://api.github.com/repos/skystar01/skystar.github.io/deployments?per_page=1"
+```
+
+如果想彻底让根域名可用，只能把仓库重命名为 `skystar01.github.io`（升级成 user page），
+届时四处要同步改：`git remote set-url`、`index.html` 的 `canonical` / `og:url` /
+`og:image` / `twitter:image`（去掉 `/skystar.github.io` 前缀）、以及本 README。
+
+### 部署流程
+
+push 到 `main` 触发 `.github/workflows/deploy-pages.yml`：
+`npm install` → `npm run build` → 把 `dist/` 作为 Pages 产物发布。
+push 后约 1–2 分钟线上生效。
+
+### 路径铁律（踩过的坑）
+
+`vite.config.js` 必须保持 **`base: './'`**。子路径部署下，任何绝对路径
+（`/src/main.js`、`/assets/x.png`）都会被浏览器解析到根域名一级，直接 404，
+页面表现为白屏或样式全丢。所以：
+
+- HTML 里引资源用相对路径：`assets/...`、`styles/...`，**不要**写 `/assets/...`
+- JS 里拼资源路径走 `import.meta.env.BASE_URL`，不要手写 `/`
+- 唯一必须写死绝对地址的是 `<link rel="canonical">` 和 og / twitter 的分享图元信息
+  （社交平台抓取需要完整 URL），这些已经指向上面的子路径地址
 
 ### 后端 A：Flappy Bird AI 推理（Flask + PyTorch）
 
