@@ -1,0 +1,248 @@
+/* ── AI 实验台（右侧抽屉）──
+   设计约束：不参与游戏区布局，固定定位自成一层，避免和 .games-layout 的 grid 打架。 */
+
+.ai-lab {
+    position: fixed;
+    inset: 0;
+    z-index: 900;
+    display: none;
+    background: rgba(18, 22, 30, 0.26);
+}
+
+.ai-lab.is-open {
+    display: block;
+}
+
+.ailab-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(360px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 22px 20px 28px;
+    background: #fff;
+    border-left: 1px solid #e3e7e0;
+    box-shadow: -18px 0 40px rgba(20, 28, 40, 0.12);
+    overflow-y: auto;
+    animation: ailab-slide 0.22s ease;
+}
+
+@keyframes ailab-slide {
+    from { transform: translateX(24px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* ── 头部 ── */
+.ailab-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ailab-eyebrow {
+    margin: 0 0 2px;
+    font: 10px 'Space Mono', monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #7b8287;
+}
+
+.ailab-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: #23282c;
+    letter-spacing: -0.01em;
+}
+
+.ailab-close {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #dfe3dc;
+    border-radius: 5px;
+    background: #fff;
+    color: #6b7278;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ailab-close:hover {
+    background: #f1f3ef;
+    color: #23282c;
+}
+
+/* ── 预设档位 ── */
+.ailab-preset {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eceee9;
+}
+
+.ailab-chip {
+    min-height: 30px;
+    padding: 5px 13px;
+    border: 1px solid #dccfc4;
+    border-radius: 5px;
+    background: #fff;
+    color: #6b5b4c;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.ailab-chip:hover {
+    background: #f7f2ec;
+}
+
+.ailab-chip.is-active {
+    border-color: #cf714c;
+    background: #fdf1e9;
+    color: #a8492a;
+    font-weight: 600;
+}
+
+.ailab-preset-state {
+    margin-left: auto;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: #9aa1a6;
+}
+
+.ailab-preset-state.is-custom {
+    color: #a8492a;
+}
+
+/* ── 参数行 ── */
+.ailab-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ailab-row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+}
+
+.ailab-row-head label {
+    font-size: 13px;
+    color: #2f353a;
+}
+
+.ailab-row-head output {
+    font: 13px 'Space Mono', monospace;
+    color: #3152b5;
+    font-variant-numeric: tabular-nums;
+}
+
+.ailab-row input[type='range'] {
+    width: 100%;
+    accent-color: #2d55d4;
+    cursor: pointer;
+}
+
+.ailab-hint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #868d92;
+}
+
+.ailab-note {
+    margin: 0;
+    padding: 10px 12px;
+    border-left: 2px solid #d9c3b3;
+    background: #faf7f3;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #6b6259;
+}
+
+.ailab-empty {
+    margin: 0;
+    font-size: 13px;
+    color: #4a5157;
+}
+
+.ailab-empty-note {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #868d92;
+}
+
+.ailab-reset {
+    align-self: flex-start;
+    min-height: 34px;
+    padding: 7px 15px;
+    border: 1px solid #dfe3dc;
+    border-radius: 5px;
+    background: #fff;
+    color: #4a5157;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.ailab-reset:hover {
+    background: #f3f5f1;
+}
+
+/* ── 触发按钮（与「专注游玩」同一套外形）── */
+.studio #aiLabToggle {
+    padding: 11px 16px;
+    min-height: 44px;
+    border: 1px solid #ccd1d9;
+    background: #fff;
+    border-radius: 5px;
+    color: #3152b5;
+    cursor: pointer;
+    font: inherit;
+    position: relative;
+}
+
+.studio #aiLabToggle:hover:not(:disabled) {
+    background: #e6ebf7;
+}
+
+.studio #aiLabToggle:disabled {
+    color: #a8aeb5;
+    border-color: #e2e5ea;
+    cursor: not-allowed;
+    background: #fafbfa;
+}
+
+/* 改过参数时点一个小圆点，避免用户忘了自己调过、以为 AI 变弱是 bug */
+.studio #aiLabToggle.is-custom::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #cf714c;
+}
+
+@media (max-width: 590px) {
+    .studio #aiLabToggle { font-size: 12px; padding: 9px 12px; }
+    .ailab-panel { padding: 18px 16px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ailab-panel { animation: none; }
+}

@@ -40,6 +40,8 @@ class MineGame {
 
         this.#buildGrid();
         this.#bindEvents();
+        // AI 实验台改步进间隔时, 正在跑的自动扫描要立即跟上新节奏
+        window.aiLab?.subscribe?.((gameKey) => this.#onAiParamChange(gameKey));
         this.fitMine();
     }
 
@@ -315,7 +317,24 @@ class MineGame {
         this.autoBtn?.setAttribute('aria-pressed', 'true');
         if (!this.hintOn) this.toggleHint();
         this.#autoStep();
-        this.autoTimer = setInterval(() => this.#autoStep(), 260);
+        this.#startAutoTimer();
+    }
+
+    // 步进间隔可被 AI 实验台调整; 兜底 260ms 与旧行为一致
+    #autoDelay() {
+        const v = window.aiLab && window.aiLab.get('mine', 'autoDelay', 260);
+        return Number.isFinite(v) ? v : 260;
+    }
+
+    #startAutoTimer() {
+        clearInterval(this.autoTimer);
+        this.autoTimer = setInterval(() => this.#autoStep(), this.#autoDelay());
+    }
+
+    // 参数在 AI 自动进行中被改动时, 用新间隔重建定时器, 否则要等重开才生效
+    #onAiParamChange(gameKey) {
+        if (gameKey !== 'mine' || !this.autoOn) return;
+        this.#startAutoTimer();
     }
 
     #stopAuto() {

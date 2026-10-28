@@ -11,6 +11,7 @@ if (typeof window !== 'undefined') {
 }
 
 // 载入全部应用脚本（星空背景 / UI / 特效 / 叙事 / 游戏外壳 / 各游戏）
+import './ai-lab.js';       // 需在游戏之前: 游戏决策时会读 window.aiLab
 import './app.js';
 import './game-feedback.js';
 import './site-polish.js';

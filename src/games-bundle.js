@@ -2098,12 +2098,14 @@ class Game2048 {
     // 获取最佳移动方向
     getBestMove() {
         this.aiCache = new Map();
+        // 搜索深度可被 AI 实验台覆盖; 兜底 3 与旧行为一致
+        const depth = (window.aiLab && window.aiLab.get('2048', 'searchDepth', 3)) || 3;
         let bestDir = null;
         let bestScore = -Infinity;
         for (let dir of ['left', 'right', 'up', 'down']) {
             let { newBoard } = this.moveBoard(this.board, dir);
             if (!this.areBoardsEqual(newBoard, this.board)) {
-                let score = this.expectimax(newBoard, 3, false);  // 深度3，效果足够
+                let score = this.expectimax(newBoard, depth, false);
                 if (score > bestScore) {
                     bestScore = score;
                     bestDir = dir;
@@ -3618,6 +3620,9 @@ class GomokuGame {
 
     // 搜索深度: 开局浅 (2), 中局深 (3-4), 残局深 (4)
     getSearchDepth() {
+        // 0 / 未设置 = 跟随步数的自动策略; 手动指定则全程固定深度
+        const forced = window.aiLab && window.aiLab.get('gomoku', 'searchDepth', 0);
+        if (forced) return forced;
         const n = this.moveHistory.length;
         if (n < 6) return 3;       // 开局: 浅一些
         if (n < 30) return 4;      // 中局: 较深
@@ -4723,8 +4728,13 @@ whenDomReady(() => {
     function getLevelConfig(level) {
         const N = Math.min(21 + (level - 1) * 2, 41); // 21 起步, 每关 +2, 上限 41 (均为奇数)
         const monsters = level >= 4 ? 2 : 1;
-        const vision = Math.min(5 + Math.floor((level - 1) / 2), 8);
-        const moveInterval = Math.max(420 - (level - 1) * 25, 200);
+        // 视野与移速都可被 AI 实验台按倍率缩放; 倍率默认 1, 不改变原难度曲线
+        const visionScale = (window.aiLab && window.aiLab.get('maze', 'visionScale', 1)) || 1;
+        const speedScale = (window.aiLab && window.aiLab.get('maze', 'speedScale', 1)) || 1;
+        const baseVision = Math.min(5 + Math.floor((level - 1) / 2), 8);
+        const vision = Math.max(2, Math.min(14, Math.round(baseVision * visionScale)));
+        const baseInterval = Math.max(420 - (level - 1) * 25, 200);
+        const moveInterval = Math.max(90, Math.round(baseInterval / speedScale));
         const portals = level >= 4 ? 1 : 0;       // 第 4 关起有 1 对传送门
         const predict = level >= 5 ? 2 : 0;        // 第 5 关起怪物预判玩家 2 步走位
         // 钥匙需求: 1-2关1把, 3-4关2把, 5关起3把

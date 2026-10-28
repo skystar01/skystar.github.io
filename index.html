@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="styles/fx.css">
     <link rel="stylesheet" href="styles/journey.css">
     <link rel="stylesheet" href="styles/studio.css">
+    <link rel="stylesheet" href="styles/ai-lab.css">
     <!-- 游戏专属样式改为懒加载: 由 src/games-bundle.js / src/game-plane.js 动态 import, 仅进游戏时下载 -->
 
 </head>
@@ -729,6 +730,7 @@
                         </div>
                         <div class="tabs-hint">
                             <span>选择游戏 · 即刻体验</span>
+                            <button type="button" id="aiLabToggle" aria-pressed="false">AI 实验台</button>
                             <button type="button" id="gameFocusToggle" aria-pressed="false">专注游玩 ↗</button>
                         </div>
                     </header>
@@ -1534,6 +1536,21 @@
 
     <!-- 阶段1：模块化入口（ES Module 验证，Vite 打包） -->
     <!-- 注意: 用相对路径 ./src/main.js, 否则在 GitHub Pages 子路径(/skystar.github.io/)部署时 -->
+    <!-- AI 实验台：抽屉内容由 src/ai-lab.js 按参数表动态渲染，这里只留骨架 -->
+    <aside class="ai-lab" id="aiLabDrawer" aria-hidden="true" aria-label="AI 实验台">
+        <div class="ailab-panel" role="dialog" aria-labelledby="aiLabTitle">
+            <header class="ailab-head">
+                <div>
+                    <p class="ailab-eyebrow">AI 实验台</p>
+                    <h3 class="ailab-title" id="aiLabTitle">游戏</h3>
+                </div>
+                <button type="button" class="ailab-close" aria-label="关闭实验台">&times;</button>
+            </header>
+            <div class="ailab-preset"></div>
+            <div class="ailab-body"></div>
+        </div>
+    </aside>
+
     <!-- 绝对路径 /src/main.js 会被解析到根域名 skystar01.github.io/src/main.js 而 404 -->
     <script type="module" src="./src/main.js"></script>
 
