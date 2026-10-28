@@ -1835,7 +1835,7 @@ html, body {
 /* SVG 图标默认样式 - 覆盖 Font Awesome 默认尺寸 */
 .icon-rl, .icon-flame, .icon-flappy, .icon-chat,
 .icon-chess, .icon-2048, .icon-tetris, .icon-tictactoe,
-.icon-plane, .icon-snake, .icon-maze, .icon-code-pipe, .icon-training {
+.icon-plane, .icon-snake, .icon-maze, .icon-code-pipe, .icon-training, .icon-mine {
   display: inline-block;
   vertical-align: middle;
   line-height: 0;
@@ -1856,7 +1856,7 @@ html, body {
 .game-tab [class^="icon-"] { font-size: 1.15rem; flex-shrink: 0; }
 .icon-rl svg, .icon-flame svg, .icon-flappy svg, .icon-chat svg,
 .icon-chess svg, .icon-2048 svg, .icon-tetris svg, .icon-tictactoe svg, .icon-gomoku svg, .icon-memory svg,
-.icon-plane svg, .icon-snake svg, .icon-maze svg, .icon-code-pipe svg, .icon-training svg {
+.icon-plane svg, .icon-snake svg, .icon-maze svg, .icon-code-pipe svg, .icon-training svg, .icon-mine svg {
   width: 1em;
   height: 1em;
   stroke: currentColor;
@@ -1870,7 +1870,7 @@ html, body {
 /* 通用 hover 基础(轻微缩放 + 颜色发光) */
 .icon-rl, .icon-flame, .icon-flappy, .icon-chat,
 .icon-chess, .icon-2048, .icon-tetris, .icon-tictactoe, .icon-gomoku, .icon-memory,
-.icon-plane, .icon-snake, .icon-maze, .icon-code-pipe, .icon-training {
+.icon-plane, .icon-snake, .icon-maze, .icon-code-pipe, .icon-training, .icon-mine {
   transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.45s ease;
 }
 
@@ -2034,6 +2034,20 @@ html, body {
   50% { opacity: 0.3; }
 }
 
+/* ====== 概率扫雷:旗面轻微飘动(模拟被风吹的旗,呼应"在牌面上插旗") ====== */
+.icon-mine .mine-flag {
+  transform-origin: 8.9px 4.3px;
+  transition: transform 260ms ease;
+}
+.game-tab:hover .icon-mine .mine-flag {
+  animation: mine-flutter 1.5s ease-in-out infinite;
+}
+@keyframes mine-flutter {
+  0%, 100% { transform: skewY(0deg); }
+  35% { transform: skewY(4.5deg); }
+  70% { transform: skewY(-3deg); }
+}
+
 /* ====== 工程 Pipeline & 训练曲线:静态风格,只加整体微缩 ====== */
 .icon-code-pipe:hover { transform: scale(1.08); }
 .icon-training:hover { transform: scale(1.08); }
@@ -2045,7 +2059,7 @@ html, body {
   .icon-plane, .icon-snake, .icon-maze, .icon-code-pipe, .icon-training,
   .icon-rl *, .icon-flame *, .icon-flappy *, .icon-chat *,
   .icon-2048 *, .icon-tetris *, .icon-tictactoe *,
-  .icon-plane *, .icon-snake *, .icon-maze * {
+  .icon-plane *, .icon-snake *, .icon-maze *, .icon-mine, .icon-mine * {
     animation: none !important;
     transition: none !important;
     transform: none !important;
