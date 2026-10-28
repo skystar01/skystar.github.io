@@ -1,0 +1,371 @@
+/* 概率扫雷 (Minesweeper with Probabilistic AI) 专用样式
+   与其他游戏共用 --game-* 主题变量, 概率热力图由 --p (0~1) 驱动 HSL 色相插值。 */
+
+/* ── 主容器 ──
+   注意: 不要在这里设置 display —— 显隐由 game-center.css 的
+   .game-container{display:none !important} / .active{display:flex !important} 统一控制,
+   这里写 display 会被 !important 压制, 反而导致容器永不显示。 */
+.game-container.game-mine {
+    position: relative;
+    padding: 16px 20px;
+    overflow: hidden;
+    gap: 10px;
+}
+
+/* ── 头部 ── */
+.mine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 640px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.mine-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mine-title-icon {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 0 8px rgba(255, 126, 61, 0.5));
+}
+
+.mine-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: var(--game-title-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.02em;
+}
+
+.mine-scores {
+    display: flex;
+    gap: 8px;
+}
+
+.mine-score-box {
+    background: var(--game-card-strong);
+    border: 1px solid var(--game-border);
+    border-radius: var(--game-radius-sm);
+    padding: 5px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 64px;
+}
+
+.mine-score-label {
+    font-size: 0.62rem;
+    color: var(--game-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+}
+
+.mine-score-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffb84d;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── 工具栏 ── */
+.mine-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 640px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.mine-difficulty {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    background: var(--game-card);
+    border: 1px solid var(--game-border);
+    border-radius: var(--game-radius-sm);
+}
+
+.mine-diff-btn {
+    border: 0;
+    background: transparent;
+    color: var(--game-text-muted);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.mine-diff-btn:hover {
+    color: #e8eaf6;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.mine-diff-btn.active {
+    background: var(--game-primary);
+    color: #0b1020;
+    font-weight: 700;
+}
+
+.mine-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--game-border);
+    background: var(--game-card);
+    color: #dbe4ff;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: var(--game-radius-sm);
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.mine-btn:hover {
+    border-color: var(--game-border-strong);
+    background: var(--game-card-strong);
+}
+
+.mine-btn.active {
+    background: var(--game-ai);
+    border-color: transparent;
+    color: #04191a;
+    font-weight: 700;
+}
+
+.mine-btn-primary {
+    background: var(--game-primary);
+    border-color: transparent;
+    color: #0b1020;
+    font-weight: 700;
+}
+
+.mine-btn-primary:hover {
+    background: var(--game-primary-hover);
+}
+
+/* ── 状态行 ── */
+.mine-status {
+    font-size: 0.76rem;
+    color: var(--game-text-muted);
+    min-height: 1.2em;
+    text-align: center;
+}
+
+/* ── 棋盘区 ── */
+.mine-board-area {
+    position: relative;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mine-board {
+    --cell: 32px;
+    --cols: 9;
+    --rows: 9;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--cell));
+    grid-auto-rows: var(--cell);
+    gap: 2px;
+    padding: 8px;
+    background: rgba(6, 10, 24, 0.55);
+    border: 1px solid var(--game-border);
+    border-radius: var(--game-radius-sm);
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.5);
+}
+
+/* ── 单个格子 ── */
+.mine-cell {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    border-radius: calc(var(--cell) * 0.16);
+    background: linear-gradient(160deg, rgba(46, 56, 96, 0.92), rgba(28, 35, 66, 0.92));
+    color: #e8eaf6;
+    font-family: inherit;
+    font-size: calc(var(--cell) * 0.5);
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+
+.mine-cell:hover:not(.revealed):not(:disabled) {
+    border-color: rgba(78, 205, 196, 0.7);
+    background: linear-gradient(160deg, rgba(58, 70, 118, 0.95), rgba(36, 45, 82, 0.95));
+}
+
+.mine-cell:active:not(.revealed):not(:disabled) {
+    transform: scale(0.94);
+}
+
+.mine-cell:focus-visible {
+    outline: 2px solid var(--accent2);
+    outline-offset: 1px;
+}
+
+/* 已翻开: 退到底色, 去掉立体感 */
+.mine-cell.revealed {
+    background: rgba(12, 18, 38, 0.72);
+    border-color: rgba(139, 92, 246, 0.12);
+    cursor: default;
+    box-shadow: none;
+}
+
+/* ── 概率热力图 ──
+   --p = 0 时色相 140°(绿), --p = 1 时 -10°(红), 中间过渡为黄/橙。
+   用 ::before 叠加, 保证不遮挡格内数字。 */
+.mine-cell.show-prob::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: hsl(calc(140 - var(--p, 0) * 150) 78% 46% / 0.72);
+}
+
+.mine-cell.show-prob {
+    border-color: transparent;
+    color: #071018;
+}
+
+/* 确定性结论: 必安全描青边, 必是雷呼吸高亮 */
+.mine-cell[data-certain="safe"]::before {
+    background: hsl(186 92% 52% / 0.85);
+}
+
+.mine-cell[data-certain="safe"] {
+    box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.85), 0 0 12px rgba(34, 211, 238, 0.5);
+}
+
+.mine-cell[data-certain="mine"]::before {
+    background: hsl(0 88% 54% / 0.9);
+}
+
+.mine-cell[data-certain="mine"] {
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.9);
+}
+
+/* ── 格内文字 ── */
+.mine-pct {
+    position: relative;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 概率视图下数字要压暗, 避免和热力色打架 */
+.mine-cell.show-prob .mine-pct {
+    color: #04121a;
+    font-weight: 800;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* ── 数字配色 (经典扫雷的霓虹化版本) ── */
+.mine-cell.revealed[data-n="1"] { color: #7dd3fc; }
+.mine-cell.revealed[data-n="2"] { color: #86efac; }
+.mine-cell.revealed[data-n="3"] { color: #fca5a5; }
+.mine-cell.revealed[data-n="4"] { color: #c4b5fd; }
+.mine-cell.revealed[data-n="5"] { color: #fcd34d; }
+.mine-cell.revealed[data-n="6"] { color: #67e8f9; }
+.mine-cell.revealed[data-n="7"] { color: #f9a8d4; }
+.mine-cell.revealed[data-n="8"] { color: #cbd5e1; }
+
+/* ── 旗子 / 雷 ── */
+.mine-cell.flagged {
+    background: linear-gradient(160deg, rgba(64, 46, 96, 0.95), rgba(38, 28, 62, 0.95));
+    border-color: rgba(255, 126, 61, 0.45);
+    color: #ff7e3d;
+}
+
+.mine-cell.flagged.wrong {
+    border-color: rgba(248, 113, 113, 0.85);
+    color: #f87171;
+    text-decoration: line-through;
+}
+
+.mine-cell.mine {
+    background: rgba(60, 16, 24, 0.85);
+    border-color: rgba(248, 113, 113, 0.4);
+    color: #fda4af;
+}
+
+.mine-cell.mine.exploded {
+    background: radial-gradient(circle at center, rgba(248, 113, 113, 0.9), rgba(90, 14, 22, 0.95));
+    color: #fff;
+    animation: mine-blast 0.45s ease-out;
+}
+
+@keyframes mine-blast {
+    0%   { transform: scale(1.35); }
+    60%  { transform: scale(0.92); }
+    100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mine-cell.mine.exploded { animation: none; }
+}
+
+/* ── 说明 ── */
+.mine-footnote {
+    max-width: 640px;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: var(--game-text-muted);
+    text-align: center;
+}
+
+.mine-footnote strong {
+    color: #a5b4fc;
+}
+
+/* ── 移动端 ── */
+@media (max-width: 768px) {
+    .game-container.game-mine {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .mine-title {
+        font-size: 1.15rem;
+    }
+
+    .mine-score-box {
+        min-width: 54px;
+        padding: 4px 9px;
+    }
+
+    .mine-btn,
+    .mine-diff-btn {
+        font-size: 0.72rem;
+        padding: 5px 10px;
+    }
+
+    .mine-board-area {
+        min-height: 210px;
+    }
+}

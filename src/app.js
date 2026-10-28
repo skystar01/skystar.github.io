@@ -1679,6 +1679,11 @@ document.addEventListener('keydown', e => {
     const GAMES       = realTabs.map(t => t.dataset.game);
     const gameTabFor  = (game) => realTabs.find(t => t.dataset.game === game);
 
+    // 侧边栏标题「游戏目录 / N」的 N 跟着真实 tab 数量走。
+    // 之前是写死在 studio.css 里的 10, 每加一个游戏就得手改, 已经漏过一次。
+    // content 需要字符串 token, 所以值要带引号。
+    if (tabsSidebar) tabsSidebar.style.setProperty('--game-count', `'${N}'`);
+
     let allTrackTabs  = realTabs.slice();
     let trackOffset   = 0;
     let targetOffset  = 0;
@@ -1980,6 +1985,9 @@ document.addEventListener('keydown', e => {
                 case 'survivor':
                     fitSurvivor(container);
                     break;
+                case 'mine':
+                    if (window.mineGame && window.mineGame.fitMine) window.mineGame.fitMine();
+                    break;
                 case 'flappy':
                 default: {
                     const canvas = container.querySelector('canvas');
@@ -2019,6 +2027,17 @@ document.addEventListener('keydown', e => {
             .then(() => {})
             .catch((e) => { planeScriptPromise = null; throw e; });
         return planeScriptPromise;
+    }
+
+    // 概率扫雷同样独立懒加载：求解器（枚举 + DP）体积不小，不该塞进公共游戏包
+    let mineScriptPromise = null;
+    function ensureMineScript() {
+        if (window.mineGame) return Promise.resolve();
+        if (mineScriptPromise) return mineScriptPromise;
+        mineScriptPromise = import('./game-mine.js')
+            .then(() => {})
+            .catch((e) => { mineScriptPromise = null; throw e; });
+        return mineScriptPromise;
     }
 
     // ─── 游戏生命周期管理 ───
@@ -2063,6 +2082,7 @@ document.addEventListener('keydown', e => {
         // 阶段2: 懒加载游戏代码, 首屏不下载(~302KB); 仅在真正切换时才触发
         try {
             if (gameName === 'plane') await ensurePlaneScript();
+            else if (gameName === 'mine') await ensureMineScript();
             else await ensureGamesBundle();
         } catch (error) {
             if (version === gameSwitchVersion) {

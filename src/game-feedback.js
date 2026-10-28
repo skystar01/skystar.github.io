@@ -39,6 +39,7 @@ if (panel && header) {
         'tic-tac-toe': { read: () => { const g = window.ticTacToeGame; return g && { state: !g.gameActive ? 'ended' : g.aiThinking ? 'thinking' : 'playing', detail: text('ticTacToeStatus') }; }, start: () => click('ticTacToeStart') },
         gomoku: { read: () => { const g = window.gomokuGame; return g && { state: !g.gameActive ? 'ended' : g.aiThinking ? 'thinking' : 'playing', detail: text('gomokuStatus') }; }, start: () => click('gomokuReset') },
         memory: { read: () => { const g = window.memoryGame; return g && { state: g.matched === 8 ? 'complete' : g.playing ? 'playing' : 'ready', detail: g.playing ? '寻找相同图案' : undefined, resultTitle: '全部配对完成', resultDetail: `用时 ${g.seconds} 秒 · ${g.moves} 次翻牌` }; }, start: () => click('memoryStart'), result: true },
+        mine: { read: () => window.mineGame?.getSession(), start: () => window.mineGame?.restart(), pause: () => window.mineGame?.togglePause(), result: true },
     };
     let current = null;
     let overlay = null;

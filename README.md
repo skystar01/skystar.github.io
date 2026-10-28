@@ -11,12 +11,15 @@
 │   ├── main.js            # 模块入口（挂载 SkyStorage + 引入 app.js）
 │   ├── app.js            # 全部应用脚本拼接为单一共享作用域模块（HMR/代码分割）
 │   ├── storage.js        # SkyStorage（localStorage 封装，保留 window 兼容）
-│   └── game-plane.js      # 打飞机游戏（按需动态 import，懒加载代码分割）
-├── styles/                # CSS（main + 6 个游戏样式）
+│   ├── games-bundle.js   # 9 个游戏的懒加载包（首次切到非飞机游戏时载入）
+│   ├── game-plane.js      # 打飞机游戏（按需动态 import，懒加载代码分割）
+│   ├── game-mine.js       # 概率扫雷的渲染与交互层（懒加载）
+│   └── mine-solver.js     # 扫雷棋盘数据 + 概率求解器（纯逻辑，可在 Node 中统计校验）
+├── styles/                # CSS（main / fx / journey / studio / game-center + 各游戏专属样式）
 ├── assets/                # 图标 / 卡牌图
 ├── images/                # 项目截图 / 证书
 ├── news/                  # 资讯数据（自动生成）
-├── tools/                 # 本地一次性工具脚本（获奖证书转图等，不参与构建）
+├── tools/                 # 本地工具脚本（证书转图 / 求解器校验，不参与构建）
 ├── backend/               # Flappy Bird DQN 推理后端（Flask + PyTorch）
 │   ├── app.py
 │   ├── requirements.txt
@@ -42,18 +45,47 @@
 
 7 个 panel：home / news / about / skills / projects / game / contact，外加 3 个 modal。
 
-### 2. 游戏中心（8 个游戏，5 个带 AI）
+### 2. 游戏中心（11 个游戏，8 个带 AI）
 
 | 游戏 | 源码位置 | AI 算法 |
 |---|---|---|
-| 贪吃蛇 | `src/app.js`（原 snake-game.js） | BFS + Flood Fill 安全性检查 |
-| Flappy Bird | `src/app.js`（原 flappy-bird.js） | Dueling DQN（调用 backend/） |
-| 2048 | `src/app.js`（原 game-2048.js） | Expectimax（深度 3） |
-| 俄罗斯方块 | `src/app.js`（原 game-tetris.js） | Pierre Dellacherie 启发式 |
-| 井字棋 | `src/app.js`（原 game-tic-tac-toe.js） | Minimax |
-| 五子棋 | `src/app.js`（原 gomoku.js） | Minimax + α-β 剪枝 + 棋型评估 |
-| 记忆翻牌 | `src/app.js`（原 memory-game.js） | 无（纯休闲） |
-| 打飞机 | `src/game-plane.js`（按需懒加载） | 无（单机射击） |
+| 贪吃蛇 | `src/games-bundle.js` | BFS + Flood Fill 安全性检查 |
+| Flappy Bird | `src/games-bundle.js` | Dueling DQN（后端推理 / ONNX 降级） |
+| 2048 | `src/games-bundle.js` | Expectimax（深度 3） |
+| 俄罗斯方块 | `src/games-bundle.js` | Pierre Dellacherie 启发式 |
+| 井字棋 | `src/games-bundle.js` | Minimax |
+| 五子棋 | `src/games-bundle.js` | Minimax + α-β 剪枝 + 棋型评估 |
+| 记忆翻牌 | `src/games-bundle.js` | 无（纯休闲） |
+| AI 迷宫逃生 | `src/games-bundle.js` | 寻路 |
+| 霜境星火 | `src/games-bundle.js` | 无（弹幕肉鸽） |
+| 打飞机 | `src/game-plane.js`（懒加载） | 无（单机射击） |
+| 概率扫雷 | `src/game-mine.js` + `src/mine-solver.js`（懒加载） | 三层推理：规则饱和 → 边界分量枚举 → 全局雷数 DP |
+
+#### 概率扫雷的求解器
+
+不同于「高亮安全格」的常规提示，扫雷会为每个未翻开格给出**爆炸概率**，
+并以热力图呈现（绿=安全、红=高危、青色描边=逻辑上必然安全）。
+
+推理分三层，逐层收紧：
+
+1. **确定性规则** — 数字格约束饱和时直接判定邻格全是雷或全安全。
+2. **边界分量枚举** — 把边界格按共享约束分组，组内回溯枚举所有合法布雷方案，
+   按「本组恰好用 k 颗雷」分桶统计。超过 26 格或 3 万解即降级，避免卡住主线程。
+3. **全局雷数 DP** — 用前缀/后缀卷积组合各分量，并把边界之外的自由格以组合数
+   `C(N, t)` 权重一并卷积，从而在「剩余雷数」约束下求每格边际概率。
+
+第 3 层是关键：若把「边界雷数 === 剩余雷数」当硬约束（即假定边界之外一颗雷都不放），
+会系统性高估边界格的中雷概率，并产生「必然有雷」的误判。
+
+校验脚本：
+
+```bash
+node tools/verify-mine-solver.mjs          # 默认 300/150/60 局
+node tools/verify-mine-solver.mjs 200 900 120
+```
+
+它检查四件事：确定性结论零误判、概率校准（按预测值分桶对比实际踩雷率）、
+Brier 分数（0.25 ≈ 无信息盲猜）、以及高级盘面的求解耗时。
 
 ## 快速开始
 
