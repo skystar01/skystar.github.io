@@ -346,8 +346,17 @@ class MineGame {
             if (prob[i] < bestP) { bestP = prob[i]; best = i; }
         }
 
-        if (mine >= 0) { this.flag(mine); return; }
-        if (safe >= 0) { this.open(safe); return; }
+        // 确定性推理也要报状态: 否则 AI 一直在动, 状态栏却停在开局的提示文案上
+        if (mine >= 0) {
+            this.statusEl.textContent = `AI 推理 · 第 ${mine % this.board.cols + 1} 列必是雷，自动标旗`;
+            this.flag(mine);
+            return;
+        }
+        if (safe >= 0) {
+            this.statusEl.textContent = 'AI 推理 · 判定该格必然安全，自动翻开';
+            this.open(safe);
+            return;
+        }
 
         if (best >= 0) {
             this.statusEl.textContent = `AI 猜测 · 该格 ${Math.round(bestP * 100)}% 有雷`;
