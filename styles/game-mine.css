@@ -285,6 +285,15 @@
     text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
+/* 加了 % 才不会和翻开后的「相邻雷数」混淆: 同样一个 "10" 两种含义 */
+.mine-board[data-show-pct="1"] .mine-cell.show-prob .mine-pct::after {
+    content: '%';
+    font-size: 0.62em;
+    font-weight: 700;
+    opacity: 0.7;
+    margin-left: 0.5px;
+}
+
 /* ── 数字配色 (经典扫雷的霓虹化版本) ── */
 .mine-cell.revealed[data-n="1"] { color: #7dd3fc; }
 .mine-cell.revealed[data-n="2"] { color: #86efac; }
