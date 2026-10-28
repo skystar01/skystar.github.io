@@ -8087,7 +8087,7 @@ class SurvivorGame {
     // ─── Sprite 预加载 ───
     _loadSprites() {
         const list = [
-            ['player',           'assets/survivor/player-clean.png'],
+            ['player',           'assets/survivor/player-clean.webp'],
             ['boss',             'assets/survivor/boss.png'],
             ['enemy-normal',     'assets/survivor/enemy-normal.png'],
             ['enemy-bomb',       'assets/survivor/enemy-bomb.png'],
@@ -8729,8 +8729,8 @@ class SurvivorGame {
 // ─── 启动 ───
 whenDomReady(() => {
     if (document.getElementById('survivorCanvas')) {
-        // 构造时会预载 7 张精灵图(~1.6MB, 其中 player-clean.png 单张就 1.2MB)。
-        // 原先是进游戏中心就 new, 直接把带宽打满; 改为首次进入本游戏时再构造。
+        // 构造时会预载 7 张精灵图(约 350KB)。原先是进游戏中心就 new, 直接占带宽;
+        // 改为首次进入本游戏时再构造。
         let survivorInited = false;
         window.ensureSurvivorGame = function () {
             if (!survivorInited) {
