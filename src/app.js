@@ -1974,6 +1974,8 @@ document.addEventListener('keydown', e => {
                     if (window.fitGomoku) window.fitGomoku(container);
                     break;
                 case 'memory':
+                    // 按需构造(会预载 ~690KB 卡面图), 不能放在包加载时就做
+                    if (window.ensureMemoryGame) window.ensureMemoryGame();
                     if (window.fitMemory) window.fitMemory(container);
                     break;
                 case 'plane':
@@ -1983,6 +1985,8 @@ document.addEventListener('keydown', e => {
                     if (window.mazeGame && window.mazeGame.fitMaze) window.mazeGame.fitMaze();
                     break;
                 case 'survivor':
+                    // 按需构造(会预载 ~1.6MB 精灵图), 必须在 fit 之前, 否则 canvas 尺寸是默认值
+                    if (window.ensureSurvivorGame) window.ensureSurvivorGame();
                     fitSurvivor(container);
                     break;
                 case 'mine':

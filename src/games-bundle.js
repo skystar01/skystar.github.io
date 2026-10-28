@@ -4487,7 +4487,17 @@ class MemoryGame {
 // ─── 启动 + fitGame ───
 whenDomReady(() => {
     if (document.getElementById('memoryBoard')) {
-        window.memoryGame = new MemoryGame();
+        // 构造时会预载 8 张卡面(~690KB)。原先在这里直接 new, 导致只要切进游戏中心
+        // 就立刻拉全部卡牌图, 和飞机等游戏的 chunk 抢带宽(实测把飞机拖到 8.9s)。
+        // 改成首次真正进入本游戏时再构造。
+        let memoryInited = false;
+        window.ensureMemoryGame = function () {
+            if (!memoryInited) {
+                memoryInited = true;
+                window.memoryGame = new MemoryGame();
+            }
+            return window.memoryGame;
+        };
 
         // 暴露给 index.html 的 fitGame()
         window.fitMemory = function (container) {
@@ -8719,7 +8729,16 @@ class SurvivorGame {
 // ─── 启动 ───
 whenDomReady(() => {
     if (document.getElementById('survivorCanvas')) {
-        window.survivorGame = new SurvivorGame();
+        // 构造时会预载 7 张精灵图(~1.6MB, 其中 player-clean.png 单张就 1.2MB)。
+        // 原先是进游戏中心就 new, 直接把带宽打满; 改为首次进入本游戏时再构造。
+        let survivorInited = false;
+        window.ensureSurvivorGame = function () {
+            if (!survivorInited) {
+                survivorInited = true;
+                window.survivorGame = new SurvivorGame();
+            }
+            return window.survivorGame;
+        };
     }
 });
 
