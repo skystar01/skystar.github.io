@@ -148,6 +148,50 @@ function run2048(seed, cfg) {
     }
 }
 
+// ─── 井字棋 ───
+// 一「局」= AI 对战随机走子的玩家。返回 100/0 表示胜/负，均值即胜率（%）。
+// 注意这个变体没有平局：每方最多 3 子、超出会消失，棋盘永远填不满，只能靠连成三子分胜负。
+function runTicTacToe(seed, cfg) {
+    const g = window.ticTacToeGame;
+    if (!g) throw new Error('井字棋实例未就绪');
+
+    const snapshot = {
+        board: g.board, movesX: g.movesX, movesO: g.movesO, currentPlayer: g.currentPlayer,
+        gameActive: g.gameActive, aiEnabled: g.aiEnabled, aiThinking: g.aiThinking,
+        statusText: g.statusElement?.textContent || '',
+    };
+    // 胜局会通过 updateScore 写进 localStorage、highlightWin 改 DOM；跑分不能污染玩家战绩
+    const savedMethods = { updateUI: g.updateUI, updateScore: g.updateScore, highlightWin: g.highlightWin };
+    g.updateUI = () => {};
+    g.updateScore = () => {};
+    g.highlightWin = () => {};
+    g.aiEnabled = false;   // 关掉自动落子的 setTimeout，这里手动驱动
+    g.init();
+    g.aiEnabled = false;
+
+    try {
+        let turns = 0;
+        while (g.gameActive && turns < cfg.maxSteps) {
+            const empties = [];
+            for (let i = 0; i < 9; i++) if (g.board[i] === '') empties.push(i);
+            if (!empties.length) break;
+            g.makeMove(empties[Math.floor(Math.random() * empties.length)]);
+            if (!g.gameActive) break;
+            g.aiMove();
+            turns++;
+        }
+        const text = g.statusElement?.textContent || '';
+        const won = /AI 获胜/.test(text);
+        return { score: won ? 100 : 0, steps: turns };
+    } finally {
+        Object.assign(g, snapshot);
+        Object.assign(g, savedMethods);
+        // 把界面按还原后的状态重画一遍，否则棋盘上还留着跑分时的棋子
+        try { g.updateUI(); } catch { /* 界面刷新失败不应影响跑分结果 */ }
+        if (g.statusElement) g.statusElement.textContent = snapshot.statusText || '';
+    }
+}
+
 const RUNNERS = {
     tetris: {
         run: runTetris, metric: '分数', unit: '分', maxSteps: 400,
@@ -160,11 +204,22 @@ const RUNNERS = {
         secondaryLabel: '步数',
         pickSecondary: (r) => r.steps,
     },
+    'tic-tac-toe': {
+        run: runTicTacToe, metric: '胜率', unit: '%', maxSteps: 40,
+        // 单局只有胜/负（这个变体没有平局），所以不设次级指标。
+        // 胜率的步长是 1/N，10 局根本分辨不出 90% 和 100%，默认给到 30 局。
+        defaultRuns: 30,
+    },
 };
 
 const api = {
     supports(gameKey) {
         return !!RUNNERS[gameKey] && !!window.aiLab;
+    },
+
+    /** 该游戏建议的对局数（胜率类指标需要更多局才有分辨力） */
+    defaultRuns(gameKey) {
+        return RUNNERS[gameKey]?.defaultRuns || 10;
     },
 
     /**
@@ -176,7 +231,7 @@ const api = {
         if (!spec) throw new Error('该游戏暂不支持跑分');
         const lab = window.aiLab;
 
-        const runs = Math.max(4, Math.min(30, opts.runs || 10));
+        const runs = Math.max(4, Math.min(60, opts.runs || api.defaultRuns(gameKey)));
         const seeds = Array.from({ length: runs }, (_, i) => 1000 + i * 7919);
         const baseValues = lab.presetValues(gameKey, opts.baselinePreset || '标准');
         const curValues = lab.valuesOf(gameKey);

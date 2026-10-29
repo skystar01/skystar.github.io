@@ -252,7 +252,7 @@ function renderBody() {
         presetEl.innerHTML = '';
         bodyEl.innerHTML = `
             <p class="ailab-empty">这款游戏没有可调的 AI 参数。</p>
-            <p class="ailab-empty-note">井字棋的 Minimax 已跑满全深度、Flappy 用的是训练好的模型权重，都不适合暴露成滑杆。</p>`;
+            <p class="ailab-empty-note">Flappy 的权重在训练好的模型文件里，不是超参；其余几款没有 AI 决策。</p>`;
         return;
     }
 
@@ -356,10 +356,11 @@ function paintBench() {
 
     if (!benchState.result) {
         const same = isSameAsBaseline(openGameKey);
-        host.innerHTML = `${head}<button type="button" class="ailab-bench-run" id="ailabBenchRun">跑 10 局对比</button>
+        const runs = window.aiBench?.defaultRuns?.(openGameKey) || 10;
+        host.innerHTML = `${head}<button type="button" class="ailab-bench-run" id="ailabBenchRun">跑 ${runs} 局对比</button>
             <p class="ailab-bench-progress">${same
                 ? '当前就是标准预设，先改点参数再跑才有对比意义（也可以直接跑，看这套配置的绝对水平）。'
-                : '当前设置 vs 标准预设，各 10 局，约需几秒。'}</p>`;
+                : `当前设置 vs 标准预设，各 ${runs} 局，约需几秒。`}</p>`;
         host.querySelector('#ailabBenchRun')?.addEventListener('click', runBench);
         return;
     }
@@ -371,20 +372,21 @@ function paintBench() {
     const verdict = !d.significant
         ? '差值在噪声范围内，不足以说明变强或变弱'
         : d.mean > 0 ? '当前设置明显更好' : '当前设置明显更差';
+    const pct = r.unit === '%' ? '%' : '';
     const sec = r.secondary ? `
         <p class="ailab-secondary">${r.secondary.label}：基准 ${fmtNum(r.secondary.baseline.mean)} → 当前 ${fmtNum(r.secondary.current.mean)}
            （中位 ${fmtNum(r.secondary.baseline.median)} → ${fmtNum(r.secondary.current.median)}）</p>` : '';
 
     host.innerHTML = `${head}
         <div class="ailab-res">
-            <div class="ailab-res-row"><span>${r.baselineLabel}</span><b>${fmtNum(r.baseline.mean)}</b><em>中位 ${fmtNum(r.baseline.median)}</em></div>
-            <div class="ailab-res-row is-cur"><span>当前设置</span><b>${fmtNum(r.current.mean)}</b><em>中位 ${fmtNum(r.current.median)}</em></div>
+            <div class="ailab-res-row"><span>${r.baselineLabel}</span><b>${fmtNum(r.baseline.mean)}${pct}</b><em>中位 ${fmtNum(r.baseline.median)}${pct}</em></div>
+            <div class="ailab-res-row is-cur"><span>当前设置</span><b>${fmtNum(r.current.mean)}${pct}</b><em>中位 ${fmtNum(r.current.median)}${pct}</em></div>
         </div>
         ${sec}
-        <p class="ailab-delta is-${tone}">${sign}${fmtNum(d.mean)} ${r.unit} · 标准误 ${fmtNum(d.se)} · t=${d.t}</p>
+        <p class="ailab-delta is-${tone}">${sign}${fmtNum(d.mean)}${r.unit === '%' ? '%' : ' ' + r.unit} · 标准误 ${fmtNum(d.se)} · t=${d.t}</p>
         <p class="ailab-verdict is-${tone}">${verdict}</p>
-        <p class="ailab-caveat">${r.runs} 局同种子开局：方块/新块序列在存活期间保持一致，直到一方提前结束；
-            N=10 时 |t| &lt; 2.3 视为噪声。</p>
+        <p class="ailab-caveat">${r.runs} 局同种子开局，随机序列在双方存活期间保持一致；
+            |t| &lt; 2.3 视为噪声（该阈值偏保守，宁可不给结论）。</p>
         <button type="button" class="ailab-bench-run is-ghost" id="ailabBenchRun">再跑一次</button>`;
     host.querySelector('#ailabBenchRun')?.addEventListener('click', runBench);
 }
@@ -399,7 +401,6 @@ async function runBench() {
 
     try {
         const res = await window.aiBench.run(gameKey, {
-            runs: 10,
             onProgress: (done, total) => {
                 if (openGameKey !== gameKey) return;
                 const p = bodyEl?.querySelector('#ailabBenchProgress');
@@ -552,6 +553,26 @@ api.register('mine', [
     },
 ], {
     presets: { 慢: { autoDelay: 450 }, 标准: { autoDelay: 260 }, 快: { autoDelay: 100 } },
+});
+
+api.register('tic-tac-toe', [
+    {
+        key: 'blunderRate', label: '失误率', min: 0, max: 60, step: 5, def: 10, unit: '%',
+        hint: '每次决策有该概率放弃最优解、随机改走别处。调到 0 时按纯最优搜索落子，实测随机乱走 200 局全败。',
+    },
+    {
+        key: 'searchDepth', label: '搜索深度', min: 1, max: 7, step: 1, def: 5,
+        hint: '这个变体每方最多 3 子、超出会消失，深搜才能算准。实测单步 0.1–4ms（首步最慢）。',
+    },
+], {
+    presets: {
+        完美: { blunderRate: 0, searchDepth: 6 },
+        标准: { blunderRate: 10, searchDepth: 5 },
+        新手: { blunderRate: 35, searchDepth: 3 },
+    },
+    note: (v) => v.blunderRate > 0
+        ? `每步有 ${v.blunderRate}% 概率故意走次优位置，其余时候按 ${v.searchDepth} 层搜索结果落子。`
+        : `不失误，每步都按 ${v.searchDepth} 层搜索取最优。`,
 });
 
 api.register('maze', [

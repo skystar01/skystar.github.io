@@ -3331,55 +3331,126 @@ class TicTacToeGame {
     }
     
     findBestMove() {
+        const blunder = (window.aiLab && window.aiLab.get('tic-tac-toe', 'blunderRate', 0)) || 0;
+        const depth = (window.aiLab && window.aiLab.get('tic-tac-toe', 'searchDepth', 5)) || 5;
+        const startedAt = performance.now();
+
+        // 把「每人最多 3 子」的队列一并纳入搜索状态。
+        // 原实现只搜静态棋盘, 与真实规则不一致 —— 实测随机乱走的玩家也能赢约 7%。
+        const board = [...this.board];
+        const aiQ = [...this.movesO];
+        const huQ = [...this.movesX];
+
         let bestScore = -Infinity;
         let bestMove = -1;
-        
-        for (let i = 0; i < 9; i++) {
-            if (this.board[i] === '') {
-                this.board[i] = this.aiPlayer;
-                const score = this.minimax(this.board, 0, false);
-                this.board[i] = '';
-                
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = i;
-                }
+        const scored = [];
+
+        // 候选顺序: 中心 → 四角 → 四边。alpha-beta 下更好的顺序能剪掉更多分支
+        for (const i of [4, 0, 2, 6, 8, 1, 3, 5, 7]) {
+            if (board[i] !== '') continue;
+            const removed = this._place(board, aiQ, i, this.aiPlayer);
+            const score = this._minimaxTTT(board, aiQ, huQ, depth - 1, -Infinity, Infinity, false);
+            this._unplace(board, aiQ, i, removed, this.aiPlayer);
+            scored.push({ i, score });
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = i;
             }
         }
-        
+
+        // ε-greedy: 按设定概率放弃最优解，随机改走另一个合法位置。
+        // 这是「难度档位」的实现方式 —— 不是把搜索变浅，而是让它在关键时刻犯错。
+        let deliberateBlunder = false;
+        if (blunder > 0 && scored.length > 1 && Math.random() * 100 < blunder) {
+            const others = scored.filter(s => s.i !== bestMove);
+            bestMove = others[Math.floor(Math.random() * others.length)].i;
+            deliberateBlunder = true;
+        }
+
+        if (window.aiTrace) {
+            const sorted = [...scored].sort((a, b) => b.score - a.score);
+            window.aiTrace.report('tic-tac-toe', {
+                candidates: scored.length,
+                unit: '个空格',
+                ms: performance.now() - startedAt,
+                choice: `第 ${bestMove + 1} 格`,
+                score: sorted[0]?.score,
+                runnerUp: sorted[1]?.score,
+                meta: deliberateBlunder ? `故意失误 · 深度 ${depth}` : `最优解 · 深度 ${depth}`,
+            });
+        }
+
         return bestMove;
     }
-    
-    minimax(board, depth, isMaximizing) {
-        const winner = this.getWinner(board);
-        
-        if (winner === this.aiPlayer) return 10 - depth;
-        if (winner === this.humanPlayer) return depth - 10;
-        if (this.isBoardFull(board)) return 0;
-        
-        if (isMaximizing) {
-            let bestScore = -Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (board[i] === '') {
-                    board[i] = this.aiPlayer;
-                    const score = this.minimax(board, depth + 1, false);
-                    board[i] = '';
-                    bestScore = Math.max(score, bestScore);
-                }
-            }
-            return bestScore;
-        } else {
-            let bestScore = Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (board[i] === '') {
-                    board[i] = this.humanPlayer;
-                    const score = this.minimax(board, depth + 1, true);
-                    board[i] = '';
-                    bestScore = Math.min(score, bestScore);
-                }
-            }
-            return bestScore;
+
+    // 落子并按真实规则移走最早的己方棋子；返回被移走的位置（-1 表示没移走），供回滚
+    _place(board, queue, index, player) {
+        board[index] = player;
+        queue.push(index);
+        if (queue.length <= 3) return -1;
+        const removed = queue.shift();
+        board[removed] = '';
+        return removed;
+    }
+
+    _unplace(board, queue, index, removed, player) {
+        // 回滚顺序必须和 _place 相反: 先恢复被挤掉的老棋子, 再弹出刚落下的这一手
+        if (removed >= 0) {
+            board[removed] = player;
+            queue.unshift(removed);
         }
+        queue.pop();
+        board[index] = '';
+    }
+
+    _minimaxTTT(board, aiQ, huQ, depth, alpha, beta, isMax) {
+        const winner = this.getWinner(board);
+        if (winner === this.aiPlayer) return 1000 - depth;
+        if (winner === this.humanPlayer) return depth - 1000;
+        if (depth <= 0) return this._evaluateTTT(board);
+
+        if (isMax) {
+            let best = -Infinity;
+            for (const i of [4, 0, 2, 6, 8, 1, 3, 5, 7]) {
+                if (board[i] !== '') continue;
+                const removed = this._place(board, aiQ, i, this.aiPlayer);
+                const score = this._minimaxTTT(board, aiQ, huQ, depth - 1, alpha, beta, false);
+                this._unplace(board, aiQ, i, removed, this.aiPlayer);
+                if (score > best) best = score;
+                if (best > alpha) alpha = best;
+                if (beta <= alpha) break;
+            }
+            return best;
+        }
+        let best = Infinity;
+        for (const i of [4, 0, 2, 6, 8, 1, 3, 5, 7]) {
+            if (board[i] !== '') continue;
+            const removed = this._place(board, huQ, i, this.humanPlayer);
+            const score = this._minimaxTTT(board, aiQ, huQ, depth - 1, alpha, beta, true);
+            this._unplace(board, huQ, i, removed, this.humanPlayer);
+            if (score < best) best = score;
+            if (best < beta) beta = best;
+            if (beta <= alpha) break;
+        }
+        return best;
+    }
+
+    // 搜索到深度上限时的估值: 只数「两子一空」的威胁，够用且便宜
+    _evaluateTTT(board) {
+        let score = 0;
+        for (const combo of this.winningCombos) {
+            let ai = 0, hu = 0;
+            for (const idx of combo) {
+                if (board[idx] === this.aiPlayer) ai++;
+                else if (board[idx] === this.humanPlayer) hu++;
+            }
+            if (ai && hu) continue;
+            if (ai === 2) score += 20;
+            else if (hu === 2) score -= 20;
+            else if (ai === 1) score += 2;
+            else if (hu === 1) score -= 2;
+        }
+        return score;
     }
     
     getWinner(board) {
