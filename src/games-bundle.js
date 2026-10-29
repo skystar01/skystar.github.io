@@ -3224,18 +3224,47 @@ class TicTacToeGame {
     
     init() {
         this.board = ['', '', '', '', '', '', '', '', ''];
-        this.currentPlayer = 'X';
         this.gameActive = true;
         this.aiThinking = false;
         this.movesX = [];
         this.movesO = [];
+
+        // 开局随机先后手。
+        // 这个变体里先手反而吃亏（棋子先落、也先消失），固定 AI 后手等于白送优势，
+        // 所以两边各 50% 开局，长局数下谁都不占便宜。
+        if (this.aiEnabled) {
+            this.aiFirst = Math.random() < 0.5;
+            this.currentPlayer = this.aiFirst ? this.aiPlayer : this.humanPlayer;
+        } else {
+            // 双人模式没有"AI"，纯粹随机一方先走
+            this.aiFirst = false;
+            this.currentPlayer = Math.random() < 0.5 ? this.humanPlayer : this.aiPlayer;
+        }
+
         this.updateUI();
-        
+
         const cells = document.querySelectorAll('.game-tic-tac-toe .tic-tac-toe-cell');
         cells.forEach((cell, index) => {
             cell.style.pointerEvents = 'auto';
             cell.style.cursor = 'pointer';
         });
+
+        // AI 抽到先手时，别干等着玩家点第一格 —— 自己先落子。
+        // 用 token 只认最新一局：连续点「重开」会让旧定时器叠在新局上，替玩家白走一步。
+        this.initToken = (this.initToken || 0) + 1;
+        const token = this.initToken;
+        if (this.aiEnabled && this.currentPlayer === this.aiPlayer) {
+            this.aiThinking = true;
+            this.updateUI();
+            setTimeout(() => {
+                if (token !== this.initToken) return;
+                if (this.gameActive && this.currentPlayer === this.aiPlayer) {
+                    this.aiMove();
+                } else {
+                    this.aiThinking = false;
+                }
+            }, 600);
+        }
     }
     
     initDOM() {

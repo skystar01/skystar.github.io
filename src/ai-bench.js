@@ -175,9 +175,13 @@ function runTicTacToe(seed, cfg) {
             const empties = [];
             for (let i = 0; i < 9; i++) if (g.board[i] === '') empties.push(i);
             if (!empties.length) break;
-            g.makeMove(empties[Math.floor(Math.random() * empties.length)]);
-            if (!g.gameActive) break;
-            g.aiMove();
+            // 开局先后手随机，驱动时必须按当前轮到谁来走；
+            // makeMove 不看回合归属，抢走 AI 的回合会把对局跑歪
+            if (g.currentPlayer === g.aiPlayer) {
+                g.aiMove();
+            } else {
+                g.makeMove(empties[Math.floor(Math.random() * empties.length)]);
+            }
             turns++;
         }
         const text = g.statusElement?.textContent || '';
