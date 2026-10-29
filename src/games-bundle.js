@@ -3358,13 +3358,13 @@ class TicTacToeGame {
             }
         }
 
-        // ε-greedy: 按设定概率放弃最优解，随机改走另一个合法位置。
-        // 这是「难度档位」的实现方式 —— 不是把搜索变浅，而是让它在关键时刻犯错。
+        // 标准 ε-greedy: 以 ε 概率从「全部合法位置」里随机选（可能仍选中最优，也可能选到很差的位置）。
+        // 不排除最优解 —— 排除掉的话 ε=100% 也只是"随机换一个次优"，永远弱不到随机水平。
+        const optimal = bestMove;
         let deliberateBlunder = false;
         if (blunder > 0 && scored.length > 1 && Math.random() * 100 < blunder) {
-            const others = scored.filter(s => s.i !== bestMove);
-            bestMove = others[Math.floor(Math.random() * others.length)].i;
-            deliberateBlunder = true;
+            bestMove = scored[Math.floor(Math.random() * scored.length)].i;
+            deliberateBlunder = bestMove !== optimal;
         }
 
         if (window.aiTrace) {

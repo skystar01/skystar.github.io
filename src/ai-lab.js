@@ -558,15 +558,15 @@ api.register('mine', [
 api.register('tic-tac-toe', [
     {
         key: 'blunderRate', label: '失误率', min: 0, max: 60, step: 5, def: 10, unit: '%',
-        hint: '每次决策有该概率放弃最优解、随机改走别处。调到 0 时按纯最优搜索落子，实测随机乱走 200 局全败。',
+        hint: '每次决策有该概率随机走一步（可能仍选中最优）。调到 0 时按纯最优搜索落子，实测 500 局仍有个位数失手。记得先点「AI 模式」才会启用。',
     },
     {
         key: 'searchDepth', label: '搜索深度', min: 1, max: 7, step: 1, def: 5,
-        hint: '这个变体每方最多 3 子、超出会消失，深搜才能算准。实测单步 0.1–4ms（首步最慢）。',
+        hint: '实测 5 层以上收益不明显（瓶颈在深度上限处的估值），主要影响耗时。单步 0.1–4ms。',
     },
 ], {
     presets: {
-        完美: { blunderRate: 0, searchDepth: 6 },
+        完美: { blunderRate: 0, searchDepth: 5 },
         标准: { blunderRate: 10, searchDepth: 5 },
         新手: { blunderRate: 35, searchDepth: 3 },
     },
