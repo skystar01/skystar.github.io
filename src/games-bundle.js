@@ -647,6 +647,11 @@ class SnakeGame {
 
         let bestDir = myDir;
         let bestScore = -Infinity;
+        // 决策遥测用: 候选方向数、次优评分、选中方向的可用空间
+        const startedAt = performance.now();
+        let runnerUp = -Infinity;
+        let candidates = 0;
+        let bestFreeSpace = 0;
 
         const directions = [
             { x: 1, y: 0 },
@@ -669,6 +674,7 @@ class SnakeGame {
             // 撞自己身体或对方身体也跳过
             if (mySet.has(newHeadKey) || otherSet.has(newHeadKey)) continue;
 
+            candidates++;
             let score = 0;
 
             // 沿 BFS 路径走 = 大奖励
@@ -698,9 +704,26 @@ class SnakeGame {
             }
 
             if (score > bestScore) {
+                runnerUp = bestScore;
                 bestScore = score;
                 bestDir = dir;
+                bestFreeSpace = freeSpace;
+            } else if (score > runnerUp) {
+                runnerUp = score;
             }
+        }
+
+        if (window.aiTrace) {
+            const dirName = { '1,0': '右', '-1,0': '左', '0,1': '下', '0,-1': '上' }[`${bestDir.x},${bestDir.y}`];
+            window.aiTrace.report('snake', {
+                candidates,
+                unit: '个方向',
+                ms: performance.now() - startedAt,
+                choice: dirName || `${bestDir.x},${bestDir.y}`,
+                score: bestScore,
+                runnerUp: runnerUp === -Infinity ? undefined : runnerUp,
+                meta: `活路 ${bestFreeSpace} 格`,
+            });
         }
 
         return bestDir;
@@ -2111,15 +2134,31 @@ class Game2048 {
         } : null;
         let bestDir = null;
         let bestScore = -Infinity;
+        const ranked = [];
+        const startedAt = performance.now();
         for (let dir of ['left', 'right', 'up', 'down']) {
             let { newBoard } = this.moveBoard(this.board, dir);
             if (!this.areBoardsEqual(newBoard, this.board)) {
                 let score = this.expectimax(newBoard, depth, false);
+                ranked.push({ dir, score });
                 if (score > bestScore) {
                     bestScore = score;
                     bestDir = dir;
                 }
             }
+        }
+        // 上报决策摘要: 让「AI 为什么选这个方向」从黑箱变成一行可读的数字
+        if (ranked.length && window.aiTrace) {
+            const sorted = [...ranked].sort((a, b) => b.score - a.score);
+            window.aiTrace.report('2048', {
+                candidates: ranked.length,
+                unit: '个方向',
+                ms: performance.now() - startedAt,
+                choice: { left: '左移', right: '右移', up: '上移', down: '下移' }[bestDir] || bestDir,
+                score: sorted[0]?.score,
+                runnerUp: sorted[1]?.score,
+                meta: `深度 ${depth}`,
+            });
         }
         return bestDir;
     }
@@ -2927,24 +2966,46 @@ class TetrisGame {
         const rotations = this.getRotations(this.currentPiece.shape);
         let bestScore = -Infinity;
         let bestMove = null;
-        
-        for (const shape of rotations) {
+        let evaluated = 0;
+        let runnerUp = -Infinity;
+        let bestRotation = 0;
+        const startedAt = performance.now();
+
+        for (let ri = 0; ri < rotations.length; ri++) {
+            const shape = rotations[ri];
             for (let x = -2; x < this.COLS + 2; x++) {
                 if (!this.canPlacePieceAt(this.board, shape, x, 0)) continue;
-                
+
                 const y = this.getDropPosition(this.board, shape, x);
                 if (y < 0) continue;
-                
+
                 const newBoard = this.placePieceOnBoard(this.board, shape, x, y);
                 const score = this.evaluateBoard(newBoard);
-                
+                evaluated++;
+
                 if (score > bestScore) {
+                    // 旧的最大值退位成次优，用于说明「这个选择领先多少」
+                    runnerUp = bestScore;
                     bestScore = score;
                     bestMove = { shape, x, y };
+                    bestRotation = ri;
+                } else if (score > runnerUp) {
+                    runnerUp = score;
                 }
             }
         }
-        
+
+        if (bestMove && window.aiTrace) {
+            window.aiTrace.report('tetris', {
+                candidates: evaluated,
+                unit: '个落点',
+                ms: performance.now() - startedAt,
+                choice: `第 ${bestMove.x + 1} 列`,
+                score: bestScore,
+                runnerUp: runnerUp === -Infinity ? undefined : runnerUp,
+                meta: `第 ${bestRotation + 1} 种旋转`,
+            });
+        }
         return bestMove;
     }
     
@@ -3701,6 +3762,7 @@ class GomokuGame {
         let bestScore = -Infinity;
         let bestMove = candidates[0];
         const movesWithScore = [];
+        const startedAt = performance.now();
 
         for (const move of candidates) {
             this.board[move.x][move.y] = this.aiPlayer;
@@ -3713,11 +3775,18 @@ class GomokuGame {
             }
         }
 
-        // 调试: 把前几个候选点写到控制台
-        if (window.console && console.table) {
-            console.table(movesWithScore.slice(0, 5).map(m => ({
-                x: m.x, y: m.y, score: m.score.toFixed(0)
-            })));
+        // 决策摘要: 原先这里往控制台 console.table 打调试信息(线上也照打), 换成可读的遥测条
+        if (window.aiTrace) {
+            const sorted = [...movesWithScore].sort((a, b) => b.score - a.score);
+            window.aiTrace.report('gomoku', {
+                candidates: candidates.length,
+                unit: '个候选点',
+                ms: performance.now() - startedAt,
+                choice: `${bestMove.x + 1},${bestMove.y + 1}`,
+                score: sorted[0]?.score,
+                runnerUp: sorted[1]?.score,
+                meta: `深度 ${depth}`,
+            });
         }
 
         // 热力图: 把评分显示到棋盘上
