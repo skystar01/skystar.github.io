@@ -202,6 +202,148 @@
     background: #f3f5f1;
 }
 
+/* ── 量化对比 ── */
+.ailab-bench {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid #eceee9;
+}
+
+.ailab-bench-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ailab-bench-head > span:first-child {
+    font-size: 13px;
+    color: #2f353a;
+}
+
+.ailab-bench-sub {
+    font-size: 11px;
+    color: #9aa1a6;
+}
+
+.ailab-bench-run {
+    align-self: flex-start;
+    min-height: 34px;
+    padding: 7px 16px;
+    border: 1px solid #ccd1d9;
+    border-radius: 5px;
+    background: #fff;
+    color: #3152b5;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.ailab-bench-run:hover:not(:disabled) {
+    background: #e6ebf7;
+}
+
+.ailab-bench-run:disabled {
+    color: #a8aeb5;
+    cursor: progress;
+    background: #fafbfa;
+}
+
+.ailab-bench-run.is-ghost {
+    align-self: flex-start;
+    color: #6b7278;
+    border-color: #dfe3dc;
+}
+
+.ailab-bench-progress,
+.ailab-bench-error {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #868d92;
+}
+
+.ailab-bench-error {
+    color: #a8492a;
+}
+
+.ailab-res {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ailab-res-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 2px 10px;
+    padding: 7px 10px;
+    border: 1px solid #eceee9;
+    border-radius: 5px;
+    background: #fbfcfa;
+}
+
+.ailab-res-row.is-cur {
+    border-color: #d9c3b3;
+    background: #fdf8f3;
+}
+
+.ailab-res-row span {
+    font-size: 12px;
+    color: #4a5157;
+}
+
+.ailab-res-row b {
+    font: 14px 'Space Mono', monospace;
+    font-weight: 600;
+    color: #23282c;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.ailab-res-row em {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    font-style: normal;
+    color: #9aa1a6;
+}
+
+.ailab-delta {
+    margin: 0;
+    font: 12px 'Space Mono', monospace;
+    color: #6b7278;
+}
+
+.ailab-delta.is-better { color: #2f6b3f; }
+.ailab-delta.is-worse { color: #a8492a; }
+
+.ailab-verdict {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #4a5157;
+}
+
+.ailab-verdict.is-better { color: #2f6b3f; }
+.ailab-verdict.is-worse { color: #a8492a; }
+
+.ailab-caveat {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #9aa1a6;
+}
+
+.ailab-secondary {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #6b7278;
+}
+
 /* ── 触发按钮（与「专注游玩」同一套外形）── */
 .studio #aiLabToggle {
     padding: 11px 16px;
