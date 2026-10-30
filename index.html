@@ -767,9 +767,9 @@
                                 <span class="icon-gomoku" aria-label="五子棋"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="8.67" y1="4" x2="8.67" y2="20" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><line x1="13.33" y1="4" x2="13.33" y2="20" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><line x1="4" y1="8.67" x2="20" y2="8.67" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><line x1="4" y1="13.33" x2="20" y2="13.33" stroke="currentColor" stroke-width="0.6" opacity="0.6"/><circle cx="8.67" cy="8.67" r="2.2" fill="currentColor"/><circle cx="13.33" cy="13.33" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="13.33" cy="8.67" r="2.2" fill="currentColor"/><circle cx="8.67" cy="13.33" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2"/></svg></span>
                                 <span>五子棋</span>
                             </button>
-                            <button class="game-tab" data-game="memory">
-                                <span class="icon-memory" aria-label="记忆翻牌"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="8" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="13" y="6" width="8" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/><path d="M5 10h4M5 12h4M5 14h4" stroke="currentColor" stroke-width="0.7" stroke-linecap="round" opacity="0.6"/><circle cx="17" cy="10" r="1.8" fill="currentColor" opacity="0.8"/></svg></span>
-                                <span>记忆翻牌</span>
+                            <button class="game-tab" data-game="reversi">
+                                <span class="icon-reversi" aria-label="黑白棋"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M12 3.8a8.2 8.2 0 0 1 0 16.4Z" fill="currentColor"/></svg></span>
+                                <span>黑白棋</span>
                             </button>
                             <button class="game-tab" data-game="plane">
                                 <span class="icon-plane" aria-label="打飞机"><svg viewBox="0 0 24 24"><path d="M12 3 6.5 20l5.5-3 5.5 3L12 3Z"/><path class="plane-line" d="M12 3v14M8.5 14h7"/></svg></span>
@@ -1071,61 +1071,40 @@
                     </div>
 
                     <!-- Memory Game Container -->
-                    <div class="game-container game-memory">
-                        <div class="memory-header">
-                            <div class="memory-title-wrap">
-                                <span class="memory-title-icon">🎴</span>
-                                <span class="memory-title">记忆翻牌</span>
+                    <!-- Reversi (黑白棋) —— 玩家执黑先行，AI 执白 -->
+                    <div class="game-container game-reversi">
+                        <div class="reversi-header">
+                            <div class="reversi-title-wrap">
+                                <span class="reversi-title">黑白棋</span>
+                                <span class="reversi-record" id="reversiRecord">0 胜 0 负</span>
                             </div>
-                            <div class="memory-scores">
-                                <div class="memory-score-box">
-                                    <span class="memory-score-label">用时</span>
-                                    <span class="memory-score-value" id="memoryTime">0:00</span>
-                                </div>
-                                <div class="memory-score-box">
-                                    <span class="memory-score-label">步数</span>
-                                    <span class="memory-score-value" id="memoryMoves">0</span>
-                                </div>
-                                <div class="memory-score-box">
-                                    <span class="memory-score-label">已配对</span>
-                                    <span class="memory-score-value" id="memoryMatched">0/8</span>
-                                </div>
+                            <div class="reversi-scores">
+                                <div class="reversi-score-box is-black"><span>你 · 黑</span><b id="reversiBlackScore">2</b></div>
+                                <div class="reversi-score-box is-white"><span>AI · 白</span><b id="reversiWhiteScore">2</b></div>
                             </div>
                         </div>
 
-                        <div class="memory-meta">
-                            <div class="memory-best">
-                                <i class="fas fa-trophy memory-best-icon"></i>
-                                <span>最佳</span>
-                                <span class="memory-best-value" id="memoryBest">—:—</span>
-                            </div>
-                            <div class="memory-progress">
-                                <div class="memory-progress-bar" id="memoryProgressBar"></div>
-                            </div>
-                        </div>
+                        <div class="reversi-status" id="reversiStatus">点击「开始对局」</div>
 
-                        <div class="memory-status" id="memoryStatus">点击 <strong>开始游戏</strong> 启动</div>
-
-                        <div class="memory-board-area">
-                            <div class="memory-board" id="memoryBoard"></div>
-                            <canvas class="memory-particle-canvas" id="memoryParticleCanvas"></canvas>
-                            <div class="memory-preview-mask" id="memoryPreviewMask">
-                                <span class="memory-preview-text">准备…</span>
-                            </div>
-                        </div>
-
-                        <div class="memory-controls">
-                            <button class="memory-btn memory-btn-primary" id="memoryStart">
-                                <i class="fas fa-play"></i> 开始游戏
-                            </button>
-                            <button class="memory-btn" id="memoryReset">
-                                <i class="fas fa-shuffle"></i> 重新洗牌
-                            </button>
-                        </div>
-
-                        <p class="memory-instructions">
-                            <strong>玩法：</strong> 点击卡牌翻开两张，找相同图案配对；全部消除后用时最短者胜。
+                        <p class="reversi-instructions">
+                            你执黑先行 · 落子须夹住白子并翻面 · 无处可落自动轮空
                         </p>
+
+                        <div class="reversi-board-area">
+                            <div class="reversi-board" id="reversiBoard"></div>
+                            <div class="reversi-overlay" id="reversiOverlay">
+                                <div>
+                                    <p class="reversi-overlay-title" id="reversiOverlayTitle"></p>
+                                    <p class="reversi-overlay-msg" id="reversiOverlayMsg"></p>
+                                    <button type="button" id="reversiOverlayBtn">再来一局</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="reversi-controls">
+                            <button type="button" class="reversi-btn reversi-btn-primary" id="reversiStart">开始对局</button>
+                            <button type="button" class="reversi-btn" id="reversiRestart">重开</button>
+                        </div>
                     </div>
 
                     <!-- Plane Shooter Game Container -->

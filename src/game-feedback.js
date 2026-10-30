@@ -38,7 +38,8 @@ if (panel && header) {
         '2048': { read: () => window.game2048 && ({ state: window.game2048.gameActive ? 'playing' : 'ended', detail: window.game2048.aiPlaying ? 'AI 正在游玩' : '方向键移动方块' }), start: () => click('newGame2048') },
         'tic-tac-toe': { read: () => { const g = window.ticTacToeGame; return g && { state: !g.gameActive ? 'ended' : g.aiThinking ? 'thinking' : 'playing', detail: text('ticTacToeStatus') }; }, start: () => click('ticTacToeStart') },
         gomoku: { read: () => { const g = window.gomokuGame; return g && { state: !g.gameActive ? 'ended' : g.aiThinking ? 'thinking' : 'playing', detail: text('gomokuStatus') }; }, start: () => click('gomokuReset') },
-        memory: { read: () => { const g = window.memoryGame; return g && { state: g.matched === 8 ? 'complete' : g.playing ? 'playing' : 'ready', detail: g.playing ? '寻找相同图案' : undefined, resultTitle: '全部配对完成', resultDetail: `用时 ${g.seconds} 秒 · ${g.moves} 次翻牌` }; }, start: () => click('memoryStart'), result: true },
+        // 黑白棋有自己的结算浮层，这里不挂 result，避免两套弹窗同时出现
+        reversi: { read: () => window.reversiGame?.getSession(), start: () => window.reversiGame?.restart() },
         mine: { read: () => window.mineGame?.getSession(), start: () => window.mineGame?.restart(), pause: () => window.mineGame?.togglePause(), result: true },
     };
     let current = null;

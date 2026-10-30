@@ -1,0 +1,244 @@
+/* 黑白棋（Reversi）—— 深色棋盘放在浅色站点里，和其他游戏面板保持同一套底色 */
+
+.game-container.game-reversi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px 20px;
+    color: var(--text, #e8eaf6);
+    overflow: hidden;
+}
+
+/* ── 头部 ── */
+.reversi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 620px;
+}
+
+.reversi-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reversi-title {
+    font-size: 1.02rem;
+    letter-spacing: 0.02em;
+}
+
+.reversi-record {
+    font: 11px 'Space Mono', ui-monospace, monospace;
+    color: var(--muted, #b1bacb);
+    opacity: 0.85;
+}
+
+.reversi-scores {
+    display: flex;
+    gap: 8px;
+}
+
+.reversi-score-box {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 88px;
+    padding: 6px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.reversi-score-box span {
+    font-size: 11px;
+    color: var(--muted, #b1bacb);
+}
+
+.reversi-score-box b {
+    margin-left: auto;
+    font: 600 17px 'Space Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+.reversi-score-box.is-black b { color: #e8eaf6; }
+.reversi-score-box.is-white b { color: #9fb4ff; }
+
+.reversi-status {
+    min-height: 1.3em;
+    font-size: 0.85rem;
+    color: var(--muted, #b1bacb);
+}
+
+/* ── 棋盘 ── */
+.reversi-board-area {
+    position: relative;
+    display: grid;
+    place-items: center;
+}
+
+.reversi-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    width: var(--reversi-board-size, 480px);
+    height: var(--reversi-board-size, 480px);
+    max-width: 100%;
+    padding: 6px;
+    border-radius: 8px;
+    background: #131f36;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.reversi-cell {
+    position: relative;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.025);
+    cursor: default;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 可落子点：小圆点提示，别做太亮，避免干扰棋子本体 */
+.reversi-cell.is-legal {
+    cursor: pointer;
+}
+
+.reversi-cell.is-legal::after {
+    content: '';
+    position: absolute;
+    inset: 36%;
+    border-radius: 50%;
+    background: rgba(168, 196, 255, 0.72);
+    box-shadow: 0 0 8px rgba(140, 170, 255, 0.45);
+    transition: transform 0.15s ease;
+}
+
+.reversi-cell.is-legal:hover::after {
+    transform: scale(1.35);
+}
+
+.reversi-disc {
+    position: absolute;
+    inset: 8%;
+    border-radius: 50%;
+    transform: scale(0);
+    transition: transform 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.reversi-cell.is-black .reversi-disc {
+    transform: scale(1);
+    background: radial-gradient(circle at 34% 28%, #39445c, #070b14 76%);
+    /* 深色棋盘上纯黑会糊成一团，靠一圈亮边把轮廓拉出来；手机上尤其明显 */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), inset 0 0 0 1.5px rgba(186, 205, 244, 0.5);
+}
+
+.reversi-cell.is-white .reversi-disc {
+    transform: scale(1);
+    background: radial-gradient(circle at 34% 28%, #ffffff, #dae2f2 78%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+/* 最近一手：琥珀色描边，扫一眼就知道 AI 刚下在哪 */
+.reversi-cell.is-last::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 2px rgba(255, 205, 120, 0.8);
+}
+
+/* ── 结算浮层 ── */
+.reversi-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    padding: 20px;
+    border-radius: 8px;
+    background: rgba(8, 14, 26, 0.84);
+    text-align: center;
+}
+
+.reversi-overlay.is-open {
+    display: grid;
+}
+
+.reversi-overlay-title {
+    margin: 0 0 6px;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.reversi-overlay-msg {
+    margin: 0 0 14px;
+    font: 13px 'Space Mono', ui-monospace, monospace;
+    color: var(--muted, #b1bacb);
+}
+
+#reversiOverlayBtn {
+    padding: 9px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 5px;
+    background: rgba(159, 180, 255, 0.14);
+    color: #e8eaf6;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#reversiOverlayBtn:hover {
+    background: rgba(159, 180, 255, 0.24);
+}
+
+/* ── 控制区与说明 ── */
+.reversi-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.reversi-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text, #e8eaf6);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.reversi-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.reversi-btn-primary {
+    border-color: rgba(159, 180, 255, 0.45);
+    background: rgba(159, 180, 255, 0.16);
+}
+
+.reversi-instructions {
+    max-width: 620px;
+    margin: -4px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    color: var(--muted, #b1bacb);
+    opacity: 0.72;
+    text-align: center;
+}
+
+@media (max-width: 720px) {
+    .game-container.game-reversi { padding: 12px; }
+    .reversi-score-box { min-width: 74px; padding: 5px 9px; }
+    .reversi-instructions { font-size: 11px; }
+}

@@ -196,6 +196,16 @@ function runTicTacToe(seed, cfg) {
     }
 }
 
+// ─── 黑白棋 ───
+// 一「局」= AI 执黑 vs 随机执白，跑完整盘取子数差（正数=AI 赢多少子）。
+// 规则与搜索都在 game-reversi.js 里，这里只负责驱动，不复制任何棋规。
+function runReversi() {
+    const game = window.reversiGame;
+    if (!game || !game.simulate) throw new Error('黑白棋实例未就绪');
+    const r = game.simulate();
+    return { score: r.score, steps: r.steps };
+}
+
 const RUNNERS = {
     tetris: {
         run: runTetris, metric: '分数', unit: '分', maxSteps: 400,
@@ -205,6 +215,11 @@ const RUNNERS = {
     },
     '2048': {
         run: run2048, metric: '分数', unit: '分', maxSteps: 350,
+        secondaryLabel: '步数',
+        pickSecondary: (r) => r.steps,
+    },
+    reversi: {
+        run: runReversi, metric: '子数差', unit: '子', maxSteps: 120,
         secondaryLabel: '步数',
         pickSecondary: (r) => r.steps,
     },

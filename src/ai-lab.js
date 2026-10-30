@@ -575,6 +575,36 @@ api.register('tic-tac-toe', [
         : `不失误，每步都按 ${v.searchDepth} 层搜索取最优。`,
 });
 
+api.register('reversi', [
+    {
+        key: 'wCorner', label: '角权重', min: 0, max: 80, step: 5, def: 40,
+        hint: '四角永远不会被翻，是黑白棋最值钱的位置。调到 0 会看到 AI 主动把角送给你。',
+    },
+    {
+        key: 'wEdge', label: '边权重', min: 0, max: 20, step: 1, def: 8,
+        hint: '边上的子比内部稳。权重过高会让 AI 为了占边而放弃行动力。',
+    },
+    {
+        key: 'wMobility', label: '行动力权重', min: 0, max: 30, step: 1, def: 10,
+        hint: '「让对手可选的点更少」——黑白棋中盘的核心策略。调 0 后 AI 会变得只会吃子。',
+    },
+    {
+        key: 'wDisc', label: '子数权重', min: 0, max: 8, step: 0.5, def: 1,
+        hint: '只看当前子数差。权重拉高就是「贪吃」：前期吃得多，后期无处可落。',
+    },
+    {
+        key: 'depth', label: '搜索深度', min: 1, max: 5, step: 1, def: 3,
+        hint: '实测中后盘（最多 15 个落点）：深度 3 约 3ms、深度 4 约 16ms、深度 5 约 55ms（最慢 130ms）。',
+    },
+], {
+    presets: {
+        贪吃: { wCorner: 0, wEdge: 0, wMobility: 0, wDisc: 8, depth: 2 },
+        标准: { wCorner: 40, wEdge: 8, wMobility: 10, wDisc: 1, depth: 3 },
+        稳健: { wCorner: 60, wEdge: 12, wMobility: 22, wDisc: 0.5, depth: 3 },
+    },
+    note: (v) => `评分 = (${v.wCorner})·角 + (${v.wEdge})·边 + (${v.wMobility})·行动力 + (${v.wDisc})·子数差`,
+});
+
 api.register('maze', [
     {
         key: 'visionScale', label: '怪物视野', min: 0.5, max: 2, step: 0.1, def: 1,

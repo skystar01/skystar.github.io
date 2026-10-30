@@ -1973,10 +1973,8 @@ document.addEventListener('keydown', e => {
                 case 'gomoku':
                     if (window.fitGomoku) window.fitGomoku(container);
                     break;
-                case 'memory':
-                    // 按需构造(会预载 ~690KB 卡面图), 不能放在包加载时就做
-                    if (window.ensureMemoryGame) window.ensureMemoryGame();
-                    if (window.fitMemory) window.fitMemory(container);
+                case 'reversi':
+                    if (window.reversiGame && window.reversiGame.fitReversi) window.reversiGame.fitReversi();
                     break;
                 case 'plane':
                     fitPlane(container);
@@ -2044,6 +2042,17 @@ document.addEventListener('keydown', e => {
         return mineScriptPromise;
     }
 
+    // 黑白棋同样独立成包：规则 + 搜索 + 棋盘渲染都在 game-reversi.js 里
+    let reversiScriptPromise = null;
+    function ensureReversiScript() {
+        if (window.reversiGame) return Promise.resolve();
+        if (reversiScriptPromise) return reversiScriptPromise;
+        reversiScriptPromise = import('./game-reversi.js')
+            .then(() => {})
+            .catch((e) => { reversiScriptPromise = null; throw e; });
+        return reversiScriptPromise;
+    }
+
     // ─── 游戏生命周期管理 ───
     // 有 RAF/setTimeout 循环的游戏注册后, tab 切换时自动暂停/恢复, 避免后台空转
     const gameRegistry = {};
@@ -2087,6 +2096,7 @@ document.addEventListener('keydown', e => {
         try {
             if (gameName === 'plane') await ensurePlaneScript();
             else if (gameName === 'mine') await ensureMineScript();
+            else if (gameName === 'reversi') await ensureReversiScript();
             else await ensureGamesBundle();
         } catch (error) {
             if (version === gameSwitchVersion) {
