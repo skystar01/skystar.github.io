@@ -1953,50 +1953,39 @@ document.addEventListener('keydown', e => {
         canvas.style.height = Math.floor(h) + 'px';
     }
 
+    // ─── 游戏结构清单 ───
+    // 「怎么加载」和「怎么适布局」集中在这一张表里。
+    // 之前这两件事分别散在 setActiveByGame 的 if/else 和 fitGame 的 switch 里，
+    // 加一款游戏要改两处、漏一处不报错（漏加载只是多下了公共包，漏 fit 只是布局偏一点）。
+    // 函数声明会提升，所以这里可以引用后面定义的 ensure*。
+    const GAME_META = {
+        snake:        { load: ensureGamesBundle, fit: () => window.snakeGame?.fitSnake?.() },
+        '2048':       { load: ensureGamesBundle, fit: (c) => fit2048(c) },
+        tetris:       { load: ensureGamesBundle, fit: (c) => fitTetris(c) },
+        'tic-tac-toe': { load: ensureGamesBundle, fit: (c) => fitTicTacToe(c) },
+        gomoku:       { load: ensureGamesBundle, fit: (c) => window.fitGomoku?.(c) },
+        maze:         { load: ensureGamesBundle, fit: () => window.mazeGame?.fitMaze?.() },
+        survivor:     {
+            load: ensureGamesBundle,
+            // 必须在 fit 之前构造：会预载精灵图，晚于 fit 会拿到默认 canvas 尺寸
+            fit: (c) => { window.ensureSurvivorGame?.(); fitSurvivor(c); },
+        },
+        flappy:       {
+            load: ensureGamesBundle,
+            fit: (c) => { const canvas = c.querySelector('canvas'); if (canvas) fitCanvasToContainer(canvas, c); },
+        },
+        plane:        { load: ensurePlaneScript, fit: (c) => fitPlane(c) },
+        mine:         { load: ensureMineScript, fit: () => window.mineGame?.fitMine?.() },
+        reversi:      { load: ensureReversiScript, fit: () => window.reversiGame?.fitReversi?.() },
+    };
+    // 供 game-feedback 做一致性自检（少写一条状态读数不会报错，只会静默降级）
+    window.gameMeta = GAME_META;
+
     // 按游戏类型分别适配固定容器
     function fitGame(gameName, container) {
         if (!container) return;
         requestAnimationFrame(() => {
-            switch (gameName) {
-                case 'snake':
-                    if (window.snakeGame && window.snakeGame.fitSnake) window.snakeGame.fitSnake();
-                    break;
-                case '2048':
-                    fit2048(container);
-                    break;
-                case 'tetris':
-                    fitTetris(container);
-                    break;
-                case 'tic-tac-toe':
-                    fitTicTacToe(container);
-                    break;
-                case 'gomoku':
-                    if (window.fitGomoku) window.fitGomoku(container);
-                    break;
-                case 'reversi':
-                    if (window.reversiGame && window.reversiGame.fitReversi) window.reversiGame.fitReversi();
-                    break;
-                case 'plane':
-                    fitPlane(container);
-                    break;
-                case 'maze':
-                    if (window.mazeGame && window.mazeGame.fitMaze) window.mazeGame.fitMaze();
-                    break;
-                case 'survivor':
-                    // 按需构造(会预载 ~1.6MB 精灵图), 必须在 fit 之前, 否则 canvas 尺寸是默认值
-                    if (window.ensureSurvivorGame) window.ensureSurvivorGame();
-                    fitSurvivor(container);
-                    break;
-                case 'mine':
-                    if (window.mineGame && window.mineGame.fitMine) window.mineGame.fitMine();
-                    break;
-                case 'flappy':
-                default: {
-                    const canvas = container.querySelector('canvas');
-                    if (canvas) fitCanvasToContainer(canvas, container);
-                    break;
-                }
-            }
+            GAME_META[gameName]?.fit?.(container);
         });
     }
 
@@ -2094,10 +2083,8 @@ document.addEventListener('keydown', e => {
 
         // 阶段2: 懒加载游戏代码, 首屏不下载(~302KB); 仅在真正切换时才触发
         try {
-            if (gameName === 'plane') await ensurePlaneScript();
-            else if (gameName === 'mine') await ensureMineScript();
-            else if (gameName === 'reversi') await ensureReversiScript();
-            else await ensureGamesBundle();
+            const load = GAME_META[gameName]?.load || ensureGamesBundle;
+            await load();
         } catch (error) {
             if (version === gameSwitchVersion) {
                 stage.dataset.loadState = 'error';

@@ -140,5 +140,22 @@ if (panel && header) {
         // Space/Enter on a button should activate it once, not also control a game.
         if ((e.code === 'Space' || e.code === 'Enter') && e.target.closest('button, summary, select')) e.stopPropagation();
     }, true);
+    // 一致性自检：新增游戏若漏写状态读数 / 容器 / 结构清单 / 图标基类，都不会报错，
+    // 只会静默降级（按钮变「新对局」、布局偏一点、图标不可见）。这里在启动时点名。
+    function auditGames() {
+        const names = [...document.querySelectorAll('.game-tab:not([data-clone])')].map(t => t.dataset.game);
+        const gaps = [];
+        for (const name of names) {
+            if (!games[name]) gaps.push(`${name} 缺状态读数`);
+            if (!document.querySelector(`.game-container.game-${name}`)) gaps.push(`${name} 缺容器`);
+            if (window.gameMeta && !window.gameMeta[name]) gaps.push(`${name} 缺 GAME_META`);
+            if (!document.querySelector(`.game-tab[data-game="${name}"] .game-icon`)) gaps.push(`${name} 缺 .game-icon`);
+        }
+        if (gaps.length) console.warn('[游戏清单自检] ' + gaps.join('；'));
+    }
+
     schedule();
+    auditGames();
+    // 暴露给控制台，便于手动复核；也让"检查本身有没有效"可被验证
+    window.__gameAudit = auditGames;
 }

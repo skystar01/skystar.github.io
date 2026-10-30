@@ -1853,7 +1853,7 @@ html, body {
   vertical-align: -0.15em;
 }
 /* 在 game-tab 内保持 1.15rem(原 Font Awesome 字号) */
-.game-tab [class^="icon-"] { font-size: 1.15rem; flex-shrink: 0; }
+.game-tab .game-icon, .game-tab .game-icon, .game-tab [class^="icon-"] { font-size: 1.15rem; flex-shrink: 0; }
 .icon-rl svg, .icon-flame svg, .icon-flappy svg, .icon-chat svg,
 .icon-chess svg, .icon-2048 svg, .icon-tetris svg, .icon-tictactoe svg, .icon-gomoku svg, .icon-memory svg,
 .icon-plane svg, .icon-snake svg, .icon-maze svg, .icon-code-pipe svg, .icon-training svg, .icon-mine svg,
@@ -1866,6 +1866,64 @@ html, body {
   stroke-linecap: round;
   stroke-linejoin: round;
   display: block;
+}
+
+/* 通用图标基类 —— 新增游戏只需挂 .game-icon。
+   上面几组选择器是按类名逐个列举的，漏加就意味着「没有宽高 = 图标看不见」，
+   黑白棋换上来时就踩过这个坑。专属类(.icon-xxx)继续保留，只用来加特有动效。 */
+.game-icon {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 0;
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.45s ease;
+}
+
+.game-icon svg {
+  width: 1em;
+  height: 1em;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-icon, .game-icon * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* 通用图标基类 —— 新增游戏只需挂 .game-icon。
+   上面几组选择器是按类名逐个列举的，漏加就意味着「没有宽高 = 图标看不见」，
+   黑白棋换上来时就踩过这个坑。专属类(.icon-xxx)继续保留，只用来加特有动效。 */
+.game-icon {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 0;
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.45s ease;
+}
+
+.game-icon svg {
+  width: 1em;
+  height: 1em;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-icon, .game-icon * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* 通用 hover 基础(轻微缩放 + 颜色发光) */
