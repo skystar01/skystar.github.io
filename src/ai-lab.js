@@ -13,6 +13,26 @@ const registry = new Map();
 const listeners = new Set();
 /** 从 localStorage 读出的原始存档：{ [gameKey]: { preset, values } } */
 let store = {};
+const undoHistory = new Map();
+let gestureGame = null;
+const slots = window.SkyStorage?.getJSON?.('skystar:ai-lab:slots:v1', {}) || {};
+const baselines = new Map();
+let benchController, benchRequest = 0;
+function remember(gameKey) {
+    const history = undoHistory.get(gameKey) || [];
+    history.push({preset:api.presetOf(gameKey), values:api.valuesOf(gameKey)});
+    if (history.length > 20) history.shift();
+    undoHistory.set(gameKey,history);
+}
+function restore(gameKey, snapshot) {
+    const entry = registry.get(gameKey);
+    if (!entry || !snapshot?.values) return;
+    const values = {};
+    for (const item of entry.spec) values[item.key] = Number.isFinite(snapshot.values[item.key]) ? clampTo(item,snapshot.values[item.key]) : item.def;
+    store[gameKey] = {preset:snapshot.preset || '自定义', values};
+    persist(); emit(gameKey);
+    if (openGameKey === gameKey) renderBody();
+}
 
 // 参数变更时的高频读取走缓存，避免每次 AI 决策都拼对象
 const valueCache = new Map();
@@ -50,6 +70,7 @@ function clampTo(item, v) {
 }
 
 function emit(gameKey) {
+    if (benchState.gameKey === gameKey && benchState.running) benchController?.abort();
     valueCache.delete(gameKey);
     // 参数改动后按钮上的「已自定义」圆点要立刻反映出来
     refreshButtonBadge();
@@ -91,6 +112,8 @@ const api = {
         if (!entry) return;
         const item = entry.spec.find(s => s.key === key);
         if (!item) return;
+        if (!Number.isFinite(value)) return;
+        if (gestureGame !== gameKey) remember(gameKey);
         const current = { ...effectiveValues(gameKey) };
         current[key] = clampTo(item, value);
         store[gameKey] = { preset: '自定义', values: current };
@@ -102,6 +125,7 @@ const api = {
     applyPreset(gameKey, name) {
         const entry = registry.get(gameKey);
         if (!entry) return;
+        remember(gameKey);
         const presetValues = entry.presets[name] || {};
         const values = {};
         for (const item of entry.spec) values[item.key] = item.def;
@@ -116,6 +140,7 @@ const api = {
     },
 
     reset(gameKey) {
+        remember(gameKey);
         delete store[gameKey];
         persist();
         emit(gameKey);
@@ -130,6 +155,23 @@ const api = {
     /** 当前生效参数的副本（跑分台要用它做「当前设置」这一组） */
     valuesOf(gameKey) {
         return { ...effectiveValues(gameKey) };
+    },
+    undo(gameKey) {
+        const previous = undoHistory.get(gameKey)?.pop();
+        if (previous) restore(gameKey,previous);
+    },
+    saveSlot(gameKey, name) {
+        if (!['A','B'].includes(name)) return;
+        slots[gameKey] ||= {};
+        slots[gameKey][name] = {preset:api.presetOf(gameKey),values:api.valuesOf(gameKey)};
+        window.SkyStorage?.setJSON?.('skystar:ai-lab:slots:v1',slots);
+        if (baselines.get(gameKey) === name) {benchController?.abort();benchState.result=null;}
+        if (openGameKey === gameKey) renderBody();
+    },
+    loadSlot(gameKey, name) {
+        const snapshot = slots[gameKey]?.[name];
+        if (!snapshot) return;
+        remember(gameKey); restore(gameKey,snapshot);
     },
 
     /** 某个预设档位的参数值（跑分台要用它做基准，且不能污染玩家存档） */
@@ -277,7 +319,9 @@ function renderBody() {
 
     const values = effectiveValues(openGameKey);
     const noteText = typeof entry.note === 'function' ? entry.note(values) : entry.note;
-    bodyEl.innerHTML = entry.spec.map(item => `
+    bodyEl.innerHTML = `<div class="ailab-snapshots"><div class="ailab-snapshot-head">实验配置 <button type="button" id="ailabUndo" ${undoHistory.get(openGameKey)?.length ? '' : 'disabled'}>撤销调整</button></div>
+        ${['A','B'].map(name=>`<div><span>${name} · ${slots[openGameKey]?.[name] ? '已保存' : '空槽'}</span><button type="button" data-save="${name}">${slots[openGameKey]?.[name] ? '覆盖' : '保存当前'}</button><button type="button" data-load="${name}" ${slots[openGameKey]?.[name] ? '' : 'disabled'}>载入</button></div>`).join('')}
+        <p class="ailab-hint">保存不会改变当前设置；载入后仍可撤销。策略权重用于下一次决策。</p></div>` + entry.spec.map(item => `
         <div class="ailab-row" data-key="${item.key}">
             <div class="ailab-row-head">
                 <label for="ailab-${item.key}">${item.label}</label>
@@ -287,6 +331,7 @@ function renderBody() {
                    min="${item.min}" max="${item.max}" step="${item.step}"
                    value="${values[item.key]}">
             ${item.hint ? `<p class="ailab-hint">${item.hint}</p>` : ''}
+            <p class="ailab-reference">标准 ${fmt(item, api.presetValues(openGameKey,'标准')[item.key])} → 当前 ${fmt(item, values[item.key])}</p>
         </div>`).join('') + (noteText ? `<p class="ailab-note" id="ailabNote">${noteText}</p>` : '') + `
         <div class="ailab-bench" id="ailabBench"></div>
         <button type="button" class="ailab-reset" id="ailabReset">恢复默认</button>`;
@@ -295,15 +340,28 @@ function renderBody() {
         const key = input.id.replace('ailab-', '');
         const item = entry.spec.find(s => s.key === key);
         input.addEventListener('input', () => {
+            if (gestureGame !== openGameKey) { remember(openGameKey); gestureGame = openGameKey; }
             api.set(openGameKey, key, Number(input.value));
+            input.closest('.ailab-row').querySelector('.ailab-reference').textContent = `标准 ${fmt(item, api.presetValues(openGameKey,'标准')[key])} → 当前 ${fmt(item, Number(input.value))}`;
         });
         input.addEventListener('change', () => {
+            gestureGame = null;
             // 拖完一次重渲染一次，让「自定义」标记和预设 chip 状态同步
             renderBody();
+            bodyEl.querySelector(`#ailab-${key}`)?.focus({preventScroll:true});
         });
         if (item) input.setAttribute('aria-label', item.label);
     });
     bodyEl.querySelector('#ailabReset')?.addEventListener('click', () => api.reset(openGameKey));
+    bodyEl.querySelector('#ailabUndo').addEventListener('click',()=>api.undo(openGameKey));
+    bodyEl.querySelectorAll('[data-save]').forEach(b=>b.addEventListener('click',()=>api.saveSlot(openGameKey,b.dataset.save)));
+    bodyEl.querySelectorAll('[data-load]').forEach(b=>b.addEventListener('click',()=>api.loadSlot(openGameKey,b.dataset.load)));
+    const selector = document.createElement('label'); selector.className='ailab-baseline'; selector.textContent='对比基准 ';
+    const select = document.createElement('select'); select.id='ailabBaseline';
+    for (const name of ['标准','A','B']) {const option=new Option(name,name);option.disabled=name!=='标准'&&!slots[openGameKey]?.[name];select.add(option);}
+    select.value=baselines.get(openGameKey)||'标准';
+    select.addEventListener('change',()=>{baselines.set(openGameKey,select.value);benchController?.abort();benchState.result=null;paintBench();});
+    selector.append(select); bodyEl.querySelector('.ailab-snapshots').append(selector);
     mountBench(openGameKey);
 }
 
@@ -319,6 +377,7 @@ function mountBench(gameKey) {
         return;
     }
     if (benchState.gameKey !== gameKey) {
+        benchController?.abort(); benchRequest++;
         benchState.gameKey = gameKey;
         benchState.result = null;
         benchState.error = null;
@@ -332,18 +391,19 @@ const fmtNum = (v) => Math.round(v).toLocaleString('zh-CN');
 /** 当前参数是否与基准预设完全一致（一致时对比没有意义，需要提示用户） */
 function isSameAsBaseline(gameKey) {
     const cur = api.valuesOf(gameKey);
-    const base = api.presetValues(gameKey, '标准');
+    const base = slots[gameKey]?.[baselines.get(gameKey)]?.values || api.presetValues(gameKey, '标准');
     return Object.keys(base).every(k => Math.abs((cur[k] ?? 0) - base[k]) < 1e-9);
 }
 
 function paintBench() {
     const host = bodyEl?.querySelector('#ailabBench');
     if (!host) return;
-    const head = `<div class="ailab-bench-head"><span>量化对比</span><span class="ailab-bench-sub">同种子开局 · 基准为标准预设</span></div>`;
+    const head = `<div class="ailab-bench-head"><span>量化对比</span><span class="ailab-bench-sub">同种子开局 · 基准 ${baselines.get(openGameKey)||'标准'}</span></div>`;
 
     if (benchState.running) {
         host.innerHTML = `${head}<button type="button" class="ailab-bench-run" id="ailabBenchRun" disabled>跑分中…</button>
-            <p class="ailab-bench-progress" id="ailabBenchProgress">0 / 10 局</p>`;
+            <p class="ailab-bench-progress" id="ailabBenchProgress">0 / ${window.aiBench.defaultRuns(openGameKey)} 局</p><button type="button" id="ailabCancel">取消测试</button>`;
+        host.querySelector('#ailabCancel').addEventListener('click',()=>benchController?.abort());
         return;
     }
 
@@ -359,8 +419,8 @@ function paintBench() {
         const runs = window.aiBench?.defaultRuns?.(openGameKey) || 10;
         host.innerHTML = `${head}<button type="button" class="ailab-bench-run" id="ailabBenchRun">跑 ${runs} 局对比</button>
             <p class="ailab-bench-progress">${same
-                ? '当前就是标准预设，先改点参数再跑才有对比意义（也可以直接跑，看这套配置的绝对水平）。'
-                : `当前设置 vs 标准预设，各 ${runs} 局，约需几秒。`}</p>`;
+                ? '当前与基准相同，可以先调整一个参数再比较。'
+                : `当前设置 vs 所选基准，各 ${runs} 局。耗时取决于搜索深度。`}</p>`;
         host.querySelector('#ailabBenchRun')?.addEventListener('click', runBench);
         return;
     }
@@ -369,9 +429,9 @@ function paintBench() {
     const d = r.delta;
     const sign = d.mean > 0 ? '+' : '';
     const tone = !d.significant ? 'noise' : d.mean > 0 ? 'better' : 'worse';
-    const verdict = !d.significant
+    const verdict = d.constantDifference ? '本次每组差值相同且非零；无法估计差值波动，请换种子复核' : !d.significant
         ? '差值在噪声范围内，不足以说明变强或变弱'
-        : d.mean > 0 ? '当前设置明显更好' : '当前设置明显更差';
+        : d.mean > 0 ? '当前设置在本次测试中得分更高' : '当前设置在本次测试中得分更低';
     const pct = r.unit === '%' ? '%' : '';
     const sec = r.secondary ? `
         <p class="ailab-secondary">${r.secondary.label}：基准 ${fmtNum(r.secondary.baseline.mean)} → 当前 ${fmtNum(r.secondary.current.mean)}
@@ -383,10 +443,10 @@ function paintBench() {
             <div class="ailab-res-row is-cur"><span>当前设置</span><b>${fmtNum(r.current.mean)}${pct}</b><em>中位 ${fmtNum(r.current.median)}${pct}</em></div>
         </div>
         ${sec}
-        <p class="ailab-delta is-${tone}">${sign}${fmtNum(d.mean)}${r.unit === '%' ? '%' : ' ' + r.unit} · 标准误 ${fmtNum(d.se)} · t=${d.t}</p>
+        <p class="ailab-delta is-${tone}">${sign}${d.mean}${r.unit === '%' ? ' 个百分点' : ' ' + r.unit}</p>
         <p class="ailab-verdict is-${tone}">${verdict}</p>
-        <p class="ailab-caveat">${r.runs} 局同种子开局，随机序列在双方存活期间保持一致；
-            |t| &lt; 2.3 视为噪声（该阈值偏保守，宁可不给结论）。</p>
+        ${r.behavior ? `<div class="ailab-behavior"><strong>俄罗斯方块 · 行为观察</strong>${r.behavior.map(o=>`<div><span>${({holes:'平均空洞',height:'平均列高总和',decisionMs:'每步决策 / ms'})[o.key]}</span><b>${o.baseline.toFixed(2)} → ${o.current.toFixed(2)}</b></div>`).join('')}<p class="ailab-hint">落块后取样，每局求平均再汇总。耗时受设备与运行顺序影响。</p></div>` : ''}
+        <details class="ailab-method"><summary>测试条件与参数快照</summary><p>${r.runs} 组同种子开局，每局最多 ${r.conditions.maxSteps} 步，提前结束则停止。决策可能改变随机数消耗，后续场景不保证一致。固定种子的重复测试不构成新证据。</p><p>标准误 ${d.se}；t=${d.t ?? '不可估计'}。|t|≥2.3 仅作探索性提示，不代表普遍更强。</p><p>种子：${r.conditions.seeds.join(', ')}</p><pre>${JSON.stringify({基准:r.conditions.baselineValues,当前:r.conditions.currentValues},null,2)}</pre></details>
         <button type="button" class="ailab-bench-run is-ghost" id="ailabBenchRun">再跑一次</button>`;
     host.querySelector('#ailabBenchRun')?.addEventListener('click', runBench);
 }
@@ -395,24 +455,31 @@ async function runBench() {
     const gameKey = openGameKey;
     if (!gameKey || benchState.running || !window.aiBench) return;
     benchState.running = true;
+    const request = ++benchRequest;
+    const controller = new AbortController(); benchController = controller;
     benchState.result = null;
     benchState.error = null;
     paintBench();
 
     try {
         const res = await window.aiBench.run(gameKey, {
+            signal:controller.signal,
+            baselineLabel:baselines.get(gameKey)||'标准',
+            baselineValues:slots[gameKey]?.[baselines.get(gameKey)]?.values,
             onProgress: (done, total) => {
                 if (openGameKey !== gameKey) return;
                 const p = bodyEl?.querySelector('#ailabBenchProgress');
                 if (p) p.textContent = `${done} / ${total} 局`;
             },
         });
-        if (openGameKey === gameKey) benchState.result = res;
+        if (request === benchRequest && openGameKey === gameKey && !controller.signal.aborted) benchState.result = res;
     } catch (e) {
-        benchState.error = e?.message || '跑分失败';
+        if (request === benchRequest) benchState.error = e?.message || '跑分失败';
     } finally {
-        benchState.running = false;
-        if (openGameKey === gameKey) paintBench();
+        if (request === benchRequest) {
+            benchState.running = false;
+            if (openGameKey === gameKey) paintBench();
+        }
     }
 }
 

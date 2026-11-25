@@ -56,14 +56,15 @@ function stats(samples) {
 }
 
 /** 配对差值统计：等价于对每组"同种子"的结果做差，能抵消一部分开局运气 */
-function pairedDelta(cur, base) {
+export function pairedDelta(cur, base) {
     const diffs = cur.map((v, i) => v - base[i]);
     const n = diffs.length;
     const mean = diffs.reduce((a, b) => a + b, 0) / n;
     const variance = n > 1 ? diffs.reduce((s, d) => s + (d - mean) ** 2, 0) / (n - 1) : 0;
     const se = n > 0 ? Math.sqrt(variance / n) : 0;
-    const t = se > 0 ? mean / se : 0;
-    return { mean, se, t, diffs };
+    const constantDifference = se === 0 && mean !== 0;
+    const t = se > 0 ? mean / se : mean === 0 ? 0 : null;
+    return { mean, se, t, diffs, constantDifference };
 }
 
 // ─── 俄罗斯方块 ───
@@ -91,16 +92,28 @@ function runTetris(seed, cfg) {
         g.nextPiece = null;
         g.spawnPiece();
 
-        let pieces = 0;
+        let pieces = 0, holes = 0, height = 0, decisionMs = 0;
         while (!g.gameOver && pieces < cfg.maxSteps) {
+            const started = performance.now();
             const mv = g.findBestMove();
+            decisionMs += performance.now() - started;
             if (!mv) break;
             g.currentPiece = { ...g.currentPiece, shape: mv.shape };
             g.currentPosition = { x: mv.x, y: mv.y };
             g.lockPiece();
             pieces++;
+            for (let x = 0; x < g.COLS; x++) {
+                let occupied = false;
+                for (let y = 0; y < g.ROWS; y++) {
+                    if (g.board[y][x]) {
+                        if (!occupied) height += g.ROWS - y;
+                        occupied = true;
+                    } else if (occupied) holes++;
+                }
+            }
         }
-        return { score: g.score, lines: g.lines, steps: pieces };
+        return { score: g.score, lines: g.lines, steps: pieces,
+            behavior: { holes: holes / Math.max(1,pieces), height: height / Math.max(1,pieces), decisionMs: decisionMs / Math.max(1,pieces) } };
     } finally {
         Object.assign(g, snapshot);
         renderMethods.forEach((m, i) => { g[m] = savedRender[i]; });
@@ -231,6 +244,7 @@ const RUNNERS = {
     },
 };
 
+let running = false;
 const api = {
     supports(gameKey) {
         return !!RUNNERS[gameKey] && !!window.aiLab;
@@ -246,14 +260,18 @@ const api = {
      * @returns {{metric,unit,runs,baseline,current,delta}}
      */
     async run(gameKey, opts = {}) {
+        if (running) throw new Error('已有测试正在运行，请稍后重试');
+        running = true;
+        try {
         const spec = RUNNERS[gameKey];
         if (!spec) throw new Error('该游戏暂不支持跑分');
         const lab = window.aiLab;
 
         const runs = Math.max(4, Math.min(60, opts.runs || api.defaultRuns(gameKey)));
         const seeds = Array.from({ length: runs }, (_, i) => 1000 + i * 7919);
-        const baseValues = lab.presetValues(gameKey, opts.baselinePreset || '标准');
-        const curValues = lab.valuesOf(gameKey);
+        const baseValues = { ...(opts.baselineValues || lab.presetValues(gameKey, opts.baselinePreset || '标准')) };
+        const curValues = { ...lab.valuesOf(gameKey) };
+        const observations = {baseline:[],current:[]};
 
         const baseScores = [];
         const curScores = [];
@@ -261,6 +279,7 @@ const api = {
         const curSecondary = [];
 
         for (let i = 0; i < runs; i++) {
+            if (opts.signal?.aborted) throw new Error('参数或测试条件已改变，本次测试已取消');
             const seed = seeds[i];
             const bRun = await withSeededRandom(seed, () =>
                 withParamOverride(gameKey, baseValues, () => spec.run(seed, spec)));
@@ -268,6 +287,7 @@ const api = {
                 withParamOverride(gameKey, curValues, () => spec.run(seed, spec)));
             baseScores.push(bRun.score);
             curScores.push(cRun.score);
+            if (bRun.behavior) { observations.baseline.push(bRun.behavior); observations.current.push(cRun.behavior); }
             if (spec.pickSecondary) {
                 baseSecondary.push(spec.pickSecondary(bRun));
                 curSecondary.push(spec.pickSecondary(cRun));
@@ -276,26 +296,30 @@ const api = {
             // 让出主线程，避免连跑把界面卡死
             await new Promise(r => setTimeout(r, 0));
         }
+        if (opts.signal?.aborted) throw new Error('参数或测试条件已改变，本次测试已取消');
 
         const base = stats(baseScores);
         const cur = stats(curScores);
         const delta = pairedDelta(curScores, baseScores);
-        const significant = Math.abs(delta.t) >= 2.3;   // n≈10 时双侧 5% 的粗略门槛
+        const significant = delta.t !== null && Math.abs(delta.t) >= 2.3;
 
         return {
             metric: spec.metric,
             unit: spec.unit,
             runs,
-            baselineLabel: opts.baselinePreset || '标准',
+            baselineLabel: opts.baselineLabel || opts.baselinePreset || '标准',
+            conditions: {seeds, maxSteps:spec.maxSteps, baselineValues:baseValues, currentValues:curValues},
+            behavior: observations.baseline.length ? ['holes','height','decisionMs'].map(key=>({key, baseline:stats(observations.baseline.map(r=>r[key])).mean,current:stats(observations.current.map(r=>r[key])).mean})) : null,
             baseline: { ...base, samples: baseScores },
             current: { ...cur, samples: curScores },
-            delta: { mean: round1(delta.mean), se: round1(delta.se), t: Math.round(delta.t * 10) / 10, significant },
+            delta: { mean: round1(delta.mean), se: round1(delta.se), t: delta.t === null ? null : Math.round(delta.t * 10) / 10, significant, constantDifference:delta.constantDifference },
             secondary: spec.pickSecondary ? {
                 label: spec.secondaryLabel,
                 baseline: stats(baseSecondary),
                 current: stats(curSecondary),
             } : null,
         };
+        } finally { running = false; }
     },
 };
 
