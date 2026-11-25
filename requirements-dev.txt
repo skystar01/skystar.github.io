@@ -9,7 +9,7 @@
 gymnasium>=0.29.0
 flappy_bird_gymnasium>=0.1.0
 torch>=2.0.0
-numpy>=1.24.0
+numpy>=2.5.5
 matplotlib>=3.7.0
 pygame>=2.5.0
 pypdfium2>=4.0.0
