@@ -12,4 +12,4 @@ torch>=2.0.0
 numpy>=1.24.0
 matplotlib>=3.7.0
 pygame>=2.5.0
-pypdfium2>=4.0.0
+pypdfium2>=5.15.2
