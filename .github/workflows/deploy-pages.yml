@@ -32,9 +32,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # 用 install 而非 ci:本地环境写锁问题导致 package-lock 可能滞后于 package.json,
-        # ci 遇到 lock 不同步会直接失败,install 则自动补齐
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build

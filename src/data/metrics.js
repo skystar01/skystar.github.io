@@ -42,7 +42,7 @@ export const qaTraining = {
 /** 若 status=ready 且 chartSrc 有值则返回图表路径,否则 fallback */
 export function resolveChart(meta, fallback) {
     if (meta && meta.status === 'ready' && meta.chartSrc) return meta.chartSrc;
-    return (meta && meta.chartSrc) || fallback;
+    return (meta?.chartSrc) || fallback;
 }
 
 export default { flappyTraining, kaiwuEvidence, qaTraining, resolveChart };

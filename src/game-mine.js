@@ -322,7 +322,7 @@ class MineGame {
 
     // 步进间隔可被 AI 实验台调整; 兜底 260ms 与旧行为一致
     #autoDelay() {
-        const v = window.aiLab && window.aiLab.get('mine', 'autoDelay', 260);
+        const v = window.aiLab?.get('mine', 'autoDelay', 260);
         return Number.isFinite(v) ? v : 260;
     }
 

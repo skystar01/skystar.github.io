@@ -8,167 +8,33 @@
 // AI: negamax + α-β 剪枝，权重实时读 window.aiLab。
 
 import '../styles/game-reversi.css';
+import { searchReversiAsync } from './ai-worker-client.js';
+import {
+    applyMove,
+    BLACK,
+    cellName,
+    countDiscs,
+    DEFAULT_WEIGHTS,
+    flipsAt,
+    initialBoard,
+    legalMoves,
+    opp,
+    searchBest,
+    WHITE,
+} from './reversi-engine.js';
 import SkyStorage from './storage.js';
-
-const SIZE = 8;
-const EMPTY = 0, BLACK = 1, WHITE = 2;
-const DIRS = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
-// 候选顺序：角 → 边 → 内部。α-β 下好顺序能少搜一大截。
-// 用代码生成而不是手写：手写漏一格会让「合法点被跳过」，是规则级错误。
-const SCAN_ORDER = (() => {
-    const corners = [0, 7, 56, 63];
-    const edges = [];
-    const inner = [];
-    for (let i = 0; i < 64; i++) {
-        if (corners.includes(i)) continue;
-        const r = (i / 8) | 0, c = i % 8;
-        if (r === 0 || r === 7 || c === 0 || c === 7) edges.push(i);
-        else inner.push(i);
-    }
-    return [...corners, ...edges, ...inner];
-})();
-
-const opp = (p) => (p === BLACK ? WHITE : BLACK);
-const rowOf = (i) => (i / SIZE) | 0;
-const colOf = (i) => i % SIZE;
-const cellName = (i) => `${rowOf(i) + 1}行${colOf(i) + 1}列`;
 
 const STORE_KEY = 'skystar:v1:reversi:record';
 
-// ─── 纯规则层（无 DOM，跑分台直接复用）───
-
-/** 返回该点落子能翻掉的棋子下标；不能落则返回 null */
-function flipsAt(board, pos, player) {
-    if (board[pos] !== EMPTY) return null;
-    const r0 = rowOf(pos), c0 = colOf(pos);
-    const out = [];
-    for (const [dr, dc] of DIRS) {
-        const line = [];
-        let r = r0 + dr, c = c0 + dc;
-        while (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r * SIZE + c] === opp(player)) {
-            line.push(r * SIZE + c);
-            r += dr;
-            c += dc;
-        }
-        if (line.length && r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r * SIZE + c] === player) {
-            out.push(...line);
-        }
-    }
-    return out.length ? out : null;
-}
-
-function legalMoves(board, player) {
-    const res = [];
-    for (const i of SCAN_ORDER) {
-        if (board[i] === EMPTY && flipsAt(board, i, player)) res.push(i);
-    }
-    return res;
-}
-
-function applyMove(board, pos, player) {
-    const next = board.slice();
-    const flips = flipsAt(next, pos, player) || [];
-    next[pos] = player;
-    for (const f of flips) next[f] = player;
-    return next;
-}
-
-function countDiscs(board) {
-    let black = 0, white = 0;
-    for (const v of board) {
-        if (v === BLACK) black++;
-        else if (v === WHITE) white++;
-    }
-    return { black, white };
-}
-
-function initialBoard() {
-    const b = new Array(SIZE * SIZE).fill(EMPTY);
-    b[27] = WHITE; b[28] = BLACK;   // d4=e5 摆法：黑在 e4/d5
-    b[35] = BLACK; b[36] = WHITE;
-    return b;
-}
-
-// ─── 评估与搜索 ───
-
-const DEFAULT_W = { corner: 40, edge: 8, mobility: 10, disc: 1 };
-
 function readWeights() {
     const lab = window.aiLab;
-    if (!lab) return { ...DEFAULT_W, depth: 3 };
+    if (!lab) return { ...DEFAULT_WEIGHTS, depth: 3 };
     return {
-        corner: lab.get('reversi', 'wCorner', DEFAULT_W.corner),
-        edge: lab.get('reversi', 'wEdge', DEFAULT_W.edge),
-        mobility: lab.get('reversi', 'wMobility', DEFAULT_W.mobility),
-        disc: lab.get('reversi', 'wDisc', DEFAULT_W.disc),
+        corner: lab.get('reversi', 'wCorner', DEFAULT_WEIGHTS.corner),
+        edge: lab.get('reversi', 'wEdge', DEFAULT_WEIGHTS.edge),
+        mobility: lab.get('reversi', 'wMobility', DEFAULT_WEIGHTS.mobility),
+        disc: lab.get('reversi', 'wDisc', DEFAULT_WEIGHTS.disc),
         depth: lab.get('reversi', 'depth', 3),
-    };
-}
-
-function evaluate(board, me, W) {
-    let mine = 0, theirs = 0, myEdge = 0, theirEdge = 0, myCorner = 0, theirCorner = 0;
-    for (let i = 0; i < 64; i++) {
-        const v = board[i];
-        if (!v) continue;
-        const isMine = v === me;
-        if (isMine) mine++; else theirs++;
-        const r = rowOf(i), c = colOf(i);
-        const onEdge = r === 0 || r === 7 || c === 0 || c === 7;
-        const onCorner = (r === 0 || r === 7) && (c === 0 || c === 7);
-        if (onCorner) { if (isMine) myCorner++; else theirCorner++; }
-        else if (onEdge) { if (isMine) myEdge++; else theirEdge++; }
-    }
-    const myMob = legalMoves(board, me).length;
-    const opMob = legalMoves(board, opp(me)).length;
-    return W.corner * (myCorner - theirCorner)
-        + W.edge * (myEdge - theirEdge)
-        + W.mobility * (myMob - opMob)
-        + W.disc * (mine - theirs);
-}
-
-function negamax(board, player, depth, alpha, beta, W) {
-    const moves = legalMoves(board, player);
-    if (!moves.length) {
-        // 自己无处可落：对手也无所可落则终局，否则轮空一手（深度不递减，避免无限递归）
-        if (!legalMoves(board, opp(player)).length) {
-            const d = countDiscs(board);
-            const diff = player === BLACK ? d.black - d.white : d.white - d.black;
-            return diff * 1000;
-        }
-        return -negamax(board, opp(player), depth, -beta, -alpha, W);
-    }
-    if (depth <= 0) return evaluate(board, player, W);
-
-    let best = -Infinity;
-    for (const mv of moves) {
-        const val = -negamax(applyMove(board, mv, player), opp(player), depth - 1, -beta, -alpha, W);
-        if (val > best) best = val;
-        if (best > alpha) alpha = best;
-        if (alpha >= beta) break;
-    }
-    return best;
-}
-
-/** 选出白方（AI）最佳落点，附带每个候选的评分供遥测展示 */
-function searchBest(board, player, W) {
-    const moves = legalMoves(board, player);
-    if (!moves.length) return null;
-    const startedAt = performance.now();
-    const scored = [];
-    let best = -Infinity, bestMove = moves[0];
-    for (const mv of moves) {
-        const val = -negamax(applyMove(board, mv, player), opp(player), W.depth - 1, -Infinity, Infinity, W);
-        scored.push({ move: mv, val });
-        if (val > best) { best = val; bestMove = mv; }
-    }
-    const sorted = [...scored].sort((a, b) => b.val - a.val);
-    return {
-        move: bestMove,
-        scored,
-        best,
-        runnerUp: sorted[1]?.val,
-        ms: performance.now() - startedAt,
-        depth: W.depth,
     };
 }
 
@@ -191,6 +57,7 @@ class ReversiGame {
         this.human = BLACK;
         this.ai = WHITE;
         this.aiTimer = null;
+        this.epoch = 0;
         this.buildCells();
 
         this.startBtn?.addEventListener('click', () => this.restart());
@@ -220,6 +87,7 @@ class ReversiGame {
     }
 
     restart() {
+        this.epoch++;
         clearTimeout(this.aiTimer);
         this.aiTimer = null;
         this.board = initialBoard();
@@ -264,10 +132,15 @@ class ReversiGame {
         this.aiTimer = setTimeout(() => this.aiStep(), 420);
     }
 
-    aiStep() {
+    async aiStep() {
         if (!this.playing || this.turn !== this.ai) { this.busy = false; return; }
+        const stepEpoch = this.epoch;
         const W = readWeights();
-        const res = searchBest(this.board, this.ai, W);
+        const res = await searchReversiAsync(this.board, this.ai, W);
+        if (stepEpoch !== this.epoch || !this.playing || this.turn !== this.ai) {
+            this.busy = false;
+            return;
+        }
         if (!res) { this.busy = false; this.maybeAutoPass(); return; }
 
         if (window.aiTrace) {
@@ -275,7 +148,7 @@ class ReversiGame {
                 candidates: res.scored.length,
                 unit: '个落点',
                 ms: res.ms,
-                choice: `${rowOf(res.move) + 1}行${colOf(res.move) + 1}列`,
+                choice: cellName(res.move),
                 score: res.best,
                 runnerUp: res.runnerUp,
                 meta: `深度 ${res.depth}`,
@@ -391,7 +264,7 @@ class ReversiGame {
         container.style.setProperty('--reversi-board-size', `${Math.floor(size)}px`);
     }
 
-    pause() { clearTimeout(this.aiTimer); this.aiTimer = null; }
+    pause() { this.epoch++; clearTimeout(this.aiTimer); this.aiTimer = null; this.busy = false; }
     resume() { if (this.aiTurn) this.scheduleAI(); }
 }
 

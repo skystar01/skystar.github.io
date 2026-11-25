@@ -1958,25 +1958,37 @@ document.addEventListener('keydown', e => {
     // 之前这两件事分别散在 setActiveByGame 的 if/else 和 fitGame 的 switch 里，
     // 加一款游戏要改两处、漏一处不报错（漏加载只是多下了公共包，漏 fit 只是布局偏一点）。
     // 函数声明会提升，所以这里可以引用后面定义的 ensure*。
+    const modulePromises = {};
+    function loadModule(key, importer) {
+        if (modulePromises[key]) return modulePromises[key];
+        modulePromises[key] = importer()
+            .then(() => {})
+            .catch((e) => {
+                modulePromises[key] = null;
+                throw e;
+            });
+        return modulePromises[key];
+    }
+
     const GAME_META = {
-        snake:        { load: ensureGamesBundle, fit: () => window.snakeGame?.fitSnake?.() },
-        '2048':       { load: ensureGamesBundle, fit: (c) => fit2048(c) },
-        tetris:       { load: ensureGamesBundle, fit: (c) => fitTetris(c) },
-        'tic-tac-toe': { load: ensureGamesBundle, fit: (c) => fitTicTacToe(c) },
-        gomoku:       { load: ensureGamesBundle, fit: (c) => window.fitGomoku?.(c) },
-        maze:         { load: ensureGamesBundle, fit: () => window.mazeGame?.fitMaze?.() },
-        survivor:     {
-            load: ensureGamesBundle,
+        snake:         { load: () => loadModule('snake', () => import('./game-snake.js')), fit: () => window.snakeGame?.fitSnake?.() },
+        '2048':        { load: () => loadModule('2048', () => import('./game-2048.js')), fit: (c) => fit2048(c) },
+        tetris:        { load: () => loadModule('tetris', () => import('./game-tetris.js')), fit: (c) => fitTetris(c) },
+        'tic-tac-toe': { load: () => loadModule('tic-tac-toe', () => import('./game-tictactoe.js')), fit: (c) => fitTicTacToe(c) },
+        gomoku:        { load: () => loadModule('gomoku', () => import('./game-gomoku.js')), fit: (c) => window.fitGomoku?.(c) },
+        maze:          { load: () => loadModule('maze', () => import('./game-maze.js')), fit: () => window.mazeGame?.fitMaze?.() },
+        survivor:      {
+            load: () => loadModule('survivor', () => import('./game-survivor.js')),
             // 必须在 fit 之前构造：会预载精灵图，晚于 fit 会拿到默认 canvas 尺寸
             fit: (c) => { window.ensureSurvivorGame?.(); fitSurvivor(c); },
         },
-        flappy:       {
-            load: ensureGamesBundle,
+        flappy:        {
+            load: () => loadModule('flappy', () => import('./game-flappy.js')),
             fit: (c) => { const canvas = c.querySelector('canvas'); if (canvas) fitCanvasToContainer(canvas, c); },
         },
-        plane:        { load: ensurePlaneScript, fit: (c) => fitPlane(c) },
-        mine:         { load: ensureMineScript, fit: () => window.mineGame?.fitMine?.() },
-        reversi:      { load: ensureReversiScript, fit: () => window.reversiGame?.fitReversi?.() },
+        plane:         { load: ensurePlaneScript, fit: (c) => fitPlane(c) },
+        mine:          { load: ensureMineScript, fit: () => window.mineGame?.fitMine?.() },
+        reversi:       { load: ensureReversiScript, fit: () => window.reversiGame?.fitReversi?.() },
     };
     // 供 game-feedback 做一致性自检（少写一条状态读数不会报错，只会静默降级）
     window.gameMeta = GAME_META;
@@ -2000,46 +2012,20 @@ document.addEventListener('keydown', e => {
 
     // 切换 active (active 只落在中间真实 tab 上；副本只负责视觉和点击)
 
-    // 阶段2: 游戏包懒加载 —— 首次切到任意非飞机游戏时才下载(~302KB), 首屏不携带
-    let gamesBundlePromise = null;
-    function ensureGamesBundle() {
-        if (gamesBundlePromise) return gamesBundlePromise;
-        gamesBundlePromise = import('./games-bundle.js')
-            .catch((e) => { gamesBundlePromise = null; throw e; });
-        return gamesBundlePromise;
-    }
-
-    // 按需动态导入 game-plane.js (135KB,只有切到飞机游戏才下载) —— 阶段1模块化后改为 ES Module 动态 import
-    let planeScriptPromise = null;
+    // 按游戏独立动态导入，只有切到对应游戏才下载该游戏模块
     function ensurePlaneScript() {
         if (window.startPlaneGame) return Promise.resolve();
-        if (planeScriptPromise) return planeScriptPromise;
-        planeScriptPromise = import('./game-plane.js')
-            .then(() => {})
-            .catch((e) => { planeScriptPromise = null; throw e; });
-        return planeScriptPromise;
+        return loadModule('plane', () => import('./game-plane.js'));
     }
 
-    // 概率扫雷同样独立懒加载：求解器（枚举 + DP）体积不小，不该塞进公共游戏包
-    let mineScriptPromise = null;
     function ensureMineScript() {
         if (window.mineGame) return Promise.resolve();
-        if (mineScriptPromise) return mineScriptPromise;
-        mineScriptPromise = import('./game-mine.js')
-            .then(() => {})
-            .catch((e) => { mineScriptPromise = null; throw e; });
-        return mineScriptPromise;
+        return loadModule('mine', () => import('./game-mine.js'));
     }
 
-    // 黑白棋同样独立成包：规则 + 搜索 + 棋盘渲染都在 game-reversi.js 里
-    let reversiScriptPromise = null;
     function ensureReversiScript() {
         if (window.reversiGame) return Promise.resolve();
-        if (reversiScriptPromise) return reversiScriptPromise;
-        reversiScriptPromise = import('./game-reversi.js')
-            .then(() => {})
-            .catch((e) => { reversiScriptPromise = null; throw e; });
-        return reversiScriptPromise;
+        return loadModule('reversi', () => import('./game-reversi.js'));
     }
 
     // ─── 游戏生命周期管理 ───
@@ -2083,8 +2069,8 @@ document.addEventListener('keydown', e => {
 
         // 阶段2: 懒加载游戏代码, 首屏不下载(~302KB); 仅在真正切换时才触发
         try {
-            const load = GAME_META[gameName]?.load || ensureGamesBundle;
-            await load();
+            const load = GAME_META[gameName]?.load;
+            if (load) await load();
         } catch (error) {
             if (version === gameSwitchVersion) {
                 stage.dataset.loadState = 'error';

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.9/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "src/**",
+      "tests/**",
+      "vite.config.js",
+      "tools/verify-mine-solver.mjs",
+      "package.json",
+      "tsconfig.json",
+      "biome.json",
+      "!!**/dist"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "useIterableCallbackReturn": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/app.js",
+        "src/game-plane.js",
+        "src/game-snake.js",
+        "src/game-flappy.js",
+        "src/game-2048.js",
+        "src/game-tetris.js",
+        "src/game-tictactoe.js",
+        "src/game-gomoku.js",
+        "src/game-maze.js",
+        "src/game-survivor.js"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noInnerDeclarations": "warn",
+            "noUnreachable": "warn",
+            "noConstantCondition": "warn",
+            "noSwitchDeclarations": "warn"
+          },
+          "suspicious": {
+            "noAssignInExpressions": "warn"
+          }
+        }
+      }
+    }
+  ],
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}

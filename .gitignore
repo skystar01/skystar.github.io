@@ -65,3 +65,10 @@ yarn.lock
 *.tmp
 *.temp
 .cache/
+
+# ─── 本地调试 / 自动化工具临时产物 ───
+.workbuddy/
+.playwright-cli/
+output/
+news/.trae-html-share-packages/
+

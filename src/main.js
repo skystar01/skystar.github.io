@@ -21,20 +21,24 @@ import './site-polish.js';
 // ─── AI 算法标签联动 ───
 // 让 .ai-algo-tag 在游戏 AI 激活时进入"脉动态"(加 .ai-algo-tag--active),
 // 配合 CSS 实现: 默认呼吸 + hover 放大 → AI 激活时强发光 + 缩放脉动。
-// 不读游戏内部状态(避免耦合), 改成"按钮 click → 60ms 后同步 toggle 标签"——
-// 游戏代码基本都在 toggle 内部 setTimeout 切 class, 60ms 足够追上。
+// 使用 MutationObserver 即时响应按钮 class 与文本变化，消除 setTimeout 轮询竞态。
 function bindAiAlgoTag(btnId, tagSelector, getActive) {
   const btn = document.getElementById(btnId);
   const tag = document.querySelector(tagSelector);
   if (!btn || !tag) return;
-  // 初始同步
-  tag.classList.toggle('ai-algo-tag--active', !!getActive(btn));
-  // 按钮 click 后, 短暂延迟让游戏切完状态, 再同步
-  btn.addEventListener('click', () => {
-    setTimeout(() => {
-      tag.classList.toggle('ai-algo-tag--active', !!getActive(btn));
-    }, 60);
-  });
+  const sync = () => {
+    tag.classList.toggle('ai-algo-tag--active', !!getActive(btn));
+  };
+  sync();
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(sync).observe(btn, {
+      attributes: true,
+      attributeFilter: ['class'],
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  }
 }
 
 // 5 个独立 AI 按钮: 读按钮上的 .ai-active class (snake/2048/tetris/tictactoe 用这个标记)
@@ -48,16 +52,19 @@ bindAiAlgoTag('tetrisAI',       '.game-tetris        .ai-algo-tag', hasAiActive)
 bindAiAlgoTag('ticTacToeAI',    '.game-tic-tac-toe   .ai-algo-tag', hasAiActive);
 bindAiAlgoTag('flappyAIButton', '.game-flappy        .ai-algo-tag', isFlappyActive);
 
-// gomoku: 没有独立 AI 按钮, AI 在 pve 模式下自动启用, 监听 mode 切换
+// gomoku: 没有独立 AI 按钮, AI 在 pve 模式下自动启用, 监听 mode 按钮 class 变化
 const gomokuPveBtn = document.querySelector('.gomoku-mode-btn[data-mode="pve"]');
 const gomokuTag = document.querySelector('.game-gomoku .ai-algo-tag');
 if (gomokuPveBtn && gomokuTag) {
   const syncGomoku = () => {
     gomokuTag.classList.toggle('ai-algo-tag--active', gomokuPveBtn.classList.contains('active'));
   };
-  document.querySelectorAll('.gomoku-mode-btn').forEach((b) => {
-    b.addEventListener('click', () => setTimeout(syncGomoku, 60));
-  });
   // 初始: pve 默认 active (index.html 里 .active 初始落在 pve)
   syncGomoku();
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(syncGomoku).observe(gomokuPveBtn, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+  }
 }

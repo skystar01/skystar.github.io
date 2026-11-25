@@ -62,7 +62,7 @@ const api = {
      *          score?:number, runnerUp?:number, meta?:string}} trace
      */
     report(gameKey, trace) {
-        const active = document.querySelector('.game-tab.active')?.dataset.game;
+        const active = document.querySelector('.game-tab.active')?.getAttribute('data-game');
         if (!active || active !== gameKey) return;   // 后台游戏的决策不打扰当前画面
         const el = ensurePill();
         if (!el) return;
@@ -94,7 +94,7 @@ if (track && typeof MutationObserver !== 'undefined') {
     }).observe(track, { subtree: true, attributes: true, attributeFilter: ['class'] });
 }
 document.addEventListener('click', (e) => {
-    if (e.target.closest('.game-tab, #gamePicker')) api.clear();
+    if (e.target instanceof Element && e.target.closest('.game-tab, #gamePicker')) api.clear();
 });
 
 window.aiTrace = api;
