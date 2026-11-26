@@ -174,6 +174,38 @@ function initSkillSphere() {
     function draw() {
         ctx.clearRect(0, 0, width, height);
 
+        const cx = width * 0.5;
+        const cy = height * 0.5;
+        const rGlobe = Math.min(width, height) * 0.34 * zoom;
+
+        // 0. GitHub Globe 风格：淡雅球体轮廓光晕 + 经纬线参考环
+        const halo = ctx.createRadialGradient(cx, cy, rGlobe * 0.25, cx, cy, rGlobe * 1.18);
+        halo.addColorStop(0, 'rgba(45, 85, 212, 0.06)');
+        halo.addColorStop(0.75, 'rgba(45, 85, 212, 0.025)');
+        halo.addColorStop(1, 'rgba(45, 85, 212, 0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(cx, cy, rGlobe * 1.18, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 球体最外圈细轮廓
+        ctx.beginPath();
+        ctx.arc(cx, cy, rGlobe * 1.02, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(45, 85, 212, 0.09)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // 赤道椭圆虚线环（随 rotX 倾角变化）
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, rGlobe * 1.02, Math.max(4, Math.abs(Math.sin(rotX)) * rGlobe * 1.02), 0, 0, Math.PI * 2);
+        ctx.setLineDash([3, 5]);
+        ctx.strokeStyle = 'rgba(45, 85, 212, 0.11)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.restore();
+
         // 1. 绘制球面网格连线
         for (const [i, j] of edges) {
             const a = nodes[i];
@@ -182,8 +214,8 @@ function initSkillSphere() {
             const isHighlighted =
                 selectedNode && (a === selectedNode || b === selectedNode);
             const alpha = isHighlighted
-                ? 0.55
-                : Math.max(0.05, Math.min(0.24, (depth + 1) * 0.12));
+                ? 0.65
+                : Math.max(0.04, Math.min(0.2, (depth + 1) * 0.1));
 
             ctx.beginPath();
             ctx.moveTo(a.sx, a.sy);
@@ -191,7 +223,7 @@ function initSkillSphere() {
             ctx.strokeStyle = isHighlighted
                 ? `rgba(207, 113, 76, ${alpha})`
                 : `rgba(45, 85, 212, ${alpha})`;
-            ctx.lineWidth = isHighlighted ? 1.4 : 0.85;
+            ctx.lineWidth = isHighlighted ? 1.6 : 0.8;
             ctx.stroke();
         }
 
@@ -201,36 +233,56 @@ function initSkillSphere() {
             const frontness = (n.sz + 1) * 0.5; // 0(背) -> 1(正前)
             const isSelected = n === selectedNode;
             const isHovered = n === hoveredNode;
-            const baseAlpha = isSelected || isHovered ? 1 : 0.25 + frontness * 0.75;
-            const r = (isSelected ? 7.5 : isHovered ? 6 : 3.2 + frontness * 2.5) * Math.min(1.25, zoom * 0.9);
+            const isConnected = selectedNode && edges.some(
+                ([i, j]) => (nodes[i] === selectedNode && nodes[j] === n) || (nodes[j] === selectedNode && nodes[i] === n)
+            );
+            const baseAlpha = isSelected || isHovered || isConnected ? 1 : 0.22 + frontness * 0.78;
+            const r = (isSelected ? 7.5 : isHovered ? 6 : isConnected ? 5 : 3 + frontness * 2.4) * Math.min(1.25, zoom * 0.9);
+
+            // 节点外圈微光（正面节点 & 选中节点）
+            if (frontness > 0.65 || isSelected || isHovered) {
+                ctx.beginPath();
+                ctx.arc(n.sx, n.sy, r + (isSelected ? 5 : 3), 0, Math.PI * 2);
+                ctx.fillStyle = isSelected
+                    ? 'rgba(207, 113, 76, 0.16)'
+                    : 'rgba(45, 85, 212, 0.1)';
+                ctx.fill();
+            }
 
             // 节点圆点
             ctx.beginPath();
             ctx.arc(n.sx, n.sy, r, 0, Math.PI * 2);
             ctx.fillStyle = isSelected
                 ? `rgba(207, 113, 76, ${baseAlpha})`
-                : `rgba(45, 85, 212, ${baseAlpha})`;
+                : isConnected
+                    ? `rgba(207, 113, 76, 0.85)`
+                    : `rgba(45, 85, 212, ${baseAlpha})`;
             ctx.fill();
 
-            if (isSelected || isHovered) {
-                ctx.beginPath();
-                ctx.arc(n.sx, n.sy, r + 4, 0, Math.PI * 2);
-                ctx.strokeStyle = isSelected
-                    ? 'rgba(207, 113, 76, 0.35)'
-                    : 'rgba(45, 85, 212, 0.3)';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            }
-
-            // 标签文字（背面极淡，正面清晰）
+            // 标签文字（悬停/选中时带 GitHub 风格胶囊底，避免被线穿过）
             const fontSize = Math.round(10 + frontness * 2.5);
             ctx.font = `${isSelected || isHovered ? '600' : '500'} ${fontSize}px 'Noto Sans SC', sans-serif`;
+            const labelY = n.sy - r - 10;
+            if (isSelected || isHovered) {
+                const tw = ctx.measureText(n.name).width;
+                const pw = tw + 14;
+                const ph = 20;
+                ctx.fillStyle = 'rgba(251, 251, 248, 0.94)';
+                ctx.strokeStyle = isSelected ? '#cf714c' : '#2d55d4';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(n.sx - pw / 2, labelY - ph / 2, pw, ph, 10);
+                ctx.fill();
+                ctx.stroke();
+            }
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = isSelected
                 ? '#cf714c'
-                : `rgba(37, 42, 48, ${0.22 + frontness * 0.78})`;
-            ctx.fillText(n.name, n.sx, n.sy - r - 9);
+                : isHovered
+                    ? '#2d55d4'
+                    : `rgba(37, 42, 48, ${0.2 + frontness * 0.8})`;
+            ctx.fillText(n.name, n.sx, labelY);
         }
     }
 
