@@ -17,6 +17,7 @@ import './ai-trace.js';     // 决策遥测: 游戏上报「这一步想了什�
 import './app.js';
 import './game-feedback.js';
 import './site-polish.js';
+import './skill-sphere.js';
 
 // ─── AI 算法标签联动 ───
 // 让 .ai-algo-tag 在游戏 AI 激活时进入"脉动态"(加 .ai-algo-tag--active),
