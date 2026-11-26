@@ -12,19 +12,13 @@
 
 // wasm 运行时放在 public/models/(包体 exports 不放行深路径,走静态目录最稳)。
 //
-// ⚠️ 关键坑:wasm 路径必须是「绝对 URL」,不能是相对路径。
-//   - vite base 是 './',import.meta.env.BASE_URL 只返回 './',无法提供
-//     GitHub Pages 的子路径(/skystar.github.io/)。
-//   - 若给 onnxruntime 相对路径 './models/',它会把请求解析到
-//     它自己 bundle 所在的 assets/ 目录 → 请求 assets/models/...wasm → 404。
-//   - 用 document.baseURI 取页面绝对目录(自带子路径),拼出绝对 URL,
-//     onnxruntime 才会老老实实去 <origin>/<子路径>/models/ 下加载。
-function resolveModelsDir() {
-  const uri = document.baseURI || location.href;
-  return uri.slice(0, uri.lastIndexOf('/') + 1) + 'models/';
-}
-const WASM_DIR = resolveModelsDir();
-const MODEL_URL = WASM_DIR + 'flappy-dqn.onnx';
+// ✅ 路径策略:用 import.meta.url 取当前 chunk 的绝对 URL,再推算 models/ 目录。
+//   - Dev 模式:  src/flappy-onnx.js        → ../models/ → /models/
+//   - GitHub Pages: assets/game-flappy-xxx.js → ../models/ → /repo/models/
+//   这比 document.baseURI 更可靠:不依赖 DOM,不受页面 URL 格式(有无尾斜杠)影响,
+//   Vite/Rollup 会在构建时把 import.meta.url 替换为 chunk 的真实 URL。
+const WASM_DIR = new URL('../models/', import.meta.url).href;
+const MODEL_URL = new URL('../models/flappy-dqn.onnx', import.meta.url).href;
 
 // 推理上下文单例({ ort, session }),重复调用复用同一个 Promise
 let contextPromise = null;
