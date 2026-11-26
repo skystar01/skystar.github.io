@@ -40,13 +40,14 @@ export function loadFlappyAi() {
 }
 
 /**
- * 输入 12 维原始游戏状态,输出动作 0(不动)/ 1(拍翅)
- * 与 Flask 版 /api/ai/action 的语义完全等价
+ * 输入经过 gymnasium 归一化的 12 维状态数组,输出动作 0(不动)/ 1(拍翅)
+ *
+ * ⚠️ 调用方必须先调用 toGymState() 做坐标系转换,再传入此函数。
+ *    训练时 obs space = Box(-1, 1),直接传原始像素坐标会导致 AI 完全失效。
  */
-export async function predictAction(rawState) {
+export async function predictAction(gymState) {
     const { ort, session } = await loadFlappyAi();
-    const input = new Float32Array(12);
-    for (let i = 0; i < 12; i++) input[i] = rawState[i] / 100;
+    const input = new Float32Array(gymState);   // 已归一化,直接用
     const tensor = new ort.Tensor('float32', input, [1, 12]);
     const result = await session.run({ state: tensor });
     const q = result.q_values.data;

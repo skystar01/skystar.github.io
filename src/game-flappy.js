@@ -270,26 +270,58 @@ class FlappyBird {
     async getAIAction() {
         if (!this.aiModelLoaded) return 0;
 
-        const state = this.getGameState();
+        // ─── 坐标系转换: browser raw → gymnasium obs ───────────────────────
+        // 训练环境 (flappy_bird_gymnasium) obs space = Box(-1, 1), 12 维:
+        //   [0-2]  下一根柱子: x/W, topY/H, botY/H          (绝对位置/屏宽高)
+        //   [3-5]  再下一根柱子
+        //   [6-8]  第三根 (浏览器只追踪两根,用占位值)
+        //   [9]    鸟 y / H
+        //   [10]   速度 (拍翅后 ≈ -0.9; gymnasium lift=-9, norm by 10)
+        //   [11]   旋转 (拍翅后 ≈ 0.5; 值域翻转: upward=大)
+        //
+        // 浏览器 getGameState() 顺序:
+        //   [0-2]  lastPassedPipe  ← 模型不用这个!
+        //   [3-5]  nextPipe        ← 对应 gym[0-2]
+        //   [6-8]  nextNextPipe    ← 对应 gym[3-5]
+        //   [9]    birdY
+        //   [10]   birdVel  (lift = -2.5)
+        //   [11]   birdRot  (-π/6 upward, π/2 downward)
+        const raw = this.getGameState();
+        const W = this.width;      // 400
+        const H = this.height;     // 600
+
+        // 速度缩放: 使拍翅后速度 -2.5 映射到 gym 的 -0.9
+        const VEL_SCALE = 0.9 / Math.abs(this.bird.lift); // = 0.9 / 2.5 = 0.36
+        // 旋转: [-π/6, π/2] → [0.5, 0]  (上扬=0.5, 俯冲=0, 与 gym 一致)
+        const rotNorm = r => (-r + Math.PI / 6) / (Math.PI / 2 + Math.PI / 6);
+
+        const gymState = [
+            raw[3] / W,  raw[4] / H,  raw[5] / H,   // gym[0-2]: nextPipe
+            raw[6] / W,  raw[7] / H,  raw[8] / H,   // gym[3-5]: nextNextPipe
+            1.0,         0.0,         1.0,            // gym[6-8]: 第三根占位(屏外=1)
+            raw[9] / H,                               // gym[9]:   bird y
+            raw[10] * VEL_SCALE,                      // gym[10]:  velocity
+            rotNorm(raw[11]),                          // gym[11]:  rotation
+        ];
 
         // ONNX 通道:纯浏览器推理,零网络开销
         if (this.aiBackend === 'onnx') {
             try {
-                return await predictAction(state);
+                return await predictAction(gymState);
             } catch (error) {
                 console.error('ONNX 推理失败:', error);
                 return 0;
             }
         }
 
-        // Flask 通道(本地开发)
+        // Flask 通道(本地开发): Flask 内部做 state/100,故乘回 100 再传
         try {
             const response = await fetch(`${this.backendUrl}/api/ai/action`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ state: state })
+                body: JSON.stringify({ state: gymState.map(v => v * 100) })
             });
 
             const data = await response.json();
