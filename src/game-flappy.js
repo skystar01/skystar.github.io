@@ -37,6 +37,7 @@ class FlappyBird {
         this.gameRunning = false;
         this.gamePaused = false;
         this.gameOver = false;
+        this.hasFlapped = false;
         this.loopRunning = false;
         
         this.aiMode = false;
@@ -161,6 +162,7 @@ class FlappyBird {
             return;
         }
         if (!this.aiMode) {
+            this.hasFlapped = true;
             this.bird.velocity = this.bird.lift;
         }
     }
@@ -169,6 +171,7 @@ class FlappyBird {
         this.gameRunning = true;
         if (!this.loopRunning) this.gameLoop();
         this.gameOver = false;
+        this.hasFlapped = false;
         this.pipes = [];
         this.score = 0;
         this.lastPassedPipe = null;
@@ -182,6 +185,7 @@ class FlappyBird {
         this.gameRunning = false;
         this.gameOver = false;
         this.gamePaused = false;
+        this.hasFlapped = false;
         this.score = 0;
         this.pipes = [];
         this.lastPassedPipe = null;
@@ -295,9 +299,12 @@ class FlappyBird {
         // 旋转: [-π/6, π/2] → [0.5, 0]  (上扬=0.5, 俯冲=0, 与 gym 一致)
         const rotNorm = r => (-r + Math.PI / 6) / (Math.PI / 2 + Math.PI / 6);
 
+        const hasSecondPipe = this.pipes.length >= 2;
         const gymState = [
             raw[3] / W,  raw[4] / H,  raw[5] / H,   // gym[0-2]: nextPipe
-            raw[6] / W,  raw[7] / H,  raw[8] / H,   // gym[3-5]: nextNextPipe
+            hasSecondPipe ? raw[6] / W : 1.0,         // gym[3-5]: nextNextPipe (无第2根时用 gym 占位 [1,0,1], 避免 x=1.5 越界)
+            hasSecondPipe ? raw[7] / H : 0.0,
+            hasSecondPipe ? raw[8] / H : 1.0,
             1.0,         0.0,         1.0,            // gym[6-8]: 第三根占位(屏外=1)
             raw[9] / H,                               // gym[9]:   bird y
             raw[10] * VEL_SCALE,                      // gym[10]:  velocity
@@ -338,13 +345,16 @@ class FlappyBird {
         if (this.aiMode && this.aiModelLoaded) {
             const action = await this.getAIAction();
             if (action === 1) {
+                this.hasFlapped = true;
                 this.bird.velocity = this.bird.lift;
             }
         }
         
-        this.bird.velocity += this.bird.gravity;
-        this.bird.y += this.bird.velocity;
-        this.bird.rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 6, this.bird.velocity * 0.15));
+        if (this.hasFlapped) {
+            this.bird.velocity += this.bird.gravity;
+            this.bird.y += this.bird.velocity;
+            this.bird.rotation = Math.min(Math.PI / 2, Math.max(-Math.PI / 6, this.bird.velocity * 0.15));
+        }
         
         this.bgOffset = (this.bgOffset + 0.5) % 512;
         this.groundOffset = (this.groundOffset + this.pipeSpeed) % 336;
