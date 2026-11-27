@@ -6,7 +6,7 @@
     <title>Sky Star - AI Developer & Innovator</title>
     <meta name="description" content="Sky Star 个人主页：强化学习 / 模型训练 / AI 游戏智能体。含开悟竞赛、Flappy DQN 端到端 Demo 与可玩 AI 游戏中心。">
     <meta name="author" content="Sky Star">
-    <meta name="theme-color" content="#f6f5f0">
+    <meta name="theme-color" content="#09090b">
     <link rel="canonical" href="https://skystar01.github.io/skystar.github.io/">
     <!-- Open Graph / 分享卡片 -->
     <meta property="og:type" content="website">
@@ -172,29 +172,29 @@
             <div class="studio-art" aria-hidden="true">
                 <div class="studio-art-meta"><span>FIG. 01 / LEARNING IN MOTION</span><span>↗</span></div>
                 <svg class="studio-sculpture" viewBox="0 0 520 480" fill="none">
-                    <path d="M32 240H488M260 28V452" stroke="#d6d5ce" stroke-dasharray="3 7"/>
-                    <circle cx="260" cy="240" r="177" stroke="#c5c7c6"/>
-                    <circle cx="260" cy="240" r="119" stroke="#c5c7c6"/>
+                    <path d="M32 240H488M260 28V452" stroke="rgba(255,255,255,0.08)" stroke-dasharray="3 7"/>
+                    <circle cx="260" cy="240" r="177" stroke="rgba(148,163,184,0.22)"/>
+                    <circle cx="260" cy="240" r="119" stroke="rgba(148,163,184,0.22)"/>
                     <g class="studio-orbit">
-                        <circle cx="260" cy="63" r="9" fill="#cf714c"/>
-                        <circle cx="260" cy="417" r="5" fill="#262b30"/>
+                        <circle cx="260" cy="63" r="9" fill="#38bdf8"/>
+                        <circle cx="260" cy="417" r="5" fill="#a1a1aa"/>
                     </g>
                     <g class="studio-fold">
-                        <path d="M126 126H274V274H126Z" fill="#2d55d4"/>
-                        <path d="M274 126C356 126 422 192 422 274H274V126Z" fill="#7192ec"/>
-                        <path d="M126 274H274V422C192 422 126 356 126 274Z" fill="#b8c8ed"/>
-                        <path d="M274 274H422V422H274Z" fill="#272c30"/>
-                        <circle cx="274" cy="274" r="46" fill="#f6f5f0"/>
-                        <circle cx="274" cy="274" r="13" fill="#cf714c"/>
+                        <path d="M126 126H274V274H126Z" fill="#6366f1"/>
+                        <path d="M274 126C356 126 422 192 422 274H274V126Z" fill="#818cf8"/>
+                        <path d="M126 274H274V422C192 422 126 356 126 274Z" fill="#1e293b"/>
+                        <path d="M274 274H422V422H274Z" fill="#18181b"/>
+                        <circle cx="274" cy="274" r="46" fill="#09090b"/>
+                        <circle cx="274" cy="274" r="13" fill="#38bdf8"/>
                     </g>
-                    <path d="M36 44H56M46 34V54M464 426H484M474 416V436" stroke="#737970"/>
+                    <path d="M36 44H56M46 34V54M464 426H484M474 416V436" stroke="#52525b"/>
                     <g class="studio-policy-path">
-                        <path d="M100 454H420" stroke="#c5c7c6"/>
-                        <circle cx="100" cy="454" r="4" fill="#2d55d4"/>
-                        <circle cx="260" cy="454" r="4" fill="#2d55d4"/>
-                        <circle cx="420" cy="454" r="4" fill="#cf714c"/>
-                        <circle class="studio-policy-signal" cx="100" cy="454" r="5" fill="#cf714c"/>
-                        <g fill="#737970" font-size="9" font-family="monospace" text-anchor="middle"><text x="100" y="476">STATE</text><text x="260" y="476">POLICY</text><text x="420" y="476">ACTION</text></g>
+                        <path d="M100 454H420" stroke="#3f3f46"/>
+                        <circle cx="100" cy="454" r="4" fill="#818cf8"/>
+                        <circle cx="260" cy="454" r="4" fill="#818cf8"/>
+                        <circle cx="420" cy="454" r="4" fill="#38bdf8"/>
+                        <circle class="studio-policy-signal" cx="100" cy="454" r="5" fill="#38bdf8"/>
+                        <g fill="#71717a" font-size="9" font-family="monospace" text-anchor="middle"><text x="100" y="476">STATE</text><text x="260" y="476">POLICY</text><text x="420" y="476">ACTION</text></g>
                     </g>
                 </svg>
                 <div class="studio-art-foot"><span>STATE → POLICY → ACTION</span><span class="studio-live">持续探索中</span></div>
@@ -548,6 +548,10 @@
                     <div class="eyebrow">Tech Stack</div>
                     <h2>技能矩阵</h2>
                     <div class="underline"></div>
+                    <div class="skills-view-switch" role="tablist" aria-label="技能视图切换">
+                        <button type="button" class="skills-view-btn active" data-view="sphere" role="tab" aria-selected="true">3D 知识图谱</button>
+                        <button type="button" class="skills-view-btn" data-view="matrix" role="tab" aria-selected="false">分类清单</button>
+                    </div>
                     <!-- RL 签名元素:训练 loss 收敛曲线,每次飞入本站时重绘一遍 -->
                     <svg class="rl-loss-curve" viewBox="0 0 220 72" aria-hidden="true">
                         <g class="rl-loss-grid">
@@ -563,7 +567,7 @@
                     </svg>
                 </div>
                 <div class="skill-sphere-card" id="skillSphereHost"></div>
-                <div class="skills-groups">
+                <div class="skills-groups" hidden>
                     <section class="skill-group skill-group-primary">
                         <div class="skill-group-head">
                             <span>Core Direction</span>

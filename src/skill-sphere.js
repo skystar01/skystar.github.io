@@ -42,6 +42,13 @@ function initSkillSphere() {
     const detailDesc = host.querySelector('.sphere-detail-desc');
     const detailTags = host.querySelector('.sphere-detail-tags');
     const detailClose = host.querySelector('.sphere-detail-close');
+    const viewButtons = panel.querySelectorAll('.skills-view-btn');
+    const groupsEl = panel.querySelector('.skills-groups');
+    let currentView = 'sphere';
+
+    function isSphereActive() {
+        return panel.classList.contains('active') && currentView === 'sphere' && !host.hidden;
+    }
 
     // ─── Fibonacci 球面分布 ───
     const N = entries.length;
@@ -178,11 +185,11 @@ function initSkillSphere() {
         const cy = height * 0.5;
         const rGlobe = Math.min(width, height) * 0.34 * zoom;
 
-        // 0. GitHub Globe 风格：淡雅球体轮廓光晕 + 经纬线参考环
+        // 0. GitHub Globe 风格：暗黑微发光轮廓光晕 + 经纬线参考环
         const halo = ctx.createRadialGradient(cx, cy, rGlobe * 0.25, cx, cy, rGlobe * 1.18);
-        halo.addColorStop(0, 'rgba(45, 85, 212, 0.06)');
-        halo.addColorStop(0.75, 'rgba(45, 85, 212, 0.025)');
-        halo.addColorStop(1, 'rgba(45, 85, 212, 0)');
+        halo.addColorStop(0, 'rgba(99, 102, 241, 0.16)');
+        halo.addColorStop(0.75, 'rgba(56, 189, 248, 0.05)');
+        halo.addColorStop(1, 'rgba(9, 9, 11, 0)');
         ctx.fillStyle = halo;
         ctx.beginPath();
         ctx.arc(cx, cy, rGlobe * 1.18, 0, Math.PI * 2);
@@ -191,7 +198,7 @@ function initSkillSphere() {
         // 球体最外圈细轮廓
         ctx.beginPath();
         ctx.arc(cx, cy, rGlobe * 1.02, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(45, 85, 212, 0.09)';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
@@ -201,7 +208,7 @@ function initSkillSphere() {
         ctx.beginPath();
         ctx.ellipse(0, 0, rGlobe * 1.02, Math.max(4, Math.abs(Math.sin(rotX)) * rGlobe * 1.02), 0, 0, Math.PI * 2);
         ctx.setLineDash([3, 5]);
-        ctx.strokeStyle = 'rgba(45, 85, 212, 0.11)';
+        ctx.strokeStyle = 'rgba(129, 140, 248, 0.22)';
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.restore();
@@ -214,15 +221,15 @@ function initSkillSphere() {
             const isHighlighted =
                 selectedNode && (a === selectedNode || b === selectedNode);
             const alpha = isHighlighted
-                ? 0.65
-                : Math.max(0.04, Math.min(0.2, (depth + 1) * 0.1));
+                ? 0.78
+                : Math.max(0.06, Math.min(0.26, (depth + 1) * 0.13));
 
             ctx.beginPath();
             ctx.moveTo(a.sx, a.sy);
             ctx.lineTo(b.sx, b.sy);
             ctx.strokeStyle = isHighlighted
-                ? `rgba(207, 113, 76, ${alpha})`
-                : `rgba(45, 85, 212, ${alpha})`;
+                ? `rgba(56, 189, 248, ${alpha})`
+                : `rgba(129, 140, 248, ${alpha})`;
             ctx.lineWidth = isHighlighted ? 1.6 : 0.8;
             ctx.stroke();
         }
@@ -236,7 +243,7 @@ function initSkillSphere() {
             const isConnected = selectedNode && edges.some(
                 ([i, j]) => (nodes[i] === selectedNode && nodes[j] === n) || (nodes[j] === selectedNode && nodes[i] === n)
             );
-            const baseAlpha = isSelected || isHovered || isConnected ? 1 : 0.22 + frontness * 0.78;
+            const baseAlpha = isSelected || isHovered || isConnected ? 1 : 0.25 + frontness * 0.75;
             const r = (isSelected ? 7.5 : isHovered ? 6 : isConnected ? 5 : 3 + frontness * 2.4) * Math.min(1.25, zoom * 0.9);
 
             // 节点外圈微光（正面节点 & 选中节点）
@@ -244,8 +251,8 @@ function initSkillSphere() {
                 ctx.beginPath();
                 ctx.arc(n.sx, n.sy, r + (isSelected ? 5 : 3), 0, Math.PI * 2);
                 ctx.fillStyle = isSelected
-                    ? 'rgba(207, 113, 76, 0.16)'
-                    : 'rgba(45, 85, 212, 0.1)';
+                    ? 'rgba(56, 189, 248, 0.28)'
+                    : 'rgba(99, 102, 241, 0.24)';
                 ctx.fill();
             }
 
@@ -253,13 +260,13 @@ function initSkillSphere() {
             ctx.beginPath();
             ctx.arc(n.sx, n.sy, r, 0, Math.PI * 2);
             ctx.fillStyle = isSelected
-                ? `rgba(207, 113, 76, ${baseAlpha})`
+                ? `rgba(56, 189, 248, ${baseAlpha})`
                 : isConnected
-                    ? `rgba(207, 113, 76, 0.85)`
-                    : `rgba(45, 85, 212, ${baseAlpha})`;
+                    ? `rgba(56, 189, 248, 0.88)`
+                    : `rgba(165, 180, 252, ${baseAlpha})`;
             ctx.fill();
 
-            // 标签文字（悬停/选中时带 GitHub 风格胶囊底，避免被线穿过）
+            // 标签文字（悬停/选中时带暗黑毛玻璃胶囊底，避免被线穿过）
             const fontSize = Math.round(10 + frontness * 2.5);
             ctx.font = `${isSelected || isHovered ? '600' : '500'} ${fontSize}px 'Noto Sans SC', sans-serif`;
             const labelY = n.sy - r - 10;
@@ -267,8 +274,8 @@ function initSkillSphere() {
                 const tw = ctx.measureText(n.name).width;
                 const pw = tw + 14;
                 const ph = 20;
-                ctx.fillStyle = 'rgba(251, 251, 248, 0.94)';
-                ctx.strokeStyle = isSelected ? '#cf714c' : '#2d55d4';
+                ctx.fillStyle = 'rgba(17, 18, 23, 0.92)';
+                ctx.strokeStyle = isSelected ? '#38bdf8' : '#818cf8';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.roundRect(n.sx - pw / 2, labelY - ph / 2, pw, ph, 10);
@@ -278,16 +285,16 @@ function initSkillSphere() {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = isSelected
-                ? '#cf714c'
+                ? '#38bdf8'
                 : isHovered
-                    ? '#2d55d4'
-                    : `rgba(37, 42, 48, ${0.2 + frontness * 0.8})`;
+                    ? '#e0e7ff'
+                    : `rgba(244, 244, 245, ${0.22 + frontness * 0.78})`;
             ctx.fillText(n.name, n.sx, labelY);
         }
     }
 
     function step() {
-        if (!panel.classList.contains('active')) {
+        if (!isSphereActive()) {
             rafId = null;
             return;
         }
@@ -315,7 +322,7 @@ function initSkillSphere() {
     }
 
     function startLoop() {
-        if (!rafId && panel.classList.contains('active')) {
+        if (!rafId && isSphereActive()) {
             resize();
             rafId = requestAnimationFrame(step);
         }
@@ -384,16 +391,37 @@ function initSkillSphere() {
         clearDetail();
     });
 
-    window.addEventListener('resize', () => {
-        if (panel.classList.contains('active')) resize();
+    viewButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const view = btn.dataset.view;
+            if (!view || view === currentView) return;
+            currentView = view;
+            viewButtons.forEach((b) => {
+                const active = b === btn;
+                b.classList.toggle('active', active);
+                b.setAttribute('aria-selected', String(active));
+            });
+            const showSphere = view === 'sphere';
+            host.hidden = !showSphere;
+            if (groupsEl) groupsEl.hidden = showSphere;
+            if (showSphere) {
+                startLoop();
+            } else {
+                clearDetail();
+            }
+        });
     });
 
-    // 仅在 #panel-skills 激活时运行，切走立刻停掉 rAF
+    window.addEventListener('resize', () => {
+        if (isSphereActive()) resize();
+    });
+
+    // 仅在 #panel-skills 激活且处于 3D 视图时运行，切走立刻停掉 rAF
     new MutationObserver(() => {
-        if (panel.classList.contains('active')) startLoop();
+        if (isSphereActive()) startLoop();
     }).observe(panel, { attributes: true, attributeFilter: ['class'] });
 
-    if (panel.classList.contains('active')) startLoop();
+    if (isSphereActive()) startLoop();
 }
 
 whenDomReady(initSkillSphere);
